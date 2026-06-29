@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Produkt – Quartz Mølle</title>
+  <link rel="icon" href="images/logo-small.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <a href="index.html" class="nav-logo">
+      <img src="images/logopng.png" alt="Quartz Mølle" class="brand-mark" />
+      <img src="images/eu-organic.jpg" alt="EU Økologi" class="eco-mark" />
+      <img src="images/statskontrolleret.png" alt="Statskontrolleret Økologisk" class="eco-mark" />
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Hjem</a>
+      <a href="shop.html">Shop</a>
+      <a href="forhandlere.html">Forhandlere</a>
+      <a href="om.html" class="nav-btn">Om os</a>
+      <a href="index.html#kontakt">Kontakt</a>
+    </div>
+    <a href="shop.html" class="nav-cta">Shop Nu</a>
+    <button class="nav-burger" id="burger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">Hjem</a>
+    <a href="shop.html">Shop</a>
+    <a href="forhandlere.html">Forhandlere</a>
+    <a href="om.html">Om os</a>
+    <a href="index.html#kontakt">Kontakt</a>
+  </div>
+
+  <div class="product-page">
+    <div class="product-hero-band">
+      <span class="eyebrow">Quartz Mølle · Økologisk stenmalet mel</span>
+    </div>
+    <div class="product-page-inner" id="productInner">
+      <div class="shop-loading" style="grid-column:1/-1">Indlæser produkt…</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <img src="images/logopng.png" alt="Quartz Mølle" class="footer-logo" />
+      <p>© 2025 Quartz Mølle · CVR 42117188 · <a href="mailto:hello@quartzmolle.dk">hello@quartzmolle.dk</a></p>
+      <div class="footer-links">
+        <a href="shop.html">Shop</a>
+        <a href="forhandlere.html">Forhandlere</a>
+        <a href="om.html">Om os</a>
+        <a href="index.html#kontakt">Kontakt</a>
+        <a href="https://www.findsmiley.dk/1149461" class="footer-smiley-link" target="_blank" rel="noopener" title="Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen" aria-label="Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M8.6 14.3c.85 1.1 2 1.7 3.4 1.7s2.55-.6 3.4-1.7"></path>
+            <path d="M9 9.6h.01M15 9.6h.01"></path>
+          </svg>
+          <span class="footer-smiley-word">Smiley­rapport</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="js/products.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/product.js"></script>
+</body>
+</html>

@@ -1,0 +1,668 @@
+// api/stripe-webhook.js — Vercel Serverless Function
+//
+// Handles Stripe events for BOTH:
+//   - checkout.session.completed (legacy Stripe Checkout redirect flow)
+//   - payment_intent.succeeded   (new custom Stripe Elements checkout flow)
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+async function readRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+function normalizeCountry(c) {
+  if (!c) return 'DK';
+  return String(c).toUpperCase().slice(0, 2);
+}
+
+// Pick which weight bracket (5/10/15/20) a cart falls into.
+// Brackets match GLS price tiers: 0-1 kg, 1-5 kg, 5-10 kg, 10-15 kg, 15-20 kg.
+// We don't have a 0-1 kg template, so 0-1 kg orders fall into the 1-5 kg bracket.
+function pickWeightBracket(weightKg) {
+  if (weightKg <= 5) return '5';
+  if (weightKg <= 10) return '10';
+  if (weightKg <= 15) return '15';
+  if (weightKg <= 20) return '20';
+  return '25'; // 20-25 kg (anything above 25 also goes here as a safety fallback)
+}
+
+function pickTemplateId(deliveryKey, shippingName, templates, weightKg) {
+  // Determine delivery type: 'gls_pakkeshop' or 'gls_privat'
+  let deliveryType = deliveryKey;
+  if (!deliveryType) {
+    const name = (shippingName || '').toLowerCase();
+    if (name.includes('pakkeshop')) deliveryType = 'gls_pakkeshop';
+    else if (name.includes('privat')) deliveryType = 'gls_privat';
+    else deliveryType = 'gls_privat'; // default fallback
+  }
+
+  // Try weight-bracketed key first, e.g. gls_pakkeshop_10 for a 7 kg order to Pakkeshop
+  const bracket = pickWeightBracket(weightKg || 0);
+  const bracketedKey = `${deliveryType}_${bracket}`;
+  if (templates[bracketedKey]) return templates[bracketedKey];
+
+  // Fallback to non-bracketed key (legacy behavior, single template per delivery type)
+  if (templates[deliveryType]) return templates[deliveryType];
+
+  // Final fallback: any template
+  return templates.gls_privat || templates.gls_pakkeshop;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).json({ error: 'Missing Stripe signature' });
+  }
+
+  let event;
+  try {
+    const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+    const rawBody = await readRawBody(req);
+    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+
+  try {
+    let orderData = null;
+
+    if (event.type === 'payment_intent.succeeded') {
+      // CRITICAL: re-fetch the PaymentIntent fresh from Stripe so we get the LATEST
+      // metadata (including pakkeshop info that may have been updated between
+      // payment attempt and webhook firing).
+      const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+      const freshPI = await stripe.paymentIntents.retrieve(event.data.object.id);
+      orderData = parsePaymentIntent(freshPI);
+    } else if (event.type === 'checkout.session.completed') {
+      orderData = await parseCheckoutSession(event.data.object);
+    } else {
+      return res.status(200).json({ received: true, skipped: event.type });
+    }
+
+    if (!orderData) {
+      return res.status(200).json({ received: true, skipped: 'no order data' });
+    }
+
+    let templates = {};
+    console.log('Raw SHIPMENT_TEMPLATES env:', JSON.stringify(process.env.SHIPMENT_TEMPLATES));
+    try { templates = JSON.parse(process.env.SHIPMENT_TEMPLATES || '{}'); } catch (e) { console.error('Failed to parse SHIPMENT_TEMPLATES:', e.message); }
+    console.log('Parsed templates:', templates);
+
+    // Calculate total cart weight (kg) — used to pick correct template + packaging
+    function parseWeightKg(label) {
+      if (!label) return 0;
+      const m = String(label).match(/(\d+(?:[.,]\d+)?)\s*kg/i);
+      if (!m) return 0;
+      return parseFloat(m[1].replace(',', '.')) || 0;
+    }
+    const totalWeightKg = orderData.items.reduce((sum, it) => {
+      return sum + (parseWeightKg(it.weightLabel) * (it.qty || 1));
+    }, 0);
+    console.log('Total order weight:', totalWeightKg, 'kg');
+
+    const templateId = pickTemplateId(orderData.deliveryKey, orderData.shippingDisplayName, templates, totalWeightKg);
+    if (!templateId) {
+      console.error('No template matched. deliveryKey=', orderData.deliveryKey, 'shippingName=', orderData.shippingDisplayName, 'weightKg=', totalWeightKg);
+      return res.status(200).json({ received: true, error: 'No template matched' });
+    }
+    console.log('Picked template ID:', templateId, 'for', orderData.deliveryKey, 'at', totalWeightKg, 'kg');
+
+    const VAT_FRAC = 0.25;
+    const shortId = String(orderData.externalId).slice(-38);
+    const refId = String(orderData.externalId).slice(-38);
+    const orderAmountKr = orderData.amountKr;
+    const orderAmountExclVat = Number((orderAmountKr / 1.25).toFixed(2));
+    const orderVatAmount = Number((orderAmountKr - orderAmountExclVat).toFixed(2));
+
+    // Pick packaging based on weight bracket
+    // Packaging IDs are configured in Vercel env var SHIPMONDO_PACKAGING
+    // Format: {"5":id,"10":id,"15":id,"20":id,"25":id}
+    let packagingMap = {};
+    console.log('Raw SHIPMONDO_PACKAGING env:', JSON.stringify(process.env.SHIPMONDO_PACKAGING));
+    try { packagingMap = JSON.parse(process.env.SHIPMONDO_PACKAGING || '{}'); } catch (e) { console.error('Failed to parse SHIPMONDO_PACKAGING:', e.message); }
+    console.log('Parsed packagingMap:', packagingMap);
+    function pickPackagingId(weightKg) {
+      if (weightKg <= 5) return packagingMap['5'];
+      if (weightKg <= 10) return packagingMap['10'];
+      if (weightKg <= 15) return packagingMap['15'];
+      if (weightKg <= 20) return packagingMap['20'];
+      return packagingMap['25'];
+    }
+    const packagingId = pickPackagingId(totalWeightKg);
+    console.log('Picked packaging ID:', packagingId, 'for weight', totalWeightKg, 'kg');
+
+    const orderLines = orderData.items.map((it, idx) => {
+      const qty = it.qty || 1;
+      const unitInclVat = it.price;
+      const unitExclVat = unitInclVat / (1 + VAT_FRAC);
+      const parts = [it.productName];
+      if (it.productType) parts.push(it.productType);
+      if (it.weightLabel) parts.push(it.weightLabel);
+      return {
+        line_type: 'item',
+        item_no: `item-${idx + 1}`,
+        item_name: parts.join(' – '),
+        quantity: qty,
+        unit_price_excluding_vat: unitExclVat.toFixed(2),
+        vat_percent: VAT_FRAC,
+        currency_code: 'DKK',
+      };
+    });
+
+    // Skip Shipmondo if no order lines (prevents 422 errors from duplicate events)
+    if (orderLines.length === 0) {
+      console.log('Skipping Shipmondo: no order lines for', orderData.externalId);
+      return res.status(200).json({ received: true, skipped: 'no order lines' });
+    }
+
+    // Skip Shipmondo if no order lines (e.g. duplicate event from payment_intent.succeeded
+    // when checkout.session.completed already created the order with full data)
+    if (orderLines.length === 0) {
+      console.log('Skipping Shipmondo: no order lines for', orderData.externalId);
+      return res.status(200).json({ received: true, skipped: 'no order lines' });
+    }
+
+    const shipTo = {
+      name: orderData.customerName,
+      attention: orderData.customerName,
+      address1: orderData.address.line1 || '',
+      address2: orderData.address.line2 || '',
+      zipcode: orderData.address.postal_code || '',
+      city: orderData.address.city || '',
+      country_code: normalizeCountry(orderData.address.country),
+      email: orderData.customerEmail,
+      mobile: orderData.customerPhone,
+    };
+
+    const payload = {
+      order_id: shortId,
+      order_date: new Date().toISOString(),
+      currency_code: 'DKK',
+      order_amount: orderAmountKr,
+      order_amount_incl_vat: orderAmountKr,
+      order_amount_excl_vat: orderAmountExclVat,
+      order_vat_amount: orderVatAmount,
+      paid_amount: orderAmountKr,
+      payment_status: 'paid',
+      payment_details: {
+        payment_method: 'Stripe',
+        transaction_id: String(orderData.transactionId).slice(-50),
+        amount_including_vat: orderAmountKr,
+        amount_excluding_vat: orderAmountExclVat,
+        captured_amount: orderAmountKr,
+        authorized_amount: orderAmountKr,
+        currency_code: 'DKK',
+        vat_amount: orderVatAmount,
+        vat_percent: VAT_FRAC,
+      },
+      order_status: 'new',
+      reference: refId,
+      shipment_template_id: templateId,
+      ship_to: shipTo,
+      order_lines: orderLines,
+      total_weight: Math.round(totalWeightKg * 1000), // in grams
+      // Default to 'ship' (auto-book label). Set SHIPMONDO_ACTION=none in Vercel env vars
+      // for free testing — order goes into Shipmondo as draft, no GLS label is purchased.
+      action: process.env.SHIPMONDO_ACTION || 'ship',
+    };
+
+    // Attach packaging if matched - this is required for Shipmondo to actually book the label
+    if (packagingId) {
+      payload.sales_order_packaging_id = packagingId;
+      // Also include order_fulfillments so Shipmondo knows what to package
+      payload.order_fulfillments = [{
+        sales_order_packaging_id: packagingId,
+        line_items: orderLines.map((ol, idx) => ({
+          item_no: ol.item_no,
+          quantity: ol.quantity,
+        })),
+      }];
+    } else {
+      console.warn('No packaging ID matched for weight', totalWeightKg, 'kg — order will be created as draft only');
+    }
+
+    // If customer picked a specific pakkeshop, pass it as the service point
+    if (orderData.pakkeshop && orderData.pakkeshop.id) {
+      payload.service_point = {
+        id: orderData.pakkeshop.id,
+        name: orderData.pakkeshop.name,
+        address1: orderData.pakkeshop.address,
+        zipcode: orderData.pakkeshop.zipcode,
+        city: orderData.pakkeshop.city,
+        country_code: 'DK',
+        shipping_agent: 'gls',
+      };
+    }
+
+    const auth = Buffer.from(`${process.env.SHIPMONDO_USER}:${process.env.SHIPMONDO_KEY}`).toString('base64');
+    console.log('Shipmondo payload:', JSON.stringify(payload));
+    const smRes = await fetch('https://app.shipmondo.com/api/public/v3/sales_orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const smText = await smRes.text();
+    console.log('Shipmondo response', smRes.status, smText);
+    if (!smRes.ok) {
+      console.error('Shipmondo API error', smRes.status, smText);
+      return res.status(200).json({ received: true, shipmondo_error: smText });
+    }
+
+    console.log('Shipmondo draft created for', orderData.externalId);
+
+    // Send branded order confirmation email (best-effort, don't fail webhook if email fails)
+    try {
+      await sendOrderConfirmationEmail(orderData);
+    } catch (emailErr) {
+      console.error('Order confirmation email failed:', emailErr);
+    }
+
+    // Send merchant notification (separate email to owner) — best-effort, don't fail webhook
+    try {
+      await sendMerchantNotification(orderData);
+    } catch (mErr) {
+      console.error('Merchant notification failed:', mErr);
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    console.error('Webhook processing error:', err);
+    return res.status(200).json({ received: true, error: err.message });
+  }
+}
+
+// ── ORDER CONFIRMATION EMAIL ──
+async function sendOrderConfirmationEmail(orderData) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY not set — skipping order confirmation email');
+    return;
+  }
+  const email = orderData.customerEmail || orderData.email;
+  if (!email) {
+    console.warn('No customer email — skipping order confirmation email');
+    return;
+  }
+
+  const fullName = orderData.customerName || orderData.name || '';
+  const customerName = fullName.split(' ')[0]; // first name only
+  const orderRef = String(orderData.externalId).slice(-12).toUpperCase();
+  const deliveryLabel = orderData.deliveryKey === 'gls_pakkeshop' ? 'GLS Pakkeshop' : 'GLS Privatadresse';
+  const totalKr = Number(orderData.amountKr).toFixed(2).replace('.', ',');
+
+  const itemsHtml = (orderData.items || []).map(it => {
+    console.log('Email item:', it.productName, '| has image:', !!it.image, '| url:', it.image);
+    const name = it.productName + (it.weightLabel ? ` – ${it.weightLabel}` : '');
+    const lineTotal = (Number(it.price) * Number(it.qty)).toFixed(2).replace('.', ',');
+    const imgCell = it.image
+      ? `<td style="padding:12px 14px 12px 0;border-bottom:1px solid #eee;width:64px;vertical-align:middle;">
+           <img src="${escapeHtmlEmail(it.image)}" alt="" width="56" height="56" style="display:block;width:56px;height:56px;border-radius:8px;object-fit:cover;background:#f5f1e8;" />
+         </td>`
+      : '';
+    return `
+      <tr>
+        ${imgCell}
+        <td style="padding:12px 0;border-bottom:1px solid #eee;color:#333;vertical-align:middle;">
+          ${escapeHtmlEmail(name)} <span style="color:#888;">× ${it.qty}</span>
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #eee;color:#333;text-align:right;font-variant-numeric:tabular-nums;vertical-align:middle;">
+          ${lineTotal} kr.
+        </td>
+      </tr>`;
+  }).join('');
+
+  const siteUrl = 'https://quartzmolle.dk';
+  const logoUrl = `${siteUrl}/images/logopng.png`;
+
+  const html = `<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>Tak for din ordre</title>
+  <style>
+    :root { color-scheme: light only; supported-color-schemes: light; }
+    /* Prevent iOS Mail/Gmail dark mode from re-coloring our brand colors */
+    [data-ogsc] body, [data-ogsc] table {
+      background-color: #f5f1e8 !important;
+      color: #222 !important;
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f5f1e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#222;color-scheme:light;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f1e8;">
+    <tr><td align="center" style="padding:32px 16px;">
+
+      <!-- Centered logo above the card -->
+      <a href="${siteUrl}" style="text-decoration:none;display:inline-block;margin-bottom:24px;">
+        <img src="${logoUrl}" alt="Quartz Mølle" width="64" height="64" style="display:block;width:64px;height:64px;border-radius:50%;" />
+      </a>
+
+      <table role="presentation" width="100%" style="max-width:560px;background:#f5f1e8;border-radius:16px;overflow:hidden;box-shadow:0 6px 28px rgba(0,0,0,0.08);" cellpadding="0" cellspacing="0" bgcolor="#f5f1e8">
+
+        <!-- Blue banner with eyebrow + heading -->
+        <tr><td style="background:#273071;color:#fff;padding:44px 32px 36px;text-align:center;">
+          <div style="font-size:12px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.75;margin-bottom:10px;font-weight:500;">Ordrebekræftelse</div>
+          <div style="font-size:26px;font-weight:700;letter-spacing:-0.01em;line-height:1.25;">Tak for din ordre${customerName ? ',<br/>' + escapeHtmlEmail(customerName) : ''}</div>
+        </td></tr>
+
+        <!-- Greeting paragraph -->
+        <tr><td style="padding:36px 36px 12px;">
+          <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#444;">
+            Vi har modtaget din ordre og pakker den hurtigst muligt. Du får en ny e-mail med tracking når pakken er afsendt.
+          </p>
+          <p style="margin:0 0 28px;font-size:14px;color:#666;">
+            <span style="color:#888;">Ordrenummer:</span> <strong style="color:#222;letter-spacing:0.04em;">${escapeHtmlEmail(orderRef)}</strong>
+          </p>
+        </td></tr>
+
+        <!-- Order items -->
+        <tr><td style="padding:0 36px 8px;">
+          <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;padding-bottom:14px;border-bottom:2px solid #273071;margin-bottom:8px;">Din ordre</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${itemsHtml}
+            <tr>
+              <td colspan="2" style="padding:18px 0 0;font-weight:600;color:#222;font-size:15px;">I alt</td>
+              <td style="padding:18px 0 0;text-align:right;font-size:20px;font-weight:700;color:#273071;font-variant-numeric:tabular-nums;">${totalKr} kr.</td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Delivery -->
+        <tr><td style="padding:32px 36px 8px;">
+          <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:10px;">Levering</div>
+          <div style="font-size:15px;color:#222;font-weight:500;">${escapeHtmlEmail(deliveryLabel)}</div>
+          <div style="font-size:13px;color:#777;margin-top:6px;">1–3 hverdage efter afsendelse</div>
+        </td></tr>
+
+        <!-- View order button -->
+        <tr><td style="padding:32px 36px 8px;text-align:center;">
+          <a href="${siteUrl}/success?session_id=${encodeURIComponent(orderData.externalId)}" style="display:inline-block;background:#273071;color:#fff;text-decoration:none;padding:14px 32px;border-radius:999px;font-size:14px;font-weight:600;letter-spacing:0.02em;">Se din ordre</a>
+        </td></tr>
+
+        <!-- Contact -->
+        <tr><td style="padding:32px 36px 36px;border-top:1px solid #eee;margin-top:24px;">
+          <p style="margin:0;font-size:13px;color:#666;line-height:1.7;text-align:center;">
+            Har du spørgsmål? Skriv til <a href="mailto:hello@quartzmolle.dk" style="color:#273071;text-decoration:none;font-weight:500;">hello@quartzmolle.dk</a>
+          </p>
+        </td></tr>
+
+      </table>
+
+      <!-- Footer below the card -->
+      <table role="presentation" width="100%" style="max-width:560px;margin-top:20px;" cellpadding="0" cellspacing="0">
+        <tr><td style="text-align:center;padding:8px 16px;font-size:12px;color:#999;line-height:1.7;">
+          Quartz Mølle · Suså Landevej 101, 4160 Herlufmagle · Danmark<br/>
+          <a href="${siteUrl}" style="color:#999;text-decoration:none;margin:0 6px;">Hjem</a> ·
+          <a href="${siteUrl}/shop" style="color:#999;text-decoration:none;margin:0 6px;">Shop</a> ·
+          <a href="${siteUrl}/forhandlere" style="color:#999;text-decoration:none;margin:0 6px;">Forhandlere</a> ·
+          <a href="${siteUrl}/om" style="color:#999;text-decoration:none;margin:0 6px;">Om os</a>
+        </td></tr>
+      </table>
+
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const resendRes = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Quartz Mølle <order@quartzmolle.dk>',
+      to: [email],
+      subject: `Tak for din ordre #${orderRef} – Quartz Mølle`,
+      html,
+    }),
+  });
+
+  if (!resendRes.ok) {
+    const errTxt = await resendRes.text();
+    console.error('Resend API error', resendRes.status, errTxt);
+    throw new Error('Resend send failed');
+  }
+  console.log('Order confirmation email sent to', email);
+}
+
+// ── MERCHANT NOTIFICATION EMAIL ──
+// Quick "new order" alert sent to the owner with key info at a glance
+async function sendMerchantNotification(orderData) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+
+  const orderRef = String(orderData.externalId).slice(-12).toUpperCase();
+  const totalKr = Number(orderData.amountKr).toFixed(2).replace('.', ',');
+  const deliveryLabel = orderData.deliveryKey === 'gls_pakkeshop' ? 'GLS Pakkeshop' : 'GLS Privatadresse';
+  const customerName = orderData.customerName || 'Kunde';
+  const customerEmail = orderData.customerEmail || '';
+
+  function parseWeightKg(label) {
+    if (!label) return 0;
+    const m = String(label).match(/(\d+(?:[.,]\d+)?)\s*kg/i);
+    if (!m) return 0;
+    return parseFloat(m[1].replace(',', '.')) || 0;
+  }
+  const totalWeightKg = (orderData.items || []).reduce((sum, it) => {
+    return sum + (parseWeightKg(it.weightLabel) * (it.qty || 1));
+  }, 0);
+
+  const itemsList = (orderData.items || []).map(it => {
+    const lineTotal = (Number(it.price) * Number(it.qty)).toFixed(2).replace('.', ',');
+    return `<tr>
+      <td style="padding:8px 0;color:#222;">${escapeHtmlEmail(it.productName)}${it.weightLabel ? ' – ' + escapeHtmlEmail(it.weightLabel) : ''} <span style="color:#888;">× ${it.qty}</span></td>
+      <td style="padding:8px 0;text-align:right;color:#222;font-variant-numeric:tabular-nums;">${lineTotal} kr.</td>
+    </tr>`;
+  }).join('');
+
+  const merchantHtml = `<!DOCTYPE html>
+<html lang="da">
+<head><meta charset="utf-8"/><meta name="color-scheme" content="light only"/><title>Ny ordre #${orderRef}</title></head>
+<body style="margin:0;padding:0;background:#f5f1e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#222;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f1e8;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" style="max-width:520px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);" cellpadding="0" cellspacing="0">
+
+        <tr><td style="background:#273071;color:#fff;padding:28px 28px 22px;">
+          <div style="font-size:11px;letter-spacing:0.22em;text-transform:uppercase;opacity:0.75;margin-bottom:6px;">Ny ordre</div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:-0.01em;">#${escapeHtmlEmail(orderRef)}</div>
+        </td></tr>
+
+        <tr><td style="padding:24px 28px 8px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+            <tr><td style="padding:6px 0;color:#888;width:40%;">Kunde</td><td style="padding:6px 0;color:#222;font-weight:500;">${escapeHtmlEmail(customerName)}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">E-mail</td><td style="padding:6px 0;color:#222;">${escapeHtmlEmail(customerEmail)}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Levering</td><td style="padding:6px 0;color:#222;">${escapeHtmlEmail(deliveryLabel)}</td></tr>
+            <tr><td style="padding:6px 0;color:#888;">Vægt</td><td style="padding:6px 0;color:#222;">${totalWeightKg.toFixed(1).replace('.', ',')} kg</td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:20px 28px 8px;">
+          <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;border-bottom:2px solid #273071;padding-bottom:10px;margin-bottom:6px;">Varer</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+            ${itemsList}
+            <tr><td style="padding:14px 0 0;border-top:1px solid #eee;font-weight:600;color:#222;">I alt betalt</td>
+                <td style="padding:14px 0 0;border-top:1px solid #eee;text-align:right;font-size:18px;font-weight:700;color:#273071;font-variant-numeric:tabular-nums;">${totalKr} kr.</td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:24px 28px 8px;text-align:center;">
+          <a href="https://app.shipmondo.com/main/app/#/dashboard" style="display:inline-block;background:#273071;color:#fff;text-decoration:none;padding:12px 28px;border-radius:999px;font-size:14px;font-weight:600;letter-spacing:0.02em;">Åbn i Shipmondo</a>
+        </td></tr>
+
+        <tr><td style="padding:16px 28px 28px;text-align:center;">
+          <p style="margin:0;font-size:11px;color:#aaa;font-style:italic;">from your favourite son</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Quartz Mølle <order@quartzmolle.dk>',
+      to: ['fintankeenan@gmail.com'],
+      subject: `Ny ordre #${orderRef} – ${totalKr} kr. – ${customerName}`,
+      html: merchantHtml,
+    }),
+  });
+
+  if (!res.ok) {
+    const errTxt = await res.text();
+    console.error('Merchant notification API error', res.status, errTxt);
+  } else {
+    console.log('Merchant notification sent for', orderRef);
+  }
+}
+
+function escapeHtmlEmail(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parsePaymentIntent(pi) {
+  const meta = pi.metadata || {};
+  console.log('Webhook received PI metadata:', JSON.stringify(meta));
+  const shipping = pi.shipping || {};
+  // Prefer metadata fields (set by our backend), fall back to pi.shipping
+  const address = {
+    line1: meta.customer_address1 || shipping.address?.line1 || '',
+    line2: shipping.address?.line2 || '',
+    postal_code: meta.customer_zipcode || shipping.address?.postal_code || '',
+    city: meta.customer_city || shipping.address?.city || '',
+    country: meta.customer_country || shipping.address?.country || 'DK',
+  };
+
+  const items = [];
+  if (meta.items_summary) {
+    for (const chunk of meta.items_summary.split(';')) {
+      const [productName, weightLabel, qty, price] = chunk.split('|');
+      if (productName && qty && price) {
+        items.push({
+          productName,
+          productType: '',
+          weightLabel: weightLabel || '',
+          qty: parseInt(qty, 10) || 1,
+          price: parseFloat(price) || 0,
+        });
+      }
+    }
+  }
+
+  let pakkeshop = null;
+  if (meta.pakkeshop_id) {
+    pakkeshop = {
+      id: meta.pakkeshop_id,
+      name: meta.pakkeshop_name || '',
+      address: meta.pakkeshop_address || '',
+      zipcode: meta.pakkeshop_zipcode || '',
+      city: meta.pakkeshop_city || '',
+    };
+  }
+
+  return {
+    externalId: pi.id,
+    transactionId: pi.id,
+    amountKr: (pi.amount_received || pi.amount || 0) / 100,
+    customerName: meta.customer_name || shipping.name || 'Kunde',
+    customerEmail: meta.customer_email || pi.receipt_email || '',
+    customerPhone: meta.customer_phone || shipping.phone || '',
+    address,
+    deliveryKey: meta.delivery_method || 'gls_privat',
+    shippingDisplayName: '',
+    items,
+    pakkeshop,
+  };
+}
+
+async function parseCheckoutSession(session) {
+  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+  const full = await stripe.checkout.sessions.retrieve(session.id, {
+    expand: ['line_items.data.price.product', 'shipping_cost.shipping_rate', 'customer_details'],
+  });
+  const customer = full.customer_details || {};
+  const shippingDetails = full.collected_information?.shipping_details || full.shipping_details || full.shipping || {};
+  const address = shippingDetails.address || customer.address || {};
+  const name = shippingDetails.name || customer.name || 'Kunde';
+  const shippingRate = full.shipping_cost?.shipping_rate;
+  const shippingDisplayName = shippingRate?.display_name || '';
+
+  const lineItems = full.line_items?.data || [];
+  const items = lineItems.map(li => {
+    const descField = li.price?.product?.description || '';
+    const weightMatch = descField.match(/(\d+[,.]?\d*)\s*kg/i);
+    const productImages = li.price?.product?.images || [];
+    return {
+      productName: li.description || li.price?.product?.name || 'Produkt',
+      productType: '',
+      weightLabel: weightMatch ? weightMatch[0] : '',
+      qty: li.quantity || 1,
+      price: ((li.amount_total || 0) / (li.quantity || 1)) / 100,
+      image: productImages[0] || null,
+    };
+  });
+
+  // Try to read delivery_method from the session's metadata, or from the
+  // linked PaymentIntent's metadata if not on the session itself.
+  let deliveryKey = full.metadata?.delivery_method || null;
+  if (!deliveryKey && full.payment_intent) {
+    try {
+      const pi = await stripe.paymentIntents.retrieve(full.payment_intent);
+      deliveryKey = pi.metadata?.delivery_method || null;
+    } catch (e) {
+      console.error('Failed to fetch linked PaymentIntent for delivery_method:', e.message);
+    }
+  }
+  // Last-resort fallback: derive from shipping_rate display name.
+  if (!deliveryKey) {
+    const lower = (shippingDisplayName || '').toLowerCase();
+    if (lower.includes('pakkeshop')) deliveryKey = 'gls_pakkeshop';
+    else if (lower.includes('privat')) deliveryKey = 'gls_privat';
+  }
+  console.log('Resolved deliveryKey for checkout session:', deliveryKey, '| shippingDisplayName:', shippingDisplayName);
+
+  return {
+    externalId: full.id,
+    transactionId: full.payment_intent || full.id,
+    amountKr: (full.amount_total || 0) / 100,
+    customerName: name,
+    customerEmail: customer.email || '',
+    customerPhone: customer.phone || '',
+    address,
+    deliveryKey,
+    shippingDisplayName,
+    items,
+  };
+}

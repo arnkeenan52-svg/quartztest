@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Forhandlere – Quartz Mølle</title>
+  <meta name="description" content="Find en Quartz Mølle forhandler i nærheden af dig." />
+  <link rel="icon" href="images/logo-small.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <a href="index.html" class="nav-logo">
+      <img src="images/logopng.png" alt="Quartz Mølle" class="brand-mark" />
+      <img src="images/eu-organic.jpg" alt="EU Økologi" class="eco-mark" />
+      <img src="images/statskontrolleret.png" alt="Statskontrolleret Økologisk" class="eco-mark" />
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Hjem</a>
+      <a href="shop.html">Shop</a>
+      <a href="forhandlere.html">Forhandlere</a>
+      <a href="om.html" class="nav-btn">Om os</a>
+      <a href="index.html#kontakt">Kontakt</a>
+    </div>
+    <a href="shop.html" class="nav-cta">Shop Nu</a>
+    <button class="nav-burger" id="burger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">Hjem</a>
+    <a href="shop.html">Shop</a>
+    <a href="forhandlere.html">Forhandlere</a>
+    <a href="om.html">Om os</a>
+    <a href="index.html#kontakt">Kontakt</a>
+    <a href="shop.html" class="mobile-cta">Shop Nu</a>
+  </div>
+
+  <div class="forhandlere-hero">
+    <h1>Forhandlere</h1>
+    <p>Find en Quartz Mølle forhandler i nærheden af dig. Klik på et logo for at se butikkens hjemmeside.</p>
+  </div>
+
+  <div class="forhandlere-body">
+    <div class="forhandlere-map-wrap">
+      <div id="forhandlere-map"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <img src="images/logopng.png" alt="Quartz Mølle" class="footer-logo" />
+      <p>© 2025 Quartz Mølle · CVR 42117188 · Suså Landevej 101, 4160 Herlufmagle · <a href="mailto:hello@quartzmolle.dk">hello@quartzmolle.dk</a></p>
+      <div class="footer-links">
+        <a href="shop.html">Shop</a>
+        <a href="forhandlere.html">Forhandlere</a>
+        <a href="om.html">Om os</a>
+        <a href="index.html#kontakt">Kontakt</a>
+        <a href="https://www.findsmiley.dk/1149461" class="footer-smiley-link" target="_blank" rel="noopener" title="Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen" aria-label="Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M8.6 14.3c.85 1.1 2 1.7 3.4 1.7s2.55-.6 3.4-1.7"></path>
+            <path d="M9 9.6h.01M15 9.6h.01"></path>
+          </svg>
+          <span class="footer-smiley-word">Smiley­rapport</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script src="js/cart.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/forhandlere.js"></script>
+</body>
+</html>
