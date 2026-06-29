@@ -16,7 +16,7 @@ function renderShopGrid(products) {
   if (!products || products.length === 0) {
     const q = (document.getElementById('shopSearch')?.value || '').trim();
     grid.innerHTML = q
-      ? `<div class="shop-loading">Ingen produkter matcher “${q}”.</div>`
+      ? `<div class="shop-loading">Ingen produkter matcher “${escapeHTML(q)}”.</div>`
       : '<div class="shop-loading">Ingen produkter fundet.</div>';
     return;
   }
@@ -44,6 +44,13 @@ function renderShopGrid(products) {
 }
 
 // ── PRODUKTSØGNING ──
+// Escape brugerinput før det indsættes i innerHTML.
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
 // Filtrér det aktuelle sortiment på navn, type og beskrivelse.
 function filterProducts(query) {
   const q = (query || '').trim().toLowerCase();
@@ -59,7 +66,8 @@ function applySearch() {
   const input = document.getElementById('shopSearch');
   const clearBtn = document.getElementById('shopSearchClear');
   const query = input ? input.value : '';
-  if (clearBtn) clearBtn.hidden = !query;
+  // Vis kun ryd-knappen når der reelt er søgt (ikke ved blanktegn alene).
+  if (clearBtn) clearBtn.hidden = !query.trim();
   renderShopGrid(filterProducts(query));
 }
 
