@@ -29,7 +29,9 @@
       height: env(safe-area-inset-top, 0px);
       background: #000;
       pointer-events: none;
-      z-index: 10000;
+      /* Above the nav (z-index 100) so the scrolling header vanishes under it,
+         but below the cart drawer (300) / language menu so those aren't hidden. */
+      z-index: 150;
     }
 
     /* Black bar at bottom of mobile viewport - masks text scrolling under address bar */
