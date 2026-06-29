@@ -1783,3 +1783,118 @@ body.past-videos .video-overlay {
   .lang-pop-q { font-size: 0.88rem; margin-bottom: 0.9rem; }
   .lang-pop-btn { padding: 0.72rem 1rem; font-size: 0.9rem; }
 }
+
+/* ============================================================
+   PRODUKTSØGNING (shop) + FORESLÅEDE PRODUKTER (produktside)
+   ============================================================ */
+
+/* ── Søgefelt på shop-siden ── */
+.shop-search {
+  max-width: 1200px;
+  margin: 0 auto 2.5rem;
+}
+
+.shop-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e4ddcf;
+  border-radius: 999px;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+
+.shop-search-box:focus-within {
+  border-color: var(--brand-blue);
+  box-shadow: 0 4px 22px rgba(39, 48, 113, 0.16);
+}
+
+.shop-search-icon {
+  flex: none;
+  margin-left: 1.1rem;
+  color: #9a9486;
+}
+
+.shop-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  padding: 0.95rem 0.6rem 0.95rem 0.8rem;
+}
+
+.shop-search-input::placeholder { color: #9a9486; }
+
+/* Skjul browserens indbyggede ryd-knap til fordel for vores egen */
+.shop-search-input::-webkit-search-decoration,
+.shop-search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+.shop-search-clear {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.6rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f0ece3;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.shop-search-clear:hover { background: var(--brand-blue); color: #fff; }
+
+@media (max-width: 600px) {
+  .shop-search { margin-bottom: 2rem; }
+  .shop-search-input { font-size: 0.95rem; padding: 0.85rem 0.5rem 0.85rem 0.7rem; }
+}
+
+/* ── Foreslåede produkter på produktsiden ── */
+.suggested {
+  background: var(--cream);
+  padding: 1rem 2rem 5rem;
+}
+
+.suggested-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  border-top: 1px solid #e4ddcf;
+  padding-top: 3.5rem;
+}
+
+.suggested-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggested-header h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: -0.01em;
+}
+
+.suggested-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
+@media (max-width: 600px) {
+  .suggested { padding: 0.5rem 1.25rem 4rem; }
+  .suggested-inner { padding-top: 2.5rem; }
+  .suggested-grid { gap: 1.25rem; }
+}
