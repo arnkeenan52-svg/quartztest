@@ -241,5 +241,20 @@
       });
     })();
   </script>
+
+  <!-- Auto-hide the pinned header as soon as the page is scrolled, so it leaves
+       the screen cleanly instead of travelling up through the black status bar. -->
+  <script>
+    (function () {
+      var nav = document.getElementById('nav');
+      if (!nav) return;
+      function onScroll() {
+        if (window.scrollY > 10) nav.classList.add('nav-hidden');
+        else nav.classList.remove('nav-hidden');
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+  </script>
 </body>
 </html>
