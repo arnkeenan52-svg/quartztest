@@ -1899,3 +1899,84 @@ body.past-videos .video-overlay {
   .suggested-inner { padding-top: 2.5rem; }
   .suggested-grid { gap: 1.25rem; }
 }
+
+/* ============================================================
+   SPROGVÆLGER (dansk / engelsk) — injiceres i headeren via js/i18n.js
+   ============================================================ */
+.lang-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.lang-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.34rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s, background 0.15s;
+}
+.lang-switch-btn:hover { opacity: 1; }
+.lang-switch-btn .lang-chevron { transition: transform 0.2s; }
+.lang-switch.open .lang-switch-btn .lang-chevron { transform: rotate(180deg); }
+.lang-switch-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 150px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 34px rgba(0,0,0,0.18);
+  padding: 0.4rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.15rem;
+  z-index: 1200;
+}
+.lang-switch.open .lang-switch-menu { display: flex; }
+.lang-switch-menu button {
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #1a1611;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.lang-switch-menu button:hover { background: #f0ece3; }
+.lang-switch-menu button.active {
+  background: var(--brand-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* In the mobile slide-out menu the switch sits on a dark background */
+.mobile-menu .lang-switch { margin-top: 0.5rem; }
+.mobile-menu .lang-switch-btn { font-size: 1rem; padding: 0.5rem 1rem; }
+
+/* Floating fallback for pages without a nav (internal panels: /locker, /fulfill) */
+.lang-switch--floating {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 4000;
+}
+.lang-switch--floating .lang-switch-btn {
+  background: #273071;
+  color: #fff;
+  border-color: #273071;
+  opacity: 1;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
