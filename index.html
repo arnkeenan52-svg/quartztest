@@ -19,21 +19,6 @@
     #mobileMenu.open { display: flex !important; }
     #vid1 { opacity: 1; }
 
-    /* Opaque black bar over the iOS status-bar (safe-area) so the header content
-       disappears cleanly under it when scrolling instead of bleeding into it. */
-    .top-mask {
-      position: fixed;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: env(safe-area-inset-top, 0px);
-      background: #000;
-      pointer-events: none;
-      /* Above the nav (z-index 100) so the scrolling header vanishes under it,
-         but below the cart drawer (300) / language menu so those aren't hidden. */
-      z-index: 150;
-    }
-
     /* Black bar at bottom of mobile viewport - masks text scrolling under address bar */
     @media (max-width: 768px) {
       .bottom-mask {
@@ -56,7 +41,6 @@
   </style>
 </head>
 <body>
-  <div class="top-mask" aria-hidden="true"></div>
   <div class="bottom-mask" aria-hidden="true"></div>
   <nav class="nav" id="nav">
     <a href="index.html" class="nav-logo" onclick="event.preventDefault(); window.scrollTo(0, 0); window.location.replace('index.html?r=' + Date.now());">
