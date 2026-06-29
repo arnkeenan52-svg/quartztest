@@ -1318,6 +1318,7 @@ body.past-videos .video-overlay {
   /* On the front page, products listing, forhandlere, and om os pages, let the
      nav (logo, cart, menu) scroll away with the page on mobile instead of
      staying pinned. The front page is targeted via its hero-content block. */
+  body:has(.hero-content) .nav,
   body:has(.shop-hero) .nav,
   body:has(.forhandlere-hero) .nav,
   body:has(.om-hero) .nav { position: absolute; }
