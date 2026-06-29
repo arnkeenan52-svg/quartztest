@@ -49,7 +49,7 @@
     "Fra Dalarna til Purpurhvede – hvert mel har sin egen karakter, smag og bagningsegenskaber.": "From Dalarna to Purple Wheat – each flour has its own character, flavour and baking properties.",
     "Se alle produkter": "See all products",
     "Udvalgte produkter": "Selected products",
-    "Se hele sortimentet": "See the full range",
+    "Se hele sortimentet": "See all products",
     "Hvorfor Quartz Mølle?": "Why Quartz Mølle?",
     "Mel med mening": "Flour with meaning",
     "Stenkværnet": "Stone-milled",
