@@ -102,6 +102,9 @@ export default async function handler(req, res) {
     // heavier than GLS can carry, which can only be completed via pickup.
     if (orderData.deliveryKey === 'pickup') {
       console.log('Click & Collect order — skipping Shipmondo, sending emails only for', orderData.externalId);
+      // Persist the order so the staff fulfilment page (/fulfill) can list it and
+      // later email the customer their locker door + code.
+      try { await savePickupOrder(orderData); } catch (e) { console.error('Failed to save pickup order to KV:', e); }
       try { await sendOrderConfirmationEmail(orderData); } catch (e) { console.error('Order confirmation email failed:', e); }
       try { await sendMerchantNotification(orderData); } catch (e) { console.error('Merchant notification failed:', e); }
       return res.status(200).json({ received: true, pickup: true });
@@ -557,6 +560,28 @@ async function sendMerchantNotification(orderData) {
   } else {
     console.log('Merchant notification sent for', orderRef);
   }
+}
+
+// Persist a Click & Collect order so the staff fulfilment page (/fulfill) can
+// list it and later email the customer their locker door + code.
+async function savePickupOrder(orderData) {
+  const { kv } = await import('@vercel/kv');
+  const record = {
+    ref: String(orderData.externalId).slice(-12).toUpperCase(),
+    externalId: orderData.externalId,
+    name: orderData.customerName || 'Kunde',
+    email: orderData.customerEmail || '',
+    phone: orderData.customerPhone || '',
+    total: Number(orderData.amountKr) || 0,
+    items: (orderData.items || []).map(it => ({
+      name: it.productName,
+      weightLabel: it.weightLabel || '',
+      qty: it.qty || 1,
+    })),
+    createdAt: Date.now(),
+  };
+  await kv.lpush('pickup:orders', record);
+  await kv.ltrim('pickup:orders', 0, 199);
 }
 
 // Human-readable delivery label for emails.
