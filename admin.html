@@ -165,7 +165,8 @@
     <img src="/images/logopng.png" alt="Quartz Mølle" onerror="this.style.display='none'" />
     <h1>Quartz Mølle Admin</h1>
     <p>Indtast adgangskode</p>
-    <input id="password" class="code-input" type="password" autocomplete="current-password" placeholder="••••••" />
+    <input id="codeInput" class="code-input" type="password" inputmode="numeric"
+           autocomplete="off" maxlength="10" placeholder="••••" />
     <button id="loginBtn" class="login-btn" onclick="login()">Lås op</button>
     <div class="login-error" id="loginError"></div>
   </div>
@@ -248,34 +249,38 @@
 </div>
 
 <script>
-  // Simple client-side auth check (the API also checks server-side)
-  const VALID_USER = 'fintankeenan';
-  const VALID_PASS = 'Laragh';
+  // Auth: shares the /locker session cookie (lk_sess). Logging in here, on
+  // /locker or on /fulfill unlocks all three with the same code.
   let currentRange = 7;
   let pollTimer = null;
 
-  function login() {
-    const p = document.getElementById('password').value;
+  async function login() {
+    const codeInput = document.getElementById('codeInput');
     const err = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
     err.textContent = '';
-    if (!p) { err.textContent = 'Indtast adgangskode'; return; }
-    if (p === VALID_PASS) {
-      // Username is fixed; store it lowercase so the API receives it consistently
-      sessionStorage.setItem('qm_admin_auth', btoa(VALID_USER.toLowerCase() + ':' + p));
-      showDashboard();
-    } else {
-      err.textContent = 'Forkert adgangskode';
-      document.getElementById('password').value = '';
-      document.getElementById('password').focus();
-    }
+    const code = codeInput.value.trim();
+    if (!code) { err.textContent = 'Indtast adgangskode'; return; }
+    btn.textContent = '…';
+    try {
+      const r = await fetch('/api/locker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', code: code })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) { codeInput.value = ''; showDashboard(); }
+      else { err.textContent = d.error || 'Forkert kode'; codeInput.value = ''; codeInput.focus(); }
+    } catch (e) { err.textContent = 'Netværksfejl'; }
+    btn.textContent = 'Lås op';
   }
 
-  function logout() {
-    sessionStorage.removeItem('qm_admin_auth');
+  async function logout() {
+    try { await fetch('/api/locker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }); } catch (e) {}
     if (pollTimer) clearInterval(pollTimer);
     document.getElementById('loginWrap').classList.remove('hide');
     document.getElementById('dashboard').classList.add('hide');
-    document.getElementById('password').value = '';
+    document.getElementById('codeInput').value = '';
   }
 
   function showDashboard() {
@@ -283,7 +288,14 @@
     document.getElementById('dashboard').classList.remove('hide');
     loadDashboard();
     // Refresh active users every 15 sec
+    if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(refreshLiveStats, 15000);
+  }
+
+  function showLogin() {
+    if (pollTimer) clearInterval(pollTimer);
+    document.getElementById('dashboard').classList.add('hide');
+    document.getElementById('loginWrap').classList.remove('hide');
   }
 
   function setRange(days) {
@@ -295,13 +307,10 @@
   }
 
   async function loadDashboard() {
-    const auth = sessionStorage.getItem('qm_admin_auth');
     try {
-      const res = await fetch('/api/admin-stats?days=' + currentRange, {
-        headers: { 'Authorization': 'Basic ' + auth }
-      });
+      const res = await fetch('/api/admin-stats?days=' + currentRange);
       if (!res.ok) {
-        if (res.status === 401) { logout(); return; }
+        if (res.status === 401) { showLogin(); return; }
         throw new Error('API error ' + res.status);
       }
       const data = await res.json();
@@ -313,11 +322,9 @@
   }
 
   async function refreshLiveStats() {
-    const auth = sessionStorage.getItem('qm_admin_auth');
     try {
-      const res = await fetch('/api/admin-live', {
-        headers: { 'Authorization': 'Basic ' + auth }
-      });
+      const res = await fetch('/api/admin-live');
+      if (res.status === 401) { showLogin(); return; }
       if (res.ok) {
         const data = await res.json();
         document.getElementById('activeNow').textContent = data.activeNow || 0;
@@ -403,13 +410,17 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // Auto-login if already authed
-  if (sessionStorage.getItem('qm_admin_auth')) {
-    showDashboard();
-  }
+  // If the lk_sess cookie is already valid (e.g. logged in on /locker), go
+  // straight to the dashboard; otherwise the 401 falls back to the login card.
+  (async function init() {
+    try {
+      const res = await fetch('/api/admin-stats?days=' + currentRange);
+      if (res.ok) { showDashboard(); }
+    } catch (e) { /* stay on login */ }
+  })();
 
   // Submit on Enter
-  document.getElementById('password').addEventListener('keydown', e => {
+  document.getElementById('codeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') login();
   });
 </script>
