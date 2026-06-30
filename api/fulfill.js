@@ -64,7 +64,7 @@ async function activeLockerCodes() {
   }
 }
 
-async function sendPickupReadyEmail(order, door, code) {
+async function sendPickupReadyEmail(order, slots) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('RESEND_API_KEY not set');
   const email = order.email;
@@ -74,6 +74,38 @@ async function sendPickupReadyEmail(order, door, code) {
   const orderRef = order.ref;
   const siteUrl = 'https://quartzmolle.dk';
   const logoUrl = `${siteUrl}/images/logopng.png`;
+
+  // Some orders span more than one locker door. A multi-deposit shares one code
+  // across its doors; if codes differ we list each door with its own code.
+  const slotsArr = Array.isArray(slots) ? slots : [];
+  const doors = slotsArr.map(s => s.door);
+  const uniqCodes = [...new Set(slotsArr.map(s => String(s.code)))];
+  const sharedCode = uniqCodes.length === 1 ? uniqCodes[0] : null;
+  const multi = doors.length > 1;
+
+  const cell = (label, value) =>
+    `<div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:8px;">${label}</div>` +
+    `<div style="font-size:34px;font-weight:800;color:#273071;line-height:1.05;letter-spacing:0.04em;">${escapeHtml(String(value))}</div>`;
+
+  let codeBlockHtml;
+  if (!multi) {
+    codeBlockHtml =
+      `<tr><td style="padding:22px;text-align:center;border-right:1px solid #eee;">${cell('Skab / låge', doors[0])}</td>` +
+      `<td style="padding:22px;text-align:center;">${cell('Kode', sharedCode)}</td></tr>`;
+  } else if (sharedCode) {
+    codeBlockHtml =
+      `<tr><td style="padding:22px;text-align:center;border-right:1px solid #eee;">${cell('Skabe / låger', doors.join(', '))}</td>` +
+      `<td style="padding:22px;text-align:center;">${cell('Fælles kode', sharedCode)}</td></tr>`;
+  } else {
+    codeBlockHtml = slotsArr.map((s, i) =>
+      `<tr><td style="padding:18px 22px;text-align:center;border-right:1px solid #eee;${i ? 'border-top:1px solid #eee;' : ''}">${cell('Skab / låge', s.door)}</td>` +
+      `<td style="padding:18px 22px;text-align:center;${i ? 'border-top:1px solid #eee;' : ''}">${cell('Kode', s.code)}</td></tr>`
+    ).join('');
+  }
+
+  const introLine = multi
+    ? `Din ordre <strong>#${escapeHtml(orderRef)}</strong> fylder ${doors.length} skabe og ligger nu klar til afhentning. Brug koden herunder til at åbne lågerne.`
+    : `Din ordre <strong>#${escapeHtml(orderRef)}</strong> ligger nu klar i vores afhentningsskab. Brug koden herunder til at åbne den rigtige låge.`;
 
   const html = `<!DOCTYPE html>
 <html lang="da">
@@ -91,21 +123,12 @@ async function sendPickupReadyEmail(order, door, code) {
         </td></tr>
         <tr><td style="padding:32px 36px 8px;">
           <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#444;">
-            Din ordre <strong>#${escapeHtml(orderRef)}</strong> ligger nu klar i vores afhentningsskab. Brug koden herunder til at åbne den rigtige låge.
+            ${introLine}
           </p>
         </td></tr>
         <tr><td style="padding:0 36px 8px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;border:1px solid #e0d9c8;">
-            <tr>
-              <td style="padding:22px;text-align:center;border-right:1px solid #eee;">
-                <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:8px;">Skab / låge</div>
-                <div style="font-size:34px;font-weight:800;color:#273071;line-height:1;">${escapeHtml(String(door))}</div>
-              </td>
-              <td style="padding:22px;text-align:center;">
-                <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:8px;">Kode</div>
-                <div style="font-size:34px;font-weight:800;color:#273071;line-height:1;letter-spacing:0.08em;">${escapeHtml(String(code))}</div>
-              </td>
-            </tr>
+            ${codeBlockHtml}
           </table>
         </td></tr>
         <tr><td style="padding:24px 36px 8px;">
@@ -160,9 +183,15 @@ export default async function handler(req, res) {
 
     if (action === 'send') {
       const ref = (req.body && req.body.ref || '').toString().trim();
-      const door = parseInt(req.body && req.body.door, 10);
       if (!ref) return res.status(400).json({ error: 'Mangler ordre-reference' });
-      if (!(door >= 1)) return res.status(400).json({ error: 'Skriv et skab-/dør-nummer først.' });
+
+      // Accept one or several doors. The frontend may send `doors` (array or
+      // comma/space-separated string) or a single `door`.
+      let rawDoors = req.body && (req.body.doors != null ? req.body.doors : req.body.door);
+      if (typeof rawDoors === 'string') rawDoors = rawDoors.split(/[\s,]+/);
+      if (!Array.isArray(rawDoors)) rawDoors = [rawDoors];
+      const doors = [...new Set(rawDoors.map(d => parseInt(d, 10)).filter(d => d >= 1))];
+      if (!doors.length) return res.status(400).json({ error: 'Skriv et skab-/dør-nummer først.' });
 
       // Find the order by ref in the recent pickup list
       let orders = [];
@@ -170,18 +199,22 @@ export default async function handler(req, res) {
       const order = orders.find(o => o && o.ref === ref);
       if (!order) return res.status(404).json({ error: 'Ordren blev ikke fundet' });
 
-      // The code is whatever /locker generated for that door.
-      const code = await getLockerCodeForDoor(door);
-      if (!code) {
-        return res.status(409).json({ error: 'Der er ingen aktiv kode for det skab. Deponer ordren i skabet på /locker først.' });
+      // Resolve each door's code from the locker state.
+      const slots = [];
+      for (const d of doors) {
+        const c = await getLockerCodeForDoor(d);
+        if (!c) {
+          return res.status(409).json({ error: `Skab ${d} har ingen aktiv kode. Deponer ordren i skabet på /locker først.` });
+        }
+        slots.push({ door: d, code: c });
       }
 
-      await sendPickupReadyEmail(order, door, code);
+      await sendPickupReadyEmail(order, slots);
 
-      const record = { door, code, email: order.email, sentAt: Date.now() };
+      const record = { doors, slots, email: order.email, sentAt: Date.now() };
       try { await kv.hset('pickup:fulfilled', { [ref]: record }); } catch (e) { console.error('Failed to record fulfilment:', e); }
 
-      return res.status(200).json({ ok: true, ref, door, code });
+      return res.status(200).json({ ok: true, ref, slots });
     }
 
     return res.status(400).json({ error: 'Ukendt handling' });

@@ -100,9 +100,10 @@
   .order-items{font-size:13px;color:var(--muted);margin-top:8px}
   .order-act{display:flex;gap:9px;align-items:center;margin-top:13px;flex-wrap:wrap}
   .door-in{
-    width:120px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;
+    width:150px;padding:13px 14px;border:2px solid var(--line);border-radius:12px;
     background:var(--cream);font-size:16px;font-weight:700;color:var(--blue);outline:none;font-family:inherit
   }
+  .door-in::placeholder{font-size:13px;font-weight:500;color:var(--grey)}
   .door-in:focus{border-color:var(--blue-light)}
   .order-status{font-size:13.5px;font-weight:600}
   .order-status.ok{color:var(--green)} .order-status.err{color:var(--red)}
@@ -219,6 +220,15 @@
     return (o.items||[]).map(function(it){ return esc(it.name)+(it.weightLabel?' ('+esc(it.weightLabel)+')':'')+' × '+(it.qty||1); }).join(', ');
   }
 
+  function sentText(sent){
+    var slots = sent.slots || (sent.door!=null ? [{door:sent.door, code:sent.code}] : []);
+    if(!slots.length) return '✓ Sendt';
+    var codes = slots.map(function(s){return String(s.code);}).filter(function(v,i,a){return a.indexOf(v)===i;});
+    if(slots.length===1) return '✓ Sendt · Dør '+esc(slots[0].door)+' · Kode '+esc(slots[0].code);
+    if(codes.length===1) return '✓ Sendt · Døre '+slots.map(function(s){return esc(s.door);}).join(', ')+' · Kode '+esc(codes[0]);
+    return '✓ Sendt · '+slots.map(function(s){return 'Dør '+esc(s.door)+' ('+esc(s.code)+')';}).join(', ');
+  }
+
   function card(o, sent){
     var el = document.createElement('div');
     el.className = 'order' + (sent ? ' done' : '');
@@ -231,12 +241,12 @@
       + '<div class="order-items">'+itemsLine(o)+'</div>';
 
     if(sent){
-      html += '<div class="sent-line">✓ Sendt · Dør '+esc(sent.door)+' · Kode '+esc(sent.code)+'</div>';
+      html += '<div class="sent-line">'+sentText(sent)+'</div>';
       el.innerHTML = html; return el;
     }
 
     html += '<div class="order-act">'
-      + '<input class="door-in" type="number" min="1" placeholder="Dør-nr." />'
+      + '<input class="door-in" type="text" inputmode="numeric" placeholder="Dør-nr. (fx 7, 8)" />'
       + '<button class="btn btn-blue">Send kode</button>'
       + '<span class="order-status"></span>'
       + '</div>';
@@ -246,12 +256,12 @@
     var btn = el.querySelector('button');
     var status = el.querySelector('.order-status');
     btn.addEventListener('click', async function(){
-      var door = parseInt(input.value,10);
+      var doorsVal = input.value.trim();
       status.className='order-status';
-      if(!(door>=1)){ status.classList.add('err'); status.textContent='Skriv et dør-nummer'; return; }
+      if(!doorsVal){ status.classList.add('err'); status.textContent='Skriv et dør-nummer'; return; }
       btn.disabled=true; var t=btn.textContent; btn.textContent='Sender…';
       try{
-        var r = await fetch('/api/fulfill', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'send', ref:o.ref, door:door}) });
+        var r = await fetch('/api/fulfill', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'send', ref:o.ref, doors:doorsVal}) });
         var d = await r.json();
         if(r.ok && d.ok){ status.classList.add('ok'); status.textContent='Sendt!'; setTimeout(load, 600); }
         else { status.classList.add('err'); status.textContent = d.error || 'Kunne ikke sende'; btn.disabled=false; btn.textContent=t; }
