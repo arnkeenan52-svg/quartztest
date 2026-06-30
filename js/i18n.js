@@ -398,9 +398,39 @@
     }
   }
 
+  // Self-contained styling for the language switcher, so it looks correct even
+  // on pages that don't load css/style.css (e.g. /locker, /fufill, /admin).
+  function injectStyle() {
+    if (document.getElementById('qm-i18n-style')) return;
+    var css =
+      '.lang-switch{position:relative;display:inline-flex;align-items:center;margin-right:.9rem}' +
+      '.lang-switch-btn{display:inline-flex;align-items:center;gap:.32rem;background:none;border:none;padding:0;color:#fff;opacity:.9;font-family:inherit;font-size:.95rem;font-weight:500;letter-spacing:.01em;text-shadow:0 1px 8px rgba(0,0,0,.4);cursor:pointer;transition:opacity .2s}' +
+      '.lang-switch-btn:hover{opacity:1}' +
+      '.lang-switch-btn .lang-chevron{width:11px;height:11px;opacity:.85;transition:transform .2s}' +
+      '.lang-switch.open .lang-switch-btn .lang-chevron{transform:rotate(180deg)}' +
+      '.nav.nav-light .lang-switch-btn{color:#1a1611;text-shadow:none}' +
+      '.lang-switch-menu{position:absolute;top:calc(100% + .5rem);right:0;min-width:150px;background:#fff;border-radius:12px;box-shadow:0 10px 34px rgba(0,0,0,.18);padding:.4rem;display:none;flex-direction:column;gap:.15rem;z-index:4001}' +
+      '.lang-switch.open .lang-switch-menu{display:flex}' +
+      '.lang-switch-menu button{text-align:left;background:none;border:none;border-radius:8px;padding:.6rem .8rem;font-family:inherit;font-size:.92rem;color:#1a1611;cursor:pointer;transition:background .12s}' +
+      '.lang-switch-menu button:hover{background:#f0ece3}' +
+      '.lang-switch-menu button.active{background:#273071;color:#fff;font-weight:600}' +
+      '.mobile-menu .lang-switch{margin:.25rem 0 0}' +
+      '.mobile-menu .lang-switch-btn{font-size:1.2rem;gap:.45rem;opacity:1}' +
+      '.mobile-menu .lang-switch-btn .lang-chevron{width:14px;height:14px}' +
+      '.mobile-menu .lang-switch-menu{right:auto;left:50%;transform:translateX(-50%)}' +
+      '.lang-switch--floating{position:fixed;top:14px;right:14px;margin-right:0;z-index:4000}' +
+      '.lang-switch--floating .lang-switch-btn{background:#273071;color:#fff;opacity:1;padding:.5rem .85rem;border-radius:999px;text-shadow:none;box-shadow:0 4px 16px rgba(0,0,0,.2)}' +
+      '@media (max-width:768px){.nav .lang-switch{margin-right:.5rem}.nav .lang-switch-btn .lang-chevron{display:none}}';
+    var st = document.createElement('style');
+    st.id = 'qm-i18n-style';
+    st.textContent = css;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
   function init() {
     var lang = currentLang();
     document.documentElement.lang = lang;
+    injectStyle();
     injectSwitches(lang);
 
     if (lang === 'en') {
