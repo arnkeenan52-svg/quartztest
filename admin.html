@@ -106,6 +106,35 @@
   .filter-bar button:active{transform:translateY(1px)}
   .filter-bar button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
+  /* custom range row */
+  .range-bar{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 16px;
+    background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 1px 3px rgba(39,48,113,.05)
+  }
+  .range-bar .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+  .range-bar input[type="date"],.range-bar input[type="number"]{
+    border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;
+    font-family:inherit;color:var(--text);background:var(--cream);outline:none
+  }
+  .range-bar input[type="date"]:focus,.range-bar input[type="number"]:focus{border-color:var(--blue-light)}
+  .range-bar input[type="number"]{width:64px;text-align:center}
+  .range-bar .go{background:var(--blue);color:#fff;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600}
+  .range-bar .go:active{background:var(--blue-dark)}
+  .range-bar .sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+  .range-now{font-size:13px;font-weight:600;color:var(--blue);margin:0 2px 14px}
+
+  /* search */
+  .search-wrap{position:relative;margin:0 0 14px}
+  .search-in{
+    width:100%;padding:13px 16px 13px 42px;border:1.5px solid var(--line);border-radius:12px;
+    background:var(--white);font-size:14px;font-weight:500;color:var(--text);outline:none;font-family:inherit;transition:border-color .15s
+  }
+  .search-in::placeholder{color:var(--grey);font-weight:500}
+  .search-in:focus{border-color:var(--blue-light)}
+  .search-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--grey);pointer-events:none;display:flex}
+  .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--grey-soft);color:var(--muted);border-radius:50%;width:24px;height:24px;font-size:14px;line-height:1;display:none;align-items:center;justify-content:center}
+  .search-clear.show{display:flex}
+
   /* ---------- PANELS ---------- */
   .panel{
     background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
@@ -225,9 +254,28 @@
       <button data-range="90" onclick="setRange(90)">90 dage</button>
     </div>
 
+    <!-- Custom range: pick a number of days, or a specific date / date range -->
+    <div class="range-bar">
+      <span class="lbl">Egne dage:</span>
+      <input type="number" id="customDays" min="1" max="365" placeholder="14" />
+      <button class="go" onclick="applyCustomDays()">Vis</button>
+      <span class="sep"></span>
+      <span class="lbl">Dato:</span>
+      <input type="date" id="dateFrom" />
+      <span class="lbl">til</span>
+      <input type="date" id="dateTo" />
+      <button class="go" onclick="applyDateRange()">Vis</button>
+    </div>
+    <div class="range-now" id="rangeNow"></div>
+
     <!-- Recent orders -->
     <div class="panel">
-      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Seneste ordrer</h2>
+      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ordrer</h2>
+      <div class="search-wrap">
+        <span class="search-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+        <input id="orderSearch" class="search-in" type="text" autocomplete="off" placeholder="Søg ordre-nr. eller navn…" />
+        <button id="orderSearchClear" class="search-clear" aria-label="Ryd">✕</button>
+      </div>
       <div id="ordersList" class="loading">Henter ordrer…</div>
     </div>
 
@@ -251,8 +299,10 @@
 <script>
   // Auth: shares the /locker session cookie (lk_sess). Logging in here, on
   // /locker or on /fulfill unlocks all three with the same code.
-  let currentRange = 7;
   let pollTimer = null;
+  let currentQuery = 'days=7';   // what we ask the API for (days=N or from=..&to=..)
+  let lastOrders = [];           // all orders for the current range (for client-side search)
+  let orderQuery = '';           // current order search text
 
   async function login() {
     const codeInput = document.getElementById('codeInput');
@@ -298,17 +348,50 @@
     document.getElementById('loginWrap').classList.remove('hide');
   }
 
-  function setRange(days) {
-    currentRange = days;
+  function highlightQuickButton(days) {
     document.querySelectorAll('.filter-bar button').forEach(b => {
-      b.classList.toggle('active', Number(b.dataset.range) === days);
+      b.classList.toggle('active', days != null && Number(b.dataset.range) === days);
     });
+  }
+
+  function setRange(days) {
+    currentQuery = 'days=' + days;
+    document.getElementById('customDays').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    highlightQuickButton(days);
+    loadDashboard();
+  }
+
+  function applyCustomDays() {
+    let n = parseInt(document.getElementById('customDays').value, 10);
+    if (!Number.isFinite(n) || n < 1) { n = 7; }
+    if (n > 365) n = 365;
+    document.getElementById('customDays').value = n;
+    currentQuery = 'days=' + n;
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    highlightQuickButton(n);
+    loadDashboard();
+  }
+
+  function applyDateRange() {
+    const from = document.getElementById('dateFrom').value;
+    let to = document.getElementById('dateTo').value;
+    if (!from) { alert('Vælg en fra-dato (eller bare én dato for den dag).'); return; }
+    // No "to" → single day. If "to" is before "from", swap.
+    if (to && to < from) { const tmp = to; to = from; document.getElementById('dateFrom').value = tmp; document.getElementById('dateTo').value = from; }
+    currentQuery = 'from=' + encodeURIComponent(from) + (to ? '&to=' + encodeURIComponent(to) : '');
+    document.getElementById('customDays').value = '';
+    highlightQuickButton(null);
     loadDashboard();
   }
 
   async function loadDashboard() {
+    document.getElementById('ordersList').className = 'loading';
+    document.getElementById('ordersList').textContent = 'Henter ordrer…';
     try {
-      const res = await fetch('/api/admin-stats?days=' + currentRange);
+      const res = await fetch('/api/admin-stats?' + currentQuery);
       if (!res.ok) {
         if (res.status === 401) { showLogin(); return; }
         throw new Error('API error ' + res.status);
@@ -341,33 +424,24 @@
   }
 
   function renderDashboard(data) {
+    const label = data.rangeLabel || '';
     // Top stats
     document.getElementById('ordersToday').textContent = data.ordersToday || 0;
-    document.getElementById('ordersWeek').textContent = (data.totalOrders || 0) + ' i ' + currentRange + ' dage';
+    document.getElementById('ordersWeek').textContent = (data.totalOrders || 0) + ' i ' + label;
     document.getElementById('revenueToday').textContent = formatKr(data.revenueToday || 0);
-    document.getElementById('revenueWeek').textContent = formatKr(data.totalRevenue || 0) + ' i ' + currentRange + ' dage';
+    document.getElementById('revenueWeek').textContent = formatKr(data.totalRevenue || 0) + ' i ' + label;
+
+    // Range summary line
+    document.getElementById('rangeNow').textContent =
+      'Viser: ' + label + ' · ' + (data.totalOrders || 0) + ' ordrer · ' + formatKr(data.totalRevenue || 0) +
+      (data.truncated ? ' (begrænset til de nyeste ordrer)' : '');
 
     // Live stats refresh
     refreshLiveStats();
 
-    // Orders list
-    const ordersEl = document.getElementById('ordersList');
-    if (!data.orders || data.orders.length === 0) {
-      ordersEl.innerHTML = '<div class="empty">Ingen ordrer i denne periode.</div>';
-    } else {
-      ordersEl.innerHTML = data.orders.map(o => `
-        <div class="order-row">
-          <div class="ref">#${escapeHtml(o.ref)}</div>
-          <div>
-            <div class="name">${escapeHtml(o.customerName)}</div>
-            <div class="city">${escapeHtml(o.city || '')}${o.country ? ', ' + escapeHtml(o.country) : ''}</div>
-          </div>
-          <div class="stk">${escapeHtml(o.itemCount)} stk.</div>
-          <div class="amount">${formatKr(o.amount)}</div>
-          <div class="date">${formatDate(o.date)}</div>
-        </div>
-      `).join('');
-    }
+    // Orders list (kept for client-side search)
+    lastOrders = data.orders || [];
+    renderOrders();
 
     // Top products
     const productsEl = document.getElementById('topProducts');
@@ -398,6 +472,38 @@
     }
   }
 
+  function renderOrders() {
+    const ordersEl = document.getElementById('ordersList');
+    const q = orderQuery;
+    const list = q
+      ? lastOrders.filter(o => ((o.ref || '') + ' ' + (o.customerName || '') + ' ' + (o.email || '') + ' ' + (o.city || '')).toLowerCase().includes(q))
+      : lastOrders;
+
+    if (!lastOrders.length) {
+      ordersEl.className = 'empty';
+      ordersEl.textContent = 'Ingen ordrer i denne periode.';
+      return;
+    }
+    if (!list.length) {
+      ordersEl.className = 'empty';
+      ordersEl.textContent = 'Ingen ordrer matcher “' + q + '”.';
+      return;
+    }
+    ordersEl.className = '';
+    ordersEl.innerHTML = list.map(o => `
+      <div class="order-row">
+        <div class="ref">#${escapeHtml(o.ref)}</div>
+        <div>
+          <div class="name">${escapeHtml(o.customerName)}</div>
+          <div class="city">${escapeHtml(o.city || '')}${o.country ? ', ' + escapeHtml(o.country) : ''}</div>
+        </div>
+        <div class="stk">${o.itemCount != null ? escapeHtml(o.itemCount) + ' stk.' : '–'}</div>
+        <div class="amount">${formatKr(o.amount)}</div>
+        <div class="date">${formatDate(o.date)}</div>
+      </div>
+    `).join('');
+  }
+
   function formatKr(amount) {
     return Math.round(amount).toLocaleString('da-DK') + ' kr.';
   }
@@ -414,7 +520,7 @@
   // straight to the dashboard; otherwise the 401 falls back to the login card.
   (async function init() {
     try {
-      const res = await fetch('/api/admin-stats?days=' + currentRange);
+      const res = await fetch('/api/admin-stats?' + currentQuery);
       if (res.ok) { showDashboard(); }
     } catch (e) { /* stay on login */ }
   })();
@@ -422,6 +528,27 @@
   // Submit on Enter
   document.getElementById('codeInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') login();
+  });
+
+  // Order search (client-side, across the loaded range)
+  const orderSearch = document.getElementById('orderSearch');
+  const orderSearchClear = document.getElementById('orderSearchClear');
+  orderSearch.addEventListener('input', () => {
+    orderQuery = orderSearch.value.trim().toLowerCase();
+    orderSearchClear.classList.toggle('show', orderQuery.length > 0);
+    renderOrders();
+  });
+  orderSearchClear.addEventListener('click', () => {
+    orderSearch.value = ''; orderQuery = ''; orderSearchClear.classList.remove('show');
+    renderOrders(); orderSearch.focus();
+  });
+
+  // Apply custom-range inputs on Enter
+  ['customDays', 'dateFrom', 'dateTo'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (id === 'customDays') applyCustomDays(); else applyDateRange();
+    });
   });
 </script>
 
