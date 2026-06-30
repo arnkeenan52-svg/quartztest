@@ -36,23 +36,20 @@
     background:var(--white);border:1px solid var(--line);border-radius:24px;
     box-shadow:var(--shadow);padding:38px 30px;width:100%;max-width:380px;text-align:center
   }
-  .login-card img{width:90px;height:90px;object-fit:contain;margin-bottom:8px}
+  .login-card img{width:96px;height:96px;object-fit:contain;margin-bottom:10px}
   .login-card h1{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.2px}
-  .login-card .sub{color:var(--muted);font-size:14px;margin-top:4px;margin-bottom:22px}
-  .login-card label{
-    display:block;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.12em;
-    color:var(--muted);font-weight:600;margin:14px 2px 6px
+  .login-card p{color:var(--muted);font-size:14px;margin-top:4px;margin-bottom:24px}
+  .code-input{
+    width:100%;text-align:center;font-size:24px;font-weight:700;letter-spacing:6px;
+    color:var(--blue);padding:16px;border:2px solid var(--line);border-radius:14px;
+    background:var(--cream);outline:none;transition:border-color .15s;font-family:inherit
   }
-  .login-card input{
-    width:100%;padding:13px 14px;border:2px solid var(--line);border-radius:12px;
-    font-size:15px;font-family:inherit;background:var(--cream);color:var(--text);outline:none;transition:border-color .15s
+  .code-input:focus{border-color:var(--blue-light)}
+  .login-btn{
+    width:100%;margin-top:16px;background:var(--blue);color:#fff;font-size:17px;font-weight:600;
+    padding:16px;border-radius:14px;transition:background .15s
   }
-  .login-card input:focus{border-color:var(--blue-light)}
-  .login-card button{
-    width:100%;margin-top:22px;background:var(--blue);color:#fff;font-size:16px;font-weight:600;
-    padding:15px;border-radius:14px;transition:background .15s
-  }
-  .login-card button:active{background:var(--blue-dark)}
+  .login-btn:active{background:var(--blue-dark)}
   .login-error{color:var(--red);font-size:14px;font-weight:500;margin-top:14px;min-height:18px}
 
   /* ---------- TOPBAR ---------- */
@@ -167,12 +164,9 @@
   <div class="login-card">
     <img src="/images/logopng.png" alt="Quartz Mølle" onerror="this.style.display='none'" />
     <h1>Quartz Mølle Admin</h1>
-    <p class="sub">Log ind for at se dashboard</p>
-    <label>Brugernavn</label>
-    <input type="text" id="username" autocomplete="username" />
-    <label>Adgangskode</label>
-    <input type="password" id="password" autocomplete="current-password" />
-    <button onclick="login()">Log ind</button>
+    <p>Indtast adgangskode</p>
+    <input id="password" class="code-input" type="password" autocomplete="current-password" placeholder="••••••" />
+    <button id="loginBtn" class="login-btn" onclick="login()">Lås op</button>
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
@@ -261,14 +255,18 @@
   let pollTimer = null;
 
   function login() {
-    const u = document.getElementById('username').value.trim().toLowerCase();
     const p = document.getElementById('password').value;
-    if (u === VALID_USER.toLowerCase() && p === VALID_PASS) {
-      // Always store the normalized lowercase username so the API receives it consistently
+    const err = document.getElementById('loginError');
+    err.textContent = '';
+    if (!p) { err.textContent = 'Indtast adgangskode'; return; }
+    if (p === VALID_PASS) {
+      // Username is fixed; store it lowercase so the API receives it consistently
       sessionStorage.setItem('qm_admin_auth', btoa(VALID_USER.toLowerCase() + ':' + p));
       showDashboard();
     } else {
-      document.getElementById('loginError').textContent = 'Forkert brugernavn eller adgangskode.';
+      err.textContent = 'Forkert adgangskode';
+      document.getElementById('password').value = '';
+      document.getElementById('password').focus();
     }
   }
 
@@ -277,7 +275,6 @@
     if (pollTimer) clearInterval(pollTimer);
     document.getElementById('loginWrap').classList.remove('hide');
     document.getElementById('dashboard').classList.add('hide');
-    document.getElementById('username').value = '';
     document.getElementById('password').value = '';
   }
 
