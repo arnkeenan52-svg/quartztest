@@ -2,232 +2,170 @@
 <html lang="da">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin – Quartz Mølle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Admin · Quartz Mølle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --blue: #273071;
-    --cream: #f5f1e8;
-    --border: #e5e1d8;
-    --text: #222;
-    --muted: #888;
+  :root{
+    --blue:#273071; --blue-dark:#1b2252; --blue-light:#3a4599;
+    --blue-soft:rgba(39,48,113,.08);
+    --cream:#faf7f2; --warm:#f5f0e8; --line:#e7e1d6;
+    --text:#1a1611; --muted:#6b6256; --white:#fff;
+    --green:#2e8b57; --green-soft:#e6f1ea;
+    --red:#b23b3b; --red-soft:#f6e7e4;
+    --grey:#9b9488; --grey-soft:#ece8e0;
+    --shadow:0 4px 18px rgba(39,48,113,.10);
+    --radius:18px;
   }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--cream);
-    color: var(--text);
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    background:var(--cream); color:var(--text); -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  button{font-family:inherit;cursor:pointer;border:none}
+  a{color:inherit}
+  .hide{display:none!important}
+
+  /* ---------- LOGIN ---------- */
+  #loginWrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{
+    background:var(--white);border:1px solid var(--line);border-radius:24px;
+    box-shadow:var(--shadow);padding:38px 30px;width:100%;max-width:380px;text-align:center
+  }
+  .login-card img{width:90px;height:90px;object-fit:contain;margin-bottom:8px}
+  .login-card h1{font-size:20px;font-weight:700;color:var(--blue);letter-spacing:.2px}
+  .login-card .sub{color:var(--muted);font-size:14px;margin-top:4px;margin-bottom:22px}
+  .login-card label{
+    display:block;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);font-weight:600;margin:14px 2px 6px
+  }
+  .login-card input{
+    width:100%;padding:13px 14px;border:2px solid var(--line);border-radius:12px;
+    font-size:15px;font-family:inherit;background:var(--cream);color:var(--text);outline:none;transition:border-color .15s
+  }
+  .login-card input:focus{border-color:var(--blue-light)}
+  .login-card button{
+    width:100%;margin-top:22px;background:var(--blue);color:#fff;font-size:16px;font-weight:600;
+    padding:15px;border-radius:14px;transition:background .15s
+  }
+  .login-card button:active{background:var(--blue-dark)}
+  .login-error{color:var(--red);font-size:14px;font-weight:500;margin-top:14px;min-height:18px}
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;background:var(--blue);color:#fff;
+    display:flex;align-items:center;gap:12px;padding:14px 18px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+  }
+  .topbar img{width:34px;height:34px;object-fit:contain;border-radius:8px;background:#fff;padding:3px}
+  .topbar .ttl{font-weight:700;font-size:16px;line-height:1.15}
+  .topbar .ttl small{display:block;font-weight:500;font-size:11px;opacity:.8}
+  .topbar .spacer{flex:1}
+  .topbar .upd{font-size:12px;opacity:.8;margin-right:4px;white-space:nowrap}
+  .logout{background:rgba(255,255,255,.14);color:#fff;font-size:13px;font-weight:600;padding:8px 12px;border-radius:10px}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+
+  /* ---------- STAT CARDS ---------- */
+  .stat-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:13px;margin-bottom:8px
+  }
+  .stat-card{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 18px 16px;box-shadow:0 1px 3px rgba(39,48,113,.05);
+    display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden
+  }
+  .stat-card .ic{
+    position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;background:var(--blue-soft);color:var(--blue)
+  }
+  .stat-card .label{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center}
+  .stat-card .value{
+    font-size:28px;font-weight:800;color:var(--blue);letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;margin-top:6px;line-height:1.1
+  }
+  .stat-card .delta{font-size:12px;color:var(--muted);margin-top:5px;font-weight:500}
+  .live-dot{
+    display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);
+    margin-right:6px;vertical-align:middle;box-shadow:0 0 0 0 rgba(46,139,87,.6);animation:pulse 2s infinite
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(46,139,87,.5)}
+    70%{box-shadow:0 0 0 8px rgba(46,139,87,0)}
+    100%{box-shadow:0 0 0 0 rgba(46,139,87,0)}
   }
 
-  /* Login screen */
-  .login-wrap {
-    min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px;
+  /* ---------- FILTER ---------- */
+  .filter-bar{display:flex;gap:8px;margin:24px 0 14px;flex-wrap:wrap}
+  .filter-bar button{
+    background:var(--white);border:1.5px solid var(--line);color:var(--blue);
+    padding:9px 16px;border-radius:12px;font-size:13px;font-weight:600;transition:all .12s
   }
-  .login-card {
-    background: #fff;
-    border-radius: 18px;
-    padding: 44px 38px;
-    width: 100%;
-    max-width: 380px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-  }
-  .login-card h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    letter-spacing: -0.01em;
-    text-align: center;
-  }
-  .login-card .sub {
-    color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 28px;
-  }
-  .login-card label {
-    display: block;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    margin-bottom: 6px;
-    margin-top: 14px;
-  }
-  .login-card input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: inherit;
-    background: var(--cream);
-  }
-  .login-card input:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
-  .login-card button {
-    width: 100%;
-    margin-top: 22px;
-    padding: 13px;
-    background: var(--blue);
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .login-card button:hover { opacity: 0.92; }
-  .login-error { color: #c0392b; font-size: 13px; margin-top: 14px; text-align: center; min-height: 18px; }
+  .filter-bar button:active{transform:translateY(1px)}
+  .filter-bar button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
-  /* Dashboard */
-  .dashboard { display: none; }
-  .topbar {
-    background: var(--blue);
-    color: #fff;
-    padding: 16px 28px;
-    display: flex; justify-content: space-between; align-items: center;
+  /* ---------- PANELS ---------- */
+  .panel{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;box-shadow:0 1px 3px rgba(39,48,113,.05);margin-bottom:18px
   }
-  .topbar h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-  .topbar .right { display: flex; gap: 14px; align-items: center; font-size: 13px; }
-  .topbar .logout { background: rgba(255,255,255,0.15); padding: 7px 14px; border-radius: 999px; cursor: pointer; font-weight: 500; }
+  .panel h2{
+    font-size:14px;font-weight:700;color:var(--blue);
+    padding-bottom:12px;margin-bottom:6px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px
+  }
+  .panel h2 svg{color:var(--blue-light)}
 
-  .container { max-width: 1200px; margin: 0 auto; padding: 28px 22px; }
+  .order-row{
+    display:grid;grid-template-columns:96px 1fr 78px 100px 92px;
+    gap:14px;padding:13px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center
+  }
+  .order-row:last-child{border-bottom:none}
+  .order-row .ref{color:var(--blue);font-weight:700;font-size:12px;letter-spacing:.02em}
+  .order-row .name{font-weight:600}
+  .order-row .city{color:var(--muted);font-size:13px}
+  .order-row .stk{color:var(--muted);font-size:13px}
+  .order-row .amount{text-align:right;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums}
+  .order-row .date{color:var(--grey);font-size:12px;text-align:right}
 
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .stat-card {
-    background: #fff;
-    border-radius: 14px;
-    padding: 22px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-  }
-  .stat-card .label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-  .stat-card .value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--blue);
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
-  .stat-card .delta {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 6px;
-  }
-  .stat-card .live-dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    background: #2ecc71; margin-right: 6px; vertical-align: middle;
-    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.6);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.5); }
-    70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
-  }
+  .product-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .product-row:last-child{border-bottom:none}
+  .product-row img{width:42px;height:42px;border-radius:10px;object-fit:cover;background:var(--warm);flex-shrink:0}
+  .product-row .product-noimg{width:42px;height:42px;border-radius:10px;background:var(--warm);flex-shrink:0}
+  .product-row .product-name{flex:1;min-width:0;font-weight:500}
+  .product-row .rank{width:22px;height:22px;border-radius:7px;background:var(--blue-soft);color:var(--blue);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .product-row .qty{color:var(--blue);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 
-  .panel {
-    background: #fff;
-    border-radius: 14px;
-    padding: 24px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    margin-bottom: 24px;
-  }
-  .panel h2 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--muted);
-    border-bottom: 2px solid var(--blue);
-    padding-bottom: 10px;
-    margin-bottom: 16px;
-  }
+  .location-row{display:grid;grid-template-columns:1fr 70px;padding:10px 0;font-size:14px;border-bottom:1px solid var(--line);align-items:center}
+  .location-row:last-child{border-bottom:none}
+  .location-row .count{color:var(--blue);font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 
-  .order-row {
-    display: grid;
-    grid-template-columns: 110px 1fr 90px 110px 100px;
-    gap: 14px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-    align-items: center;
-  }
-  .order-row:last-child { border-bottom: none; }
-  .order-row .ref { color: var(--blue); font-weight: 600; font-size: 12px; font-family: monospace; }
-  .order-row .name { font-weight: 500; }
-  .order-row .city { color: var(--muted); font-size: 13px; }
-  .order-row .amount { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .order-row .date { color: var(--muted); font-size: 12px; }
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .loading{text-align:center;padding:28px;color:var(--muted);font-size:14px}
+  .empty{text-align:center;padding:20px;color:var(--muted);font-size:13px}
 
-  .product-row {
-    display: flex; align-items: center; gap: 12px; padding: 10px 0;
-    border-bottom: 1px solid var(--border); font-size: 14px;
-  }
-  .product-row:last-child { border-bottom: none; }
-  .product-row img {
-    width: 40px; height: 40px; border-radius: 8px; object-fit: cover;
-    background: var(--cream); flex-shrink: 0;
-  }
-  .product-row .product-noimg {
-    width: 40px; height: 40px; border-radius: 8px; background: var(--cream); flex-shrink: 0;
-  }
-  .product-row .product-name { flex: 1; min-width: 0; }
-  .product-row .qty { color: var(--blue); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-  .location-row {
-    display: grid; grid-template-columns: 1fr 80px;
-    padding: 8px 0; font-size: 14px;
-    border-bottom: 1px solid var(--border);
-  }
-  .location-row:last-child { border-bottom: none; }
-  .location-row .count { color: var(--blue); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 700px) {
-    .two-col { grid-template-columns: 1fr; }
-    .order-row { grid-template-columns: 1fr 1fr; row-gap: 4px; }
-    .order-row .city, .order-row .date { font-size: 11px; }
-  }
-
-  .loading { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
-  .empty { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
-
-  .filter-bar {
-    display: flex; gap: 8px; margin-bottom: 20px;
-  }
-  .filter-bar button {
-    background: #fff;
-    border: 1px solid var(--border);
-    padding: 8px 14px;
-    border-radius: 999px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .filter-bar button.active {
-    background: var(--blue); color: #fff; border-color: var(--blue);
+  @media (max-width:700px){
+    .two-col{grid-template-columns:1fr}
+    .order-row{grid-template-columns:1fr auto;row-gap:3px;column-gap:10px}
+    .order-row .ref{grid-column:1/2}
+    .order-row .date{grid-column:2/3}
+    .order-row .stk{display:none}
+    .order-row .amount{grid-column:2/3;text-align:right}
+    .topbar .upd{display:none}
   }
 </style>
 </head>
 <body>
 
-<!-- Login screen -->
+<!-- ===== LOGIN ===== -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
+    <img src="/images/logopng.png" alt="Quartz Mølle" onerror="this.style.display='none'" />
     <h1>Quartz Mølle Admin</h1>
     <p class="sub">Log ind for at se dashboard</p>
     <label>Brugernavn</label>
@@ -239,41 +177,46 @@
   </div>
 </div>
 
-<!-- Dashboard -->
-<div class="dashboard" id="dashboard">
+<!-- ===== DASHBOARD ===== -->
+<div class="dashboard hide" id="dashboard">
   <div class="topbar">
-    <h1>Quartz Mølle Admin</h1>
-    <div class="right">
-      <span id="lastUpdate"></span>
-      <span class="logout" onclick="logout()">Log ud</span>
-    </div>
+    <img src="/images/logopng.png" alt="" onerror="this.style.display='none'" />
+    <div class="ttl">Admin<small>Statistik · Quartz Mølle</small></div>
+    <div class="spacer"></div>
+    <span class="upd" id="lastUpdate"></span>
+    <button class="logout" onclick="logout()">Log ud</button>
   </div>
 
-  <div class="container">
+  <div class="wrap">
 
     <!-- Live stats -->
     <div class="stat-grid">
       <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
         <div class="label"><span class="live-dot"></span>Aktive nu</div>
         <div class="value" id="activeNow">–</div>
         <div class="delta">Sidste 60 sek.</div>
       </div>
       <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="label">Besøgende i dag</div>
         <div class="value" id="visitorsToday">–</div>
         <div class="delta" id="visitorsYesterday"></div>
       </div>
       <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
         <div class="label">Ordrer i dag</div>
         <div class="value" id="ordersToday">–</div>
         <div class="delta" id="ordersWeek"></div>
       </div>
       <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="label">Omsætning i dag</div>
         <div class="value" id="revenueToday">–</div>
         <div class="delta" id="revenueWeek"></div>
       </div>
       <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
         <div class="label">Konvertering</div>
         <div class="value" id="conversionRate">–</div>
         <div class="delta">Ordrer / besøgende</div>
@@ -289,20 +232,20 @@
 
     <!-- Recent orders -->
     <div class="panel">
-      <h2>Seneste ordrer</h2>
+      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Seneste ordrer</h2>
       <div id="ordersList" class="loading">Henter ordrer…</div>
     </div>
 
     <div class="two-col">
       <!-- Top products -->
       <div class="panel">
-        <h2>Mest solgte produkter</h2>
+        <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Mest solgte produkter</h2>
         <div id="topProducts" class="loading">Henter…</div>
       </div>
 
       <!-- Customer locations -->
       <div class="panel">
-        <h2>Kunde lokationer</h2>
+        <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Kunde lokationer</h2>
         <div id="locations" class="loading">Henter…</div>
       </div>
     </div>
@@ -332,15 +275,15 @@
   function logout() {
     sessionStorage.removeItem('qm_admin_auth');
     if (pollTimer) clearInterval(pollTimer);
-    document.getElementById('loginWrap').style.display = 'flex';
-    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginWrap').classList.remove('hide');
+    document.getElementById('dashboard').classList.add('hide');
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
   }
 
   function showDashboard() {
-    document.getElementById('loginWrap').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('loginWrap').classList.add('hide');
+    document.getElementById('dashboard').classList.remove('hide');
     loadDashboard();
     // Refresh active users every 15 sec
     pollTimer = setInterval(refreshLiveStats, 15000);
@@ -396,7 +339,7 @@
   function renderDashboard(data) {
     // Top stats
     document.getElementById('ordersToday').textContent = data.ordersToday || 0;
-    document.getElementById('ordersWeek').textContent = data.totalOrders + ' i ' + currentRange + ' dage';
+    document.getElementById('ordersWeek').textContent = (data.totalOrders || 0) + ' i ' + currentRange + ' dage';
     document.getElementById('revenueToday').textContent = formatKr(data.revenueToday || 0);
     document.getElementById('revenueWeek').textContent = formatKr(data.totalRevenue || 0) + ' i ' + currentRange + ' dage';
 
@@ -415,7 +358,7 @@
             <div class="name">${escapeHtml(o.customerName)}</div>
             <div class="city">${escapeHtml(o.city || '')}${o.country ? ', ' + escapeHtml(o.country) : ''}</div>
           </div>
-          <div class="city">${escapeHtml(o.itemCount)} stk.</div>
+          <div class="stk">${escapeHtml(o.itemCount)} stk.</div>
           <div class="amount">${formatKr(o.amount)}</div>
           <div class="date">${formatDate(o.date)}</div>
         </div>
@@ -427,8 +370,9 @@
     if (!data.topProducts || data.topProducts.length === 0) {
       productsEl.innerHTML = '<div class="empty">Ingen data.</div>';
     } else {
-      productsEl.innerHTML = data.topProducts.map(p => `
+      productsEl.innerHTML = data.topProducts.map((p, i) => `
         <div class="product-row">
+          <div class="rank">${i + 1}</div>
           ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" />` : '<div class="product-noimg"></div>'}
           <div class="product-name">${escapeHtml(p.name)}</div>
           <div class="qty">${p.qty}×</div>
