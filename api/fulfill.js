@@ -6,28 +6,32 @@
 // door's code from the locker state and email the customer their door + code
 // via Resend.
 //
-// Auth: HTTP Basic Auth (same credentials as the admin dashboard).
+// Auth: shares the /locker session cookie (lk_sess) — log in once on /locker
+// (or on /fulfill with the same passcode) and both pages work.
 //   action=list -> { orders, fulfilled, lockers }
 //   action=send -> { ref, door } -> emails the customer, records fulfilment
 
 import { kv } from '@vercel/kv';
+import { createHmac, timingSafeEqual } from 'crypto';
 
-const ADMIN_USER = 'fintankeenan';
-const ADMIN_PASS = 'Laragh';
+const SESSION_SECRET = process.env.LOCKER_SESSION_SECRET || 'CHANGE_ME_IN_VERCEL_ENV';
 const PICKUP_ADDRESS = 'Suså Landevej 101, 4160 Herlufmagle';
 
+// Verify the HMAC-signed lk_sess cookie set by /api/locker (action=login).
 function checkAuth(req) {
-  const auth = req.headers.authorization || '';
-  if (!auth.startsWith('Basic ')) return false;
+  const m = (req.headers.cookie || '').match(/(?:^|;\s*)lk_sess=([^;]+)/);
+  if (!m) return false;
+  const tok = decodeURIComponent(m[1]);
+  const dot = tok.lastIndexOf('.');
+  if (dot < 0) return false;
+  const data = tok.slice(0, dot), mac = tok.slice(dot + 1);
+  const expect = createHmac('sha256', SESSION_SECRET).update(data).digest('hex');
   try {
-    const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf-8');
-    const i = decoded.indexOf(':');
-    const u = decoded.slice(0, i);
-    const p = decoded.slice(i + 1);
-    return u.toLowerCase() === ADMIN_USER.toLowerCase() && p === ADMIN_PASS;
-  } catch {
-    return false;
-  }
+    if (mac.length !== expect.length) return false;
+    if (!timingSafeEqual(Buffer.from(mac, 'hex'), Buffer.from(expect, 'hex'))) return false;
+  } catch { return false; }
+  const exp = parseInt(data, 10);
+  return Number.isFinite(exp) && exp > Date.now();
 }
 
 function escapeHtml(s) {
@@ -138,7 +142,6 @@ async function sendPickupReadyEmail(order, door, code) {
 
 export default async function handler(req, res) {
   if (!checkAuth(req)) {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Fulfill"');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
