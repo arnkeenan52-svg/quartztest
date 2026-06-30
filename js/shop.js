@@ -22,9 +22,11 @@ function renderShopGrid(products) {
   }
 
   grid.innerHTML = products.map(p => {
-    // Use branded preview image for cards — avoids the 3kg vs 12,5kg confusion
-    const img = p.previewImage || p.weights[0].image;
-    const price = p.weights[0].price;
+    // Use branded preview image for cards — avoids the 3kg vs 12,5kg confusion.
+    // Guard weights defensively in case a merged Supabase row lacks them.
+    const w = (p.weights && p.weights[0]) || {};
+    const img = p.previewImage || w.image || '';
+    const price = w.price;
     const badgeHTML = p.badge === 'bestseller'
       ? `<span class="product-card-badge badge-bestseller">Bestseller</span>`
       : '';

@@ -182,13 +182,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, skipped: 'no order lines' });
     }
 
-    // Skip Shipmondo if no order lines (e.g. duplicate event from payment_intent.succeeded
-    // when checkout.session.completed already created the order with full data)
-    if (orderLines.length === 0) {
-      console.log('Skipping Shipmondo: no order lines for', orderData.externalId);
-      return res.status(200).json({ received: true, skipped: 'no order lines' });
-    }
-
     const shipTo = {
       name: orderData.customerName,
       attention: orderData.customerName,
@@ -619,11 +612,12 @@ function parsePaymentIntent(pi) {
   const items = [];
   if (meta.items_summary) {
     for (const chunk of meta.items_summary.split(';')) {
-      const [productName, weightLabel, qty, price] = chunk.split('|');
+      // items_summary is written as name|type|weight|qty|price (5 fields)
+      const [productName, productType, weightLabel, qty, price] = chunk.split('|');
       if (productName && qty && price) {
         items.push({
           productName,
-          productType: '',
+          productType: productType || '',
           weightLabel: weightLabel || '',
           qty: parseInt(qty, 10) || 1,
           price: parseFloat(price) || 0,

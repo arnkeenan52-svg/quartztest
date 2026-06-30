@@ -190,7 +190,7 @@ export default async function handler(req, res) {
       let rawDoors = req.body && (req.body.doors != null ? req.body.doors : req.body.door);
       if (typeof rawDoors === 'string') rawDoors = rawDoors.split(/[\s,]+/);
       if (!Array.isArray(rawDoors)) rawDoors = [rawDoors];
-      const doors = [...new Set(rawDoors.map(d => parseInt(d, 10)).filter(d => d >= 1))];
+      const doors = [...new Set(rawDoors.map(d => parseInt(d, 10)).filter(d => d >= 1 && d <= 22))];
       if (!doors.length) return res.status(400).json({ error: 'Skriv et skab-/dør-nummer først.' });
 
       // Find the order by ref in the recent pickup list

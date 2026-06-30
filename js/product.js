@@ -232,8 +232,9 @@ function renderSuggested(product) {
   if (!picks.length) return;
 
   grid.innerHTML = picks.map(p => {
-    const img = p.previewImage || p.weights[0].image;
-    const price = p.weights[0].price;
+    const w = (p.weights && p.weights[0]) || {};
+    const img = p.previewImage || w.image || '';
+    const price = w.price;
     const badgeHTML = p.badge === 'bestseller'
       ? `<span class="product-card-badge badge-bestseller">Bestseller</span>`
       : '';

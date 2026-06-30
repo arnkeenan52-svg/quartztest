@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <!-- Blend the iOS status/address bars into the hero instead of stark black -->
+  <meta name="theme-color" content="#28301c" />
   <title>Quartz Mølle – Økologisk Mel fra Stenkværn</title>
   <link rel="icon" type="image/png" href="images/logopng.png">
   <link rel="apple-touch-icon" href="images/logopng.png">
@@ -18,9 +19,24 @@
     #mobileMenu { display: none !important; }
     #mobileMenu.open { display: flex !important; }
     #vid1 { opacity: 1; }
+
+    /* Soft fade at the very bottom of the hero so it eases into the bottom
+       browser bar instead of a hard black edge. Hidden once past the videos. */
+    .hero-bottom-fade {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 140px;
+      background: linear-gradient(to bottom, transparent, #28301c);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+    body.past-videos .hero-bottom-fade { opacity: 0; }
   </style>
 </head>
 <body>
+  <div class="hero-bottom-fade" aria-hidden="true"></div>
   <nav class="nav" id="nav">
     <a href="index.html" class="nav-logo" onclick="event.preventDefault(); window.scrollTo(0, 0); window.location.replace('index.html?r=' + Date.now());">
       <img src="images/logopng.png" alt="Quartz Mølle" class="brand-mark" />
