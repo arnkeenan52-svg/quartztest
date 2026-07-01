@@ -32,17 +32,23 @@ function renderShopGrid(products) {
       : '';
 
     return `
-      <a href="product.html?id=${p.id}" class="product-card">
-        <img src="${img}" alt="${p.name} ${p.type}" class="product-card-img" loading="lazy" />
+      <a href="product.html?id=${encodeURIComponent(p.id)}" class="product-card">
+        <img src="${escapeHTML(safeUrl(img))}" alt="${escapeHTML(p.name + ' ' + p.type)}" class="product-card-img" loading="lazy" />
         <div class="product-card-body">
           ${badgeHTML}
-          <div class="product-card-name">${p.name}</div>
-          <div class="product-card-sub">${p.type}</div>
-          <div class="product-card-price">Fra ${price},00 kr.</div>
+          <div class="product-card-name">${escapeHTML(p.name)}</div>
+          <div class="product-card-sub">${escapeHTML(p.type)}</div>
+          <div class="product-card-price">Fra ${escapeHTML(price)},00 kr.</div>
         </div>
       </a>
     `;
   }).join('');
+}
+
+// Only allow http(s)/site-relative image URLs (blocks javascript: etc. in src).
+function safeUrl(u) {
+  u = String(u || '');
+  return /^(https?:\/\/|\/|images\/)/i.test(u) ? u : '';
 }
 
 // ── PRODUKTSØGNING ──
