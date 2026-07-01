@@ -313,41 +313,58 @@
     + '.foot{margin-top:28px;font-size:12px;color:#9b9488;text-align:center;line-height:1.7}'
     + '@media print{.paper{padding:24px 8mm}}';
 
+  // The printed confirmation is always in Danish — it's a customer document for
+  // the Danish pickup shop (the DA/EN/ES switch only changes the staff screen).
   function buildConfirmation(o){
     var total = Number(o.total||0).toFixed(2).replace('.', ',');
     var rows = (o.items||[]).map(function(it){
       return '<tr><td>'+esc(it.name)+(it.weightLabel?' <span class="wl">('+esc(it.weightLabel)+')</span>':'')
-        + '</td><td class="q">'+(it.qty||1)+' '+T('pcs')+'</td></tr>';
+        + '</td><td class="q">'+(it.qty||1)+' stk.</td></tr>';
     }).join('') || '<tr><td colspan="2">—</td></tr>';
-    var printed = new Date().toLocaleString(lang==='da'?'da-DK':(lang==='es'?'es-ES':'en-GB'),
+    var printed = new Date().toLocaleString('da-DK',
       { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
     return '<div class="paper">'
       + '<div class="head"><img src="/images/logopng.png" alt="" onerror="this.style.display=\'none\'">'
-      +   '<div><h1>'+T('confTitle')+'</h1><div class="sub">Quartz Mølle · Click &amp; Collect</div></div></div>'
-      + '<div class="meta"><span>'+T('order')+' <b>#'+esc(o.ref)+'</b></span><span>'+T('confPrinted')+': <b>'+esc(printed)+'</b></span></div>'
-      + '<h2>'+T('confCustomer')+'</h2><div class="who">'+esc(o.name||'—')+'<small>'+esc(o.email||'')+'</small></div>'
-      + '<h2>'+T('confItems')+'</h2><table>'+rows+'</table>'
-      + '<div class="total"><span>'+T('confTotal')+'</span><span>'+total+' kr.</span></div>'
-      + '<div class="pickup"><b>'+T('confPickup')+'</b><br>Suså Landevej 101, 4160 Herlufmagle</div>'
-      + '<div class="foot">'+T('confThanks')+'<br>Quartz Mølle · CVR 42117188 · hello@quartzmolle.dk</div>'
+      +   '<div><h1>Ordrebekræftelse</h1><div class="sub">Quartz Mølle · Click &amp; Collect</div></div></div>'
+      + '<div class="meta"><span>Ordre <b>#'+esc(o.ref)+'</b></span><span>Udskrevet: <b>'+esc(printed)+'</b></span></div>'
+      + '<h2>Kunde</h2><div class="who">'+esc(o.name||'—')+'<small>'+esc(o.email||'')+'</small></div>'
+      + '<h2>Varer</h2><table>'+rows+'</table>'
+      + '<div class="total"><span>I alt</span><span>'+total+' kr.</span></div>'
+      + '<div class="pickup"><b>Afhentning (Click &amp; Collect)</b><br>Suså Landevej 101, 4160 Herlufmagle</div>'
+      + '<div class="foot">Tak for din ordre!<br>Quartz Mølle · CVR 42117188 · hello@quartzmolle.dk</div>'
       + '</div>';
   }
 
+  // Print every pending confirmation in ONE job (one order per page) using a
+  // hidden frame — the print dialog opens over the packing list, so there's no
+  // separate page to get stuck on and no "way back" needed. Sent orders are
+  // already excluded, so you only print what still needs to go out.
   function printAll(){
     if(!lastData) return;
     var fulfilled = lastData.fulfilled || {};
     var orders = (lastData.orders||[]).filter(function(o){ return o && !fulfilled[o.ref]; });
     if(!orders.length){ alert(T('none')); return; }
+
     var pages = orders.map(buildConfirmation).join('');
-    var doc = '<!doctype html><html lang="'+lang+'"><head><meta charset="utf-8">'
-      + '<meta name="viewport" content="width=device-width, initial-scale=1">'
-      + '<title>'+T('confTitle')+' · Quartz Mølle</title><style>'+CONF_CSS+'</style></head><body>'
-      + pages
-      + '<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},300);};<\/scr'+'ipt>'
-      + '</body></html>';
-    var w = window.open('', '_blank');
-    if(!w){ alert(T('noPopup')); return; }
-    w.document.open(); w.document.write(doc); w.document.close();
+    var docHtml = '<!doctype html><html lang="da"><head><meta charset="utf-8">'
+      + '<title>Ordrebekræftelse · Quartz Mølle</title><style>'+CONF_CSS+'</style></head><body>'
+      + pages + '</body></html>';
+
+    var old = document.getElementById('printFrame');
+    if(old) old.parentNode.removeChild(old);
+    var f = document.createElement('iframe');
+    f.id = 'printFrame';
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    var printed = false;
+    function doPrint(){
+      if(printed) return; printed = true;
+      try { f.contentWindow.focus(); f.contentWindow.print(); } catch(e){}
+    }
+    f.onload = function(){ setTimeout(doPrint, 350); };
+    document.body.appendChild(f);
+    var idoc = f.contentWindow.document;
+    idoc.open(); idoc.write(docHtml); idoc.close();
+    setTimeout(doPrint, 800); // fallback in case onload doesn't fire for written docs
   }
 
   applyLang();
