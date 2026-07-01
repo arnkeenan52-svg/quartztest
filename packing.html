@@ -40,7 +40,7 @@
 
   /* topbar */
   .top{position:sticky;top:0;z-index:30;background:var(--blue);color:#fff;display:flex;align-items:center;gap:12px;padding:14px 18px;padding-top:calc(14px + env(safe-area-inset-top));flex-wrap:wrap}
-  .top img{width:34px;height:34px;object-fit:contain;border-radius:8px;background:#fff;padding:3px}
+  .top img{width:36px;height:36px;object-fit:cover;border-radius:50%;background:transparent;padding:0}
   .top .ttl{font-weight:700;font-size:16px;line-height:1.15}
   .top .ttl small{display:block;font-weight:500;font-size:11px;opacity:.8}
   .top .spacer{flex:1}
@@ -145,7 +145,7 @@
 (function(){
   var I18N = {
     da:{ title:'Pakkeliste', enterCode:'Indtast adgangskode', unlock:'Lås op', logout:'Log ud',
-         back:'← Fulfillment', refresh:'↻ Opdatér', printList:'🖨 Print', toPack:'Ordrer at pakke',
+         back:'← Fulfillment', refresh:'↻ Opdatér', printList:'🖨 Udskriv', toPack:'Ordrer at pakke',
          none:'Ingen ordrer at pakke.', order:'Ordre', items:'varer', pcs:'stk.', wrongCode:'Forkert kode',
          netErr:'Netværksfejl', enterCodeShort:'Indtast kode', ordersWord:'ordrer', itemsTotal:'varer i alt',
          pickTotal:'Samlet plukkeliste', pickHint:'Tag i alt dette fra lageret:', packHint:'Kryds af efterhånden som du pakker hver ordre.' },
@@ -155,7 +155,7 @@
          netErr:'Network error', enterCodeShort:'Enter code', ordersWord:'orders', itemsTotal:'items total',
          pickTotal:'Total to pick', pickHint:'Take this much from stock in total:', packHint:'Tick off as you pack each order.' },
     es:{ title:'Lista de embalaje', enterCode:'Introduzca el código', unlock:'Desbloquear', logout:'Cerrar sesión',
-         back:'← Preparación', refresh:'↻ Actualizar', printList:'🖨 Print', toPack:'Pedidos para embalar',
+         back:'← Preparación', refresh:'↻ Actualizar', printList:'🖨 Imprimir', toPack:'Pedidos para embalar',
          none:'No hay pedidos para embalar.', order:'Pedido', items:'artículos', pcs:'uds.', wrongCode:'Código incorrecto',
          netErr:'Error de red', enterCodeShort:'Introduzca el código', ordersWord:'pedidos', itemsTotal:'artículos en total',
          pickTotal:'Total a recoger', pickHint:'Coge esto del almacén en total:', packHint:'Marca a medida que preparas cada pedido.' }
@@ -288,6 +288,13 @@
 
   applyLang();
   load();
+
+  // Keep the packing list in sync: once an order is sent (fulfilled) in /fufill
+  // it drops off here automatically. Refresh when the tab regains focus and on a
+  // light interval so it stays current without a manual reload.
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) load(); });
+  window.addEventListener('focus', load);
+  setInterval(function(){ if(!document.hidden) load(); }, 20000);
 })();
 </script>
 </body>
