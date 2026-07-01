@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ shops });
   } catch (err) {
     console.error('Pakkeshop proxy error:', err);
-    return res.status(500).json({ error: err.message, shops: [] });
+    return res.status(500).json({ error: 'Kunne ikke hente pakkeshops', shops: [] });
   }
 }
 
