@@ -166,6 +166,15 @@ function initVideoFade() {
     // Toggle body class so CSS can hide the fixed videos when user is past the video sections
     document.body.classList.toggle('past-videos', !anyVideoVisible);
 
+    // Tint the iOS Safari status/tool bars to match what's on screen so they blend
+    // in instead of looking like separate bars: dark green over the video, cream
+    // over the light sections below.
+    var themeMeta = document.getElementById('themeColor');
+    if (themeMeta) {
+      var wanted = anyVideoVisible ? '#3a4a2b' : '#faf7f2';
+      if (themeMeta.getAttribute('content') !== wanted) themeMeta.setAttribute('content', wanted);
+    }
+
     updateNav();
   };
 
