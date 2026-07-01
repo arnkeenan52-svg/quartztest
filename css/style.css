@@ -22,7 +22,7 @@
 
 /* html brand blue only for initial paint flash before body covers it */
 html {
-  background: var(--cream);
+  background: #000000;
   scroll-behavior: smooth;
   overscroll-behavior: none;
 }
@@ -31,7 +31,7 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: var(--cream);
+  background: #000000;
   color: var(--text);
   overflow-x: hidden;
   overscroll-behavior: none;
@@ -213,17 +213,12 @@ body {
 }
 
 .video-bg {
-  /* Bulletproof "cover": scale the video so it always fills the whole viewport
-     (both dimensions >= 100%), centered, cropping the overflow. This works even
-     on iOS where object-fit:cover on a fixed <video> can letterbox (black bars). */
   position: fixed;
-  top: 50%; left: 50%;
-  width: auto; height: auto;
-  min-width: 100vw;
-  min-height: 100vh;
-  min-height: 100lvh; /* cover the FULL large viewport incl. the top/bottom safe areas */
-  transform: translate(-50%, -50%);
-  -webkit-transform: translate(-50%, -50%);
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh; /* largest viewport height - fills under iOS bottom bar entirely */
+  object-fit: cover;
   z-index: 0;
   opacity: 0;
   will-change: opacity;
