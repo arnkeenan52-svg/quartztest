@@ -2,10 +2,7 @@
 // QUARTZ MØLLE — SHOP PAGE
 // ============================================================
 
-const SUPABASE_URL = 'https://eqmxgfuhbtsouoprtgix.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxbXhnZnVoYnRzb3VvcHJ0Z2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjE2MTcsImV4cCI6MjA5MTk5NzYxN30.ZdAsVKYLhDVgSbcd4otO6PP2CT7Wd4ob0yBu-JHTxaU';
-
-// Full catalog currently loaded (local data, later merged with Supabase).
+// Full catalog currently loaded (from the built-in product list in products.js).
 // The search bar filters this list without re-fetching.
 let SHOP_PRODUCTS = [];
 
@@ -91,35 +88,9 @@ function initShopSearch() {
   }
 }
 
-async function loadShopProducts() {
+function loadShopProducts() {
   SHOP_PRODUCTS = [...PRODUCTS];
   applySearch();
-
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=created_at.asc`, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (res.ok) {
-      const dbProducts = await res.json();
-      if (dbProducts && dbProducts.length > 0) {
-        const merged = [...PRODUCTS];
-        dbProducts.forEach(dbP => {
-          const idx = merged.findIndex(lp => lp.id === dbP.id);
-          if (idx >= 0) merged[idx] = { ...merged[idx], ...dbP };
-          else merged.push(dbP);
-        });
-        SHOP_PRODUCTS = merged;
-        applySearch();
-      }
-    }
-  } catch (e) {
-    console.log('Using local product data');
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

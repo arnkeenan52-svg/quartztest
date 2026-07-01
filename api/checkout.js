@@ -7,19 +7,6 @@
 
 import { CATALOG, buildPriceMap, weightKgFromLabel } from './_catalog.js';
 
-const SUPABASE_URL = 'https://eqmxgfuhbtsouoprtgix.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxbXhnZnVoYnRzb3VvcHJ0Z2l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjE2MTcsImV4cCI6MjA5MTk5NzYxN30.ZdAsVKYLhDVgSbcd4otO6PP2CT7Wd4ob0yBu-JHTxaU';
-
-// Best-effort fetch of Supabase product overrides so updated prices still pass.
-async function fetchDbProducts() {
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/products?select=*`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-    });
-    return r.ok ? await r.json() : null;
-  } catch { return null; }
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -37,7 +24,7 @@ export default async function handler(req, res) {
     const origin = 'https://quartzzmolle-dusky.vercel.app';
 
     // ── SERVER-SIDE VALIDATION: authoritative price + weight per line ──
-    const priceMap = buildPriceMap(await fetchDbProducts());
+    const priceMap = buildPriceMap();
     const validated = [];
     for (const it of items) {
       const id = String(it.productId || '');
