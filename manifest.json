@@ -1,0 +1,13 @@
+{
+  "name": "Quartz Mølle",
+  "short_name": "Quartz Mølle",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf7f2",
+  "theme_color": "#faf7f2",
+  "icons": [
+    { "src": "/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/images/favicon.png", "sizes": "256x256", "type": "image/png", "purpose": "any" }
+  ]
+}
