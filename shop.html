@@ -12,6 +12,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* iOS Safari colours the area behind the status bar by sampling the page
+       canvas (the html background), not the theme-color meta. Make the canvas
+       brand blue on this page so the strip above the hero matches the hero. */
+    html { background: #273071 !important; }
+  </style>
   <!-- from-resolver -->
   <script>
   (function () {
