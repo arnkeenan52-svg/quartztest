@@ -41,7 +41,8 @@
         left: 0;
         right: 0;
         bottom: 0;
-        height: calc(env(safe-area-inset-bottom, 0px) + 85px);
+        height: 40px; /* fallback for older Safari */
+        height: calc(100lvh - 100svh); /* exactly the strip Safari exposes behind its bottom bar - as small as possible */
         background: #000;
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
