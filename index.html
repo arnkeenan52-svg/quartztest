@@ -259,5 +259,41 @@
       });
     })();
   </script>
+
+  <script>
+    /* Pin the bottom shield to the REAL visible screen edge, frame by frame.
+       CSS "fixed" elements only get moved by Safari AFTER its toolbar
+       animation finishes, so during fast scrolls the bar and Safari's black
+       box drift apart. The visualViewport API reports the true visible edge
+       continuously - we follow it every frame while scrolling/animating. */
+    (function () {
+      var shield = document.querySelector('.bottom-shield');
+      var vv = window.visualViewport;
+      if (!shield || !vv) return;
+      var raf = null;
+      var until = 0;
+      function place() {
+        shield.style.bottom = 'auto';
+        shield.style.top = (vv.offsetTop + vv.height - 5) + 'px';
+      }
+      function tick(now) {
+        place();
+        if (now < until) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          raf = null;
+        }
+      }
+      function kick() {
+        until = performance.now() + 800; // keep tracking briefly after the last event
+        if (!raf) raf = requestAnimationFrame(tick);
+      }
+      vv.addEventListener('resize', kick);
+      vv.addEventListener('scroll', kick);
+      window.addEventListener('scroll', kick, { passive: true });
+      window.addEventListener('orientationchange', kick);
+      place();
+    })();
+  </script>
 </body>
 </html>
