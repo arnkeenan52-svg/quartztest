@@ -57,7 +57,7 @@
         left: 0;
         right: 0;
         bottom: -300px; /* a hidden 300px solid tail hangs below the screen edge */
-        height: 350px;  /* 50px visible - one smooth shadow-like fade from fully
+        height: 340px;  /* 40px visible - one smooth shadow-like fade from fully
                            transparent down to the black behind the Safari bar.
                            What makes it work: (1) the darkness rises GRADUALLY,
                            never fast enough for any row of pixels to read as an
@@ -66,11 +66,11 @@
                            sits ABOVE the page content, so no text on top. */
         background: linear-gradient(to bottom,
           rgba(0,0,0,0)    0px,
-          rgba(0,0,0,0.10) 9px,
-          rgba(0,0,0,0.30) 19px,
-          rgba(0,0,0,0.60) 31px,
-          rgba(0,0,0,0.88) 41px,
-          #000             48px,
+          rgba(0,0,0,0.10) 7px,
+          rgba(0,0,0,0.30) 15px,
+          rgba(0,0,0,0.60) 25px,
+          rgba(0,0,0,0.88) 33px,
+          #000             40px,
           #000             100%);
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
