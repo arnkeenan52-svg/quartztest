@@ -152,6 +152,7 @@
     <img src="/images/logopng.png" alt="" onerror="this.style.display='none'">
     <div class="ttl">Ordre-fulfillment<small>Click &amp; Collect · Quartz Mølle</small></div>
     <div class="spacer"></div>
+    <div data-lang-slot></div>
     <button class="logout" id="logoutBtn">Log ud</button>
   </div>
 
@@ -344,8 +345,9 @@
     }).join('') || '<div class="it"><span class="n">—</span></div>';
 
     var css =
-      '*{box-sizing:border-box;margin:0;padding:0}'
-      + 'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1611;background:#fff}'
+      '@page{margin:0}' /* zero page margin = browser prints NO header/footer (no URL on the paper) */
+      + '*{box-sizing:border-box;margin:0;padding:0}'
+      + 'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1a1611;background:#fff;padding:14mm 10mm}'
       + '.card{max-width:400px;margin:0 auto;padding:44px 34px;text-align:center}'
       + '.logo{width:66px;height:66px;object-fit:cover;border-radius:50%;margin:0 auto 14px;display:block}'
       + 'h1{font-size:20px;color:#273071;font-weight:800;letter-spacing:.2px}'
