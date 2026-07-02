@@ -272,9 +272,12 @@
       if (!shield || !vv) return;
       var raf = null;
       var until = 0;
+      var grown = false;      // while Safari's toolbar is animating, the bar
+      var shrinkTimer = null; // temporarily covers the whole animation zone
       function place() {
+        var visible = grown ? 80 : 5;
         shield.style.bottom = 'auto';
-        shield.style.top = (vv.offsetTop + vv.height - 5) + 'px';
+        shield.style.top = (vv.offsetTop + vv.height - visible) + 'px';
       }
       function tick(now) {
         place();
@@ -288,10 +291,22 @@
         until = performance.now() + 800; // keep tracking briefly after the last event
         if (!raf) raf = requestAnimationFrame(tick);
       }
-      vv.addEventListener('resize', kick);
+      function onViewportResize() {
+        // The toolbar is animating RIGHT NOW - this is the only moment the
+        // bar and Safari's box can drift apart. Cover the whole zone, then
+        // shrink back to 5px shortly after the animation settles.
+        grown = true;
+        kick();
+        clearTimeout(shrinkTimer);
+        shrinkTimer = setTimeout(function () {
+          grown = false;
+          place();
+        }, 350);
+      }
+      vv.addEventListener('resize', onViewportResize);
       vv.addEventListener('scroll', kick);
       window.addEventListener('scroll', kick, { passive: true });
-      window.addEventListener('orientationchange', kick);
+      window.addEventListener('orientationchange', onViewportResize);
       place();
     })();
   </script>
