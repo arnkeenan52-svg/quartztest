@@ -120,6 +120,7 @@ function injectCartUI() {
           </div>
           <p id="cart-error" class="cart-error"></p>
           <button class="btn-buy" id="cart-checkout-btn">Til kassen</button>
+          <button id="cart-continue-btn" style="width:100%;margin-top:0.6rem;background:none;border:1.5px solid rgba(0,0,0,0.25);border-radius:6px;padding:0.85rem;font-family:inherit;font-size:0.95rem;font-weight:600;color:#000;cursor:pointer;">Shop videre</button>
           <p class="cart-secure-note">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Sikker betaling med Stripe
@@ -133,6 +134,14 @@ function injectCartUI() {
       el.addEventListener('click', closeCart);
     });
     document.getElementById('cart-checkout-btn').addEventListener('click', checkoutCart);
+    document.getElementById('cart-continue-btn').addEventListener('click', () => {
+      // Continue shopping: go to the shop (or just close the cart if already there)
+      if (window.location.pathname.includes('shop')) {
+        closeCart();
+      } else {
+        window.location.href = 'shop.html';
+      }
+    });
   }
 
   updateCartUI();
