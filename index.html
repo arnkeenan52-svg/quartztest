@@ -41,16 +41,14 @@
         left: 0;
         right: 0;
         bottom: -300px; /* a hidden 300px solid tail hangs below the screen edge */
-        height: 415px;  /* 115px visible on screen + the 300px tail. Soft fade on
-                           top, then FULLY black well before Safari's box begins,
-                           so the pixels meeting the box edge are pure black on
-                           both sides - Safari's own 1px edge blending and any
-                           toolbar-animation lag land on black-on-black and can
-                           never show as a line. */
+        height: 330px;  /* only 30px visible: the black box itself, with its TOP
+                           edge as a soft fade instead of a hard line. Small
+                           footprint, but no sharp edge exists that could draw a
+                           visible line against Safari's box. */
         background: linear-gradient(to bottom,
           rgba(0,0,0,0)   0px,
-          rgba(0,0,0,0.6) 45px,
-          #000            70px,
+          rgba(0,0,0,0.7) 18px,
+          #000            30px,
           #000            100%);
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
