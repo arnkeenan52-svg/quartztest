@@ -31,6 +31,22 @@
     #mobileMenu.open { display: flex !important; }
     #vid1 { opacity: 1; }
 
+    /* Force every video/hero section to span the LARGE viewport height (100lvh)
+       so the section and its video always extend down behind the Safari bar.
+       The section can then never end at the small viewport (100svh/100vh) and
+       draw a visible seam line above the browser bar. */
+    .video-section {
+      height: 100vh;        /* fallback for older browsers */
+      height: 100lvh;
+      min-height: 100lvh;
+    }
+    .video-bg,
+    .video-overlay {
+      height: 100vh;        /* fallback */
+      height: 100lvh;
+      min-height: 100lvh;
+    }
+
     /* Solid black bar pinned to the bottom of the screen, behind the Safari
        search field. It sits ON TOP of the page (above videos and text), so
        everything scrolls in underneath it and only becomes visible above it.
