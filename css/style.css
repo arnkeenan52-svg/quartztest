@@ -240,6 +240,20 @@ body {
   pointer-events: none;
 }
 
+/* iOS Safari: fixed elements lag behind the viewport while the address/tool
+   bar collapses or expands, briefly exposing the page background above and
+   below. Bleed the fixed video/overlay 10lvh past both edges on mobile so
+   those gaps always show video — never the black background. */
+@media (max-width: 768px) {
+  .video-bg,
+  .video-overlay {
+    top: -10vh;
+    top: -10lvh;
+    height: 120vh;
+    height: 120lvh;
+  }
+}
+
 .overlay-dark   { background: rgba(0,0,0,0.55); }
 .overlay-medium { background: rgba(0,0,0,0.55); }
 
