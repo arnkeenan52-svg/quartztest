@@ -2,6 +2,9 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+  "crons": [
+    { "path": "/api/daily-check", "schedule": "0 6 * * *" }
+  ],
   "redirects": [
     { "source": "/butik/:path*", "destination": "/shop?from=:path*", "permanent": true },
     { "source": "/about", "destination": "/om", "permanent": true },
