@@ -128,6 +128,13 @@
   .door.oos{background:var(--grey-soft);border-color:var(--line);color:var(--muted)}
   .screen{flex:2;border-radius:7px;border:2px solid var(--blue-light);background:linear-gradient(160deg,#10163a,#273071);display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:64px}
   .screen img{width:72%;max-height:72%;object-fit:contain}
+
+  /* Cabinet model used inside the "pick doors" overlay */
+  .cabinet.pick{margin:10px 0 14px;max-width:none}
+  .cabinet.pick .door{min-height:52px}
+  .cabinet.pick .screen{min-height:52px}
+  .cabinet.pick .door:disabled{cursor:not-allowed;opacity:.55;transform:none}
+  .cabinet.pick .door.sel{background:#1f9d55;border-color:#14813f;color:#fff}
   .pkgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0 14px}
   .pk{background:var(--white);border:1.5px solid var(--line);border-radius:11px;padding:14px 0;font-size:16px;font-weight:700;color:var(--blue);transition:transform .05s}
   .pk:active{transform:scale(.95)}
@@ -443,12 +450,37 @@ function askQty(){
 }
 
 function pickDoors(need){
-  const free=freeDoors();
   const chosen=new Set();
+  const byDoor={}; (lastState?lastState.lockers:[]).forEach(l=>byDoor[l.door]=l);
   (function rerender(){
-    let grid=''; free.forEach(dn=>{ grid+='<button class="pk'+(chosen.has(dn)?' sel':'')+'" data-d="'+dn+'">'+dn+'</button>'; });
-    overlay('<h3>Vælg '+need+' skab'+(need>1?'e':'')+'</h3><div class="subtt">'+chosen.size+' / '+need+' valgt</div>'+
-      '<div class="pkgrid">'+grid+'</div>'+
+    // Render the same visual cabinet model as the dashboard (incl. the screen
+    // with the logo where the admin tablet sits). Occupied / out-of-service
+    // doors are shown but cannot be selected.
+    let cab='<div class="cabinet pick">';
+    LAYOUT.forEach(colCells=>{
+      cab+='<div class="col">';
+      let i=0;
+      while(i<colCells.length){
+        if(colCells[i]==='screen'){
+          let span=0; while(i<colCells.length && colCells[i]==='screen'){span++;i++;}
+          cab+='<div class="screen" style="flex:'+span+'"><img src="/images/logopng.png" alt="" onerror="this.style.display=\'none\'"></div>';
+          continue;
+        }
+        const num=colCells[i];
+        const l=byDoor[num]||{door:num,occ:false,oos:false};
+        const isFree=!l.occ && !l.oos;
+        const sel=chosen.has(num);
+        const cls='door '+(sel?'sel':l.oos?'oos':l.occ?'occ':'free');
+        const lbl=sel?'✓ Valgt':(l.oos?'Ud af drift':l.occ?'Optaget':'Ledig');
+        cab+='<button class="'+cls+'"'+(isFree?' data-d="'+num+'"':' disabled')+'>'
+           + '<span class="dn">'+num+'</span><span class="dlbl">'+lbl+'</span></button>';
+        i++;
+      }
+      cab+='</div>';
+    });
+    cab+='</div>';
+    overlay('<h3>Vælg '+need+' skab'+(need>1?'e':'')+'</h3><div class="subtt">'+chosen.size+' / '+need+' valgt · optagede skabe kan ikke vælges</div>'+
+      cab+
       '<button class="opt blue" data-a="ok"><span class="em">✓</span> Opret kode</button>'+
       '<button class="cancel" data-a="cancel">Annullér</button>', true);
     $('#overlayRoot').querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
@@ -472,8 +504,10 @@ function showDepositResult(doors, code){
   overlay('<h3>Skab'+(many?'e':'')+' '+list+' åbnet</h3><div class="subtt">Læg pakken i skab'+(many?'e':'')+' '+list+(many?' · samme kode åbner alle':'')+'</div>'+
     '<div class="codebox"><div class="lbl">Kode til kunden</div><div class="big">'+code+'</div></div>'+
     '<button class="opt blue" data-a="copy"><span class="em">📋</span> Kopiér kode</button>'+
+    '<button class="opt" data-a="fufill"><span class="em">📦</span> Gå til ordre-fulfillment</button>'+
     '<button class="cancel" data-a="done">Færdig</button>', true);
   $('#overlayRoot').querySelector('[data-a="copy"]').addEventListener('click',()=>{ copy(code); });
+  $('#overlayRoot').querySelector('[data-a="fufill"]').addEventListener('click',()=>{ window.location.href='/fufill'; });
   $('#overlayRoot').querySelector('[data-a="done"]').addEventListener('click',closeOverlay);
 }
 
