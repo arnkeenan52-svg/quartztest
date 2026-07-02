@@ -41,9 +41,8 @@
         left: 0;
         right: 0;
         bottom: 0;
-        height: 1px; /* minimal strip - same pure #000 as the page background behind the
-                        Safari bar, and pinned to bottom:0 with no gap, so the two blacks
-                        merge into one with no visible seam */
+        height: 10px; /* smallest size that still masks content behind the Safari bar -
+                         1px was too little to cover anything */
         background: #000;
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
