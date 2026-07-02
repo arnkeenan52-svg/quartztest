@@ -57,19 +57,20 @@
         left: 0;
         right: 0;
         bottom: -300px; /* a hidden 300px solid tail hangs below the screen edge */
-        height: 370px;  /* 70px visible - but there is NO bar anymore: it is one
-                           smooth shadow-like fade from fully transparent down to
-                           the black behind the Safari bar. No solid band, no
-                           start edge, no end edge - nothing that can read as a
-                           line or as part of the website. It still sits ABOVE
-                           the page content, so no text can show on top of it. */
+        height: 350px;  /* 50px visible - one smooth shadow-like fade from fully
+                           transparent down to the black behind the Safari bar.
+                           What makes it work: (1) the darkness rises GRADUALLY,
+                           never fast enough for any row of pixels to read as an
+                           edge, and (2) it reaches pure #000 before Safari's
+                           bar, so that junction is always black-on-black. It
+                           sits ABOVE the page content, so no text on top. */
         background: linear-gradient(to bottom,
           rgba(0,0,0,0)    0px,
-          rgba(0,0,0,0.08) 12px,
-          rgba(0,0,0,0.25) 26px,
-          rgba(0,0,0,0.55) 42px,
-          rgba(0,0,0,0.85) 56px,
-          #000             68px,
+          rgba(0,0,0,0.10) 9px,
+          rgba(0,0,0,0.30) 19px,
+          rgba(0,0,0,0.60) 31px,
+          rgba(0,0,0,0.88) 41px,
+          #000             48px,
           #000             100%);
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
