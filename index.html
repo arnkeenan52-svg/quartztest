@@ -31,6 +31,12 @@
     #mobileMenu.open { display: flex !important; }
     #vid1 { opacity: 1; }
 
+    /* Safari's own strip around the minimized address pill can NEVER show
+       page content - Safari only paints it with the page canvas colour.
+       Use a dark field green instead of pure black so the strip melts into
+       the grass in the videos (same trick as the cream shop page). */
+    html, body { background: #171a12 !important; }
+
     /* Force every video/hero section to span the LARGE viewport height (100lvh)
        so the section and its video always extend down behind the Safari bar.
        The section can then never end at the small viewport (100svh/100vh) and
@@ -64,11 +70,12 @@
                            just absorbs the last 1-2 frames of lag that used to
                            draw the line. */
         background: linear-gradient(to bottom,
-          rgba(0,0,0,0)    0px,
-          rgba(0,0,0,0.35) 8px,
-          rgba(0,0,0,0.75) 14px,
-          #000             20px,
-          #000             100%);
+          rgba(23,26,18,0)    0px,
+          rgba(23,26,18,0.35) 8px,
+          rgba(23,26,18,0.75) 14px,
+          #171a12             20px,
+          #171a12             100%); /* same field green as the canvas, so the
+                                        fade and Safari's strip are one colour */
         /* Like nike.com: only visible while the page sits at the top (Safari
            bar expanded). The moment you scroll, it fades away completely and
            the video runs edge to edge. */
