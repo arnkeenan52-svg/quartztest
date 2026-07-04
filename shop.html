@@ -14,20 +14,15 @@
   <link rel="stylesheet" href="css/style.css" />
   <style>
     /* iOS Safari colours the area behind the status bar by sampling the page
-       canvas (the html background), not the theme-color meta. Make the canvas
-       brand blue on this page so the strip above the hero matches the hero. */
-    html { background: #273071 !important; }
-    /* The blue canvas must ONLY show at the top. Hang a black "tail" below
-       the footer so the bottom overscroll/bounce area stays black as before. */
-    .footer { position: relative; }
-    .footer::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 100%;
-      height: 300px;
-      background: #000;
+       canvas background COLOUR - make that brand blue so the strip above the
+       hero matches. The canvas IMAGE is a gradient: blue at the top (status
+       bar / top bounce) and black at the bottom (bottom bounce behind the
+       footer), so each end of the page meets its own colour - without any
+       extra element that could add scroll height. */
+    html {
+      background-color: #273071 !important;
+      background-image: linear-gradient(to bottom, #273071 0%, #273071 45%, #000 75%, #000 100%) !important;
+      background-attachment: fixed !important;
     }
 
     /* View toggle: several products per row vs. one big product at a time */
