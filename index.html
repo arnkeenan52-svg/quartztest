@@ -69,6 +69,10 @@
           rgba(0,0,0,0.75) 14px,
           #000             20px,
           #000             100%);
+        /* Like nike.com: only visible while the page sits at the top (Safari
+           bar expanded). The moment you scroll, it fades away completely and
+           the video runs edge to edge. */
+        transition: opacity 0.35s ease;
         z-index: 50; /* above videos/overlays/sections, below nav (100), menu (99) and cart (300) */
         pointer-events: none;
       }
@@ -295,6 +299,10 @@
       function place() {
         shield.style.bottom = 'auto';
         shield.style.top = (vv.offsetTop + vv.height - 20) + 'px';
+        // Nike-style: shown only at the very top of the page; hidden as soon
+        // as the user scrolls (and back again when they return to the top).
+        var y = window.scrollY || window.pageYOffset || 0;
+        shield.style.opacity = y <= 10 ? '1' : '0';
       }
       function tick(now) {
         place();
