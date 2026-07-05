@@ -54,6 +54,19 @@
       opacity: 1 !important; /* each section always shows its own video */
     }
 
+    /* Fade-through-dark transitions: each video darkens softly towards its
+       own top and bottom edge, so where one section ends and the next begins
+       the two meet in a soft dark zone instead of a hard cut - the closest
+       thing to the old crossfade that works with scrolling (glass-friendly)
+       videos. */
+    .video-overlay {
+      background: linear-gradient(to bottom,
+        rgba(0,0,0,0.92) 0%,
+        rgba(0,0,0,0.55) 14%,
+        rgba(0,0,0,0.55) 84%,
+        rgba(0,0,0,0.92) 100%) !important;
+    }
+
   </style>
 </head>
 <body>
