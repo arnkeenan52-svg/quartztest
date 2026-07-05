@@ -46,6 +46,18 @@
       height: 100lvh;
       min-height: 100lvh;
     }
+    /* Extend the videos ~110px past their viewport on mobile so they reach in
+       BEHIND Safari's translucent bottom bar. With video shining through, the
+       bar looks small and light (like on other sites) instead of merging with
+       the black background into one big solid block. */
+    @media (max-width: 768px) {
+      .video-bg,
+      .video-overlay {
+        height: calc(100vh + 110px);
+        height: calc(100lvh + 110px);
+        min-height: calc(100lvh + 110px);
+      }
+    }
 
   </style>
 </head>
