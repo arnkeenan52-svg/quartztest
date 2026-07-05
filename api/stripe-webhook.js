@@ -261,24 +261,121 @@ export default async function handler(req, res) {
     }
 
     const auth = Buffer.from(`${process.env.SHIPMONDO_USER}:${process.env.SHIPMONDO_KEY}`).toString('base64');
-    console.log('Shipmondo payload:', JSON.stringify(payload));
-    const smRes = await fetch('https://app.shipmondo.com/api/public/v3/sales_orders', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
 
-    const smText = await smRes.text();
-    console.log('Shipmondo response', smRes.status, smText);
-    if (!smRes.ok) {
-      console.error('Shipmondo API error', smRes.status, smText);
-      return res.status(200).json({ received: true, shipmondo_error: smText });
+    // ── AUTO-BOOK THE GLS LABEL (the real fix) ─────────────────────────────
+    // The /sales_orders endpoint can only create an OPEN order in Shipmondo -
+    // it has no way to book a label. (The old `action: 'ship'` field is not
+    // part of Shipmondo's API and was silently ignored, which is why every
+    // order ended up under "Åbne ordrer".) Actual label booking happens on
+    // the /shipments endpoint, which also supports auto-printing through the
+    // Shipmondo Print Client. If direct booking succeeds we are done; if it
+    // fails for ANY reason we fall back to creating the open sales order
+    // exactly like before, so staff can book it manually in the app.
+    let labelBooked = false;
+    if ((process.env.SHIPMONDO_ACTION || 'ship') !== 'none') {
+      try {
+        const isShop = !!(orderData.pakkeshop && orderData.pakkeshop.id);
+        const shipmentPayload = {
+          own_agreement: process.env.SHIPMONDO_OWN_AGREEMENT === 'true',
+          product_code: isShop
+            ? (process.env.SHIPMONDO_PRODUCT_SHOP || 'GLSDK_SD')
+            : (process.env.SHIPMONDO_PRODUCT_PRIVAT || 'GLSDK_HD'),
+          service_codes: 'EMAIL_NT', // required by GLS (email notification)
+          reference: refId,
+          parties: [
+            {
+              type: 'sender',
+              name: process.env.SENDER_NAME || 'Quartz Mølle',
+              address1: process.env.SENDER_ADDRESS || 'Suså Landevej 101',
+              postal_code: process.env.SENDER_ZIP || '4160',
+              city: process.env.SENDER_CITY || 'Herlufmagle',
+              country_code: 'DK',
+              email: process.env.SENDER_EMAIL || 'hello@quartzmolle.dk',
+              phone: process.env.SENDER_PHONE || '31421677',
+            },
+            {
+              type: 'receiver',
+              name: shipTo.name,
+              address1: shipTo.address1,
+              address2: shipTo.address2 || undefined,
+              postal_code: shipTo.zipcode,
+              city: shipTo.city,
+              country_code: shipTo.country_code,
+              email: shipTo.email,
+              phone: shipTo.mobile || undefined,
+            },
+          ],
+          parcels: [{ weight: Math.max(1000, Math.round(totalWeightKg * 1000)) }], // grams
+        };
+        if (isShop) {
+          shipmentPayload.service_point = {
+            id: orderData.pakkeshop.id,
+            name: orderData.pakkeshop.name,
+            address1: orderData.pakkeshop.address,
+            zipcode: orderData.pakkeshop.zipcode,
+            city: orderData.pakkeshop.city,
+            country_code: 'DK',
+          };
+        }
+        // Auto-print: only when a printer is configured in Vercel env vars.
+        // Values come from Shipmondo's GET /printers after the Print Client
+        // is installed (SHIPMONDO_PRINTER_HOST, _NAME and _FORMAT).
+        if (process.env.SHIPMONDO_PRINTER_HOST && process.env.SHIPMONDO_PRINTER_NAME && process.env.SHIPMONDO_PRINTER_FORMAT) {
+          shipmentPayload.print = true;
+          shipmentPayload.print_at = {
+            host_name: process.env.SHIPMONDO_PRINTER_HOST,
+            printer_name: process.env.SHIPMONDO_PRINTER_NAME,
+            label_format: process.env.SHIPMONDO_PRINTER_FORMAT,
+          };
+        }
+        console.log('Shipmondo shipment payload:', JSON.stringify(shipmentPayload));
+        const bookRes = await fetch('https://app.shipmondo.com/api/public/v3/shipments', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(shipmentPayload),
+        });
+        const bookText = await bookRes.text();
+        console.log('Shipmondo shipment response', bookRes.status, bookText);
+        if (bookRes.ok) {
+          labelBooked = true;
+          console.log('GLS label booked automatically for', orderData.externalId);
+          // Email the label PDF to the owner (works without any printer set up)
+          try {
+            await emailLabelToOwner(auth, bookText, refId, orderData);
+          } catch (labelMailErr) {
+            console.error('Label email failed:', labelMailErr);
+          }
+        } else {
+          console.error('Direct label booking failed - falling back to open sales order');
+        }
+      } catch (bookErr) {
+        console.error('Direct label booking threw:', bookErr);
+      }
     }
 
-    console.log('Shipmondo draft created for', orderData.externalId);
+    if (!labelBooked) {
+      console.log('Shipmondo payload:', JSON.stringify(payload));
+      const smRes = await fetch('https://app.shipmondo.com/api/public/v3/sales_orders', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const smText = await smRes.text();
+      console.log('Shipmondo response', smRes.status, smText);
+      if (!smRes.ok) {
+        console.error('Shipmondo API error', smRes.status, smText);
+        return res.status(200).json({ received: true, shipmondo_error: smText });
+      }
+
+      console.log('Shipmondo draft created for', orderData.externalId);
+    }
 
     // Send branded order confirmation email (best-effort, don't fail webhook if email fails)
     try {
@@ -302,6 +399,77 @@ export default async function handler(req, res) {
 }
 
 // ── ORDER CONFIRMATION EMAIL ──
+// Fetch the freshly booked label PDF from Shipmondo and email it to the shop
+// owner, so every fulfilled order lands in the inbox with its label attached -
+// no printer or Print Client required. Best-effort: if the PDF can't be
+// fetched, an email without attachment is sent instead (with the tracking ref).
+async function emailLabelToOwner(auth, bookText, refId, orderData) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY not set');
+  const ownerEmail = process.env.ADMIN_EMAIL || 'hello@quartzmolle.dk';
+
+  let shipment = {};
+  try { shipment = JSON.parse(bookText) || {}; } catch {}
+  const shipmentId = shipment.id;
+  const trackingRef = shipment.pkg_no || shipment.package_number || '';
+
+  // Try to fetch the label PDF (base64). The response shape is handled
+  // defensively since it varies between formats.
+  let labelB64 = null;
+  if (shipmentId) {
+    try {
+      const smAuth = { headers: { 'Authorization': `Basic ${auth}` } };
+      let lblRes = await fetch(`https://app.shipmondo.com/api/public/v3/shipments/${shipmentId}/labels?label_format=a4_pdf`, smAuth);
+      if (!lblRes.ok) {
+        lblRes = await fetch(`https://app.shipmondo.com/api/public/v3/shipments/${shipmentId}/labels`, smAuth);
+      }
+      if (lblRes.ok) {
+        const lblJson = await lblRes.json();
+        const arr = Array.isArray(lblJson) ? lblJson
+          : (lblJson && (lblJson.labels || lblJson.data)) || [];
+        const first = Array.isArray(arr) ? arr[0] : null;
+        if (typeof first === 'string') labelB64 = first;
+        else if (first && typeof first === 'object') {
+          labelB64 = first.base64 || first.label || first.pdf || null;
+        }
+      }
+    } catch (e) {
+      console.error('Label PDF fetch failed:', e);
+    }
+  }
+
+  const itemsTxt = (orderData.items || [])
+    .map(it => `${it.qty || 1}× ${it.productName}${it.weightLabel ? ' ' + it.weightLabel : ''}`)
+    .join('<br>');
+  const html =
+    `<div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:26px 22px;background:#f5f1e8;border-radius:16px;color:#1a1611;">` +
+    `<h2 style="color:#273071;margin:0 0 10px;">GLS-label booket automatisk 📦</h2>` +
+    `<p style="margin:0 0 12px;">Ordre <strong>#${escapeHtmlEmail(refId)}</strong> til <strong>${escapeHtmlEmail(orderData.customerName || '')}</strong> er fulfilled - labelen er booket hos GLS.</p>` +
+    (trackingRef ? `<p style="margin:0 0 12px;">Pakkenummer: <strong>${escapeHtmlEmail(trackingRef)}</strong></p>` : '') +
+    `<p style="margin:0 0 12px;color:#6b6256;font-size:14px;">${itemsTxt || ''}</p>` +
+    (labelB64
+      ? `<p style="margin:0;">Labelen er vedhæftet som PDF - klar til print.</p>`
+      : `<p style="margin:0;">Labelen kunne ikke vedhæftes automatisk - hent den i <a href="https://app.shipmondo.com" style="color:#273071;">Shipmondo</a> under Forsendelser.</p>`) +
+    `</div>`;
+
+  const body = {
+    from: 'Quartz Mølle <order@quartzmolle.dk>',
+    to: [ownerEmail],
+    subject: `GLS-label klar – ordre #${refId}`,
+    html,
+  };
+  if (labelB64) {
+    body.attachments = [{ filename: `GLS-label-${refId}.pdf`, content: labelB64 }];
+  }
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`Resend ${r.status}: ${await r.text().catch(() => '')}`);
+  console.log('Label email sent to', ownerEmail, labelB64 ? '(with PDF)' : '(no PDF)');
+}
+
 async function sendOrderConfirmationEmail(orderData) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
