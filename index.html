@@ -31,32 +31,27 @@
     #mobileMenu.open { display: flex !important; }
     #vid1 { opacity: 1; }
 
-    /* Force every video/hero section to span the LARGE viewport height (100lvh)
-       so the section and its video always extend down behind the Safari bar.
-       The section can then never end at the small viewport (100svh/100vh) and
-       draw a visible seam line above the browser bar. */
+    /* GLASS MODE: the videos are normal scrolling content (absolute inside
+       their own section) instead of fixed to the screen. Safari only lets
+       normal content shine through its translucent "glass" bars - so with
+       this, the bottom bar becomes see-through like on nike.com, both when
+       the page opens and while scrolling. It also permanently removes every
+       fixed-element seam/lag artefact we fought at the screen edges. */
     .video-section {
+      position: relative;
       height: 100vh;        /* fallback for older browsers */
       height: 100lvh;
       min-height: 100lvh;
     }
     .video-bg,
     .video-overlay {
-      height: 100vh;        /* fallback */
-      height: 100lvh;
-      min-height: 100lvh;
-    }
-    /* Extend the videos ~110px past their viewport on mobile so they reach in
-       BEHIND Safari's translucent bottom bar. With video shining through, the
-       bar looks small and light (like on other sites) instead of merging with
-       the black background into one big solid block. */
-    @media (max-width: 768px) {
-      .video-bg,
-      .video-overlay {
-        height: calc(100vh + 110px);
-        height: calc(100lvh + 110px);
-        min-height: calc(100lvh + 110px);
-      }
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      opacity: 1 !important; /* each section always shows its own video */
     }
 
   </style>
