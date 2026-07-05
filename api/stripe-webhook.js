@@ -155,7 +155,13 @@ export default async function handler(req, res) {
       if (weightKg <= 20) return packagingMap['20'];
       return packagingMap['25'];
     }
-    const packagingId = pickPackagingId(totalWeightKg);
+    // Fall back to ANY configured packaging rather than creating an open/draft
+    // order - a slightly wrong box size is better than a label that never gets
+    // booked. Only if SHIPMONDO_PACKAGING is completely empty do we give up.
+    const packagingId = pickPackagingId(totalWeightKg)
+      || packagingMap['25'] || packagingMap['20'] || packagingMap['15']
+      || packagingMap['10'] || packagingMap['5']
+      || Object.values(packagingMap)[0];
     console.log('Picked packaging ID:', packagingId, 'for weight', totalWeightKg, 'kg');
 
     const orderLines = orderData.items.map((it, idx) => {
