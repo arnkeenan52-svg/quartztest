@@ -29,11 +29,8 @@
       display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
       max-width: 1000px; margin: 0 auto 1.4rem !important;
     }
-    /* row 1: search box + view toggle · row 2: sort (full width) */
-    .shop-search-box { order: 1; flex: 1 1 200px; max-width: none !important; margin: 0 !important; }
-    .view-toggle { order: 2; }
-    .shop-sort { order: 3; display: flex; align-items: center; gap: 8px; margin: 0 !important; flex: 1 1 100%; }
-    .shop-sort-select { flex: 1; min-width: 0; }
+    /* one row: search box + view toggle */
+    .shop-search-box { flex: 1 1 200px; max-width: none !important; margin: 0 !important; }
     .shop-sort-label { font-size: 0.82rem; color: #666; font-weight: 500; white-space: nowrap; }
     .shop-sort-select {
       appearance: none; -webkit-appearance: none;
@@ -150,18 +147,6 @@
         <button type="button" id="shopSearchClear" class="shop-search-clear" aria-label="Ryd søgning" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
-      </div>
-      <div class="shop-sort">
-        <label for="shopSort" class="shop-sort-label">Sortér efter</label>
-        <select id="shopSort" class="shop-sort-select">
-          <option value="default">Anbefalede</option>
-          <option value="bestseller">Bestsellers</option>
-          <option value="fintsigtet">Fintsigtet · Type 70</option>
-          <option value="mellemsigtet">Mellemsigtet · Type 85</option>
-          <option value="fuldkorn">Fuldkorn</option>
-          <option value="price-asc">Pris: lav til høj</option>
-          <option value="price-desc">Pris: høj til lav</option>
-        </select>
       </div>
       <div class="view-toggle" role="group" aria-label="Visning">
         <button type="button" id="viewGridBtn" class="view-btn" aria-label="Flere produkter pr. række" title="Flere pr. række">
