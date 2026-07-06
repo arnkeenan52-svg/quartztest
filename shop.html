@@ -26,11 +26,14 @@
     /* ── COMPACT TOOLBAR: search + sort + view on ONE tight row ── */
     .shop-main { padding-top: 1.75rem !important; }
     .shop-search {
-      display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px;
       max-width: 1000px; margin: 0 auto 1.4rem !important;
     }
-    /* one row: search box + view toggle */
-    .shop-search-box { flex: 1 1 200px; max-width: none !important; margin: 0 !important; }
+    /* search box full width, view toggle centered on the row below */
+    .shop-search-box { flex: 1 1 100%; max-width: none !important; margin: 0 !important; }
+    .view-toggle { margin: 0 auto !important; justify-content: center; }
+    /* centre the product grid itself */
+    .shop-grid { justify-content: center; margin-left: auto; margin-right: auto; }
     .shop-sort-label { font-size: 0.82rem; color: #666; font-weight: 500; white-space: nowrap; }
     .shop-sort-select {
       appearance: none; -webkit-appearance: none;
