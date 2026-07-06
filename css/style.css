@@ -155,7 +155,7 @@ body {
   transition: transform 0.3s;
 }
 
-/* ── MOBILE MENU — solid cream sheet with blue button links ── */
+/* ── MOBILE MENU — solid cream sheet, plain text links ── */
 .mobile-menu {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -165,7 +165,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.9rem;
+  gap: 2rem;
   transform: translateX(100%);
   transition: transform 0.45s cubic-bezier(0.77,0,0.175,1), visibility 0s linear 0.45s;
   visibility: hidden;
@@ -179,36 +179,17 @@ body {
 
 .mobile-menu a,
 .mobile-menu button {
-  color: #fff;
+  color: var(--brand-blue);
   text-decoration: none;
   font-family: 'Inter', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: var(--brand-blue);
+  font-size: 1.8rem;
+  font-weight: 600;
+  background: none;
   border: none;
-  border-radius: 14px;
-  width: min(320px, 78vw);
-  padding: 1rem 1.2rem;
-  text-align: center;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(39, 48, 113, 0.22);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   /* staggered entrance (animated below when the menu opens) */
   opacity: 0;
-  transform: translateY(22px);
-}
-
-.mobile-menu a:active,
-.mobile-menu button:active {
-  transform: scale(0.97);
-  background: #1e2558;
-}
-
-.mobile-menu a:hover,
-.mobile-menu button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(39, 48, 113, 0.3);
+  transform: translateY(18px);
 }
 
 /* items glide up one after another when the menu opens */
@@ -216,230 +197,25 @@ body {
 .mobile-menu.open button {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.18s ease, background 0.18s ease;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.mobile-menu.open > *:nth-child(1) { transition-delay: 0.10s; }
-.mobile-menu.open > *:nth-child(2) { transition-delay: 0.16s; }
-.mobile-menu.open > *:nth-child(3) { transition-delay: 0.22s; }
-.mobile-menu.open > *:nth-child(4) { transition-delay: 0.28s; }
-.mobile-menu.open > *:nth-child(5) { transition-delay: 0.34s; }
-.mobile-menu.open > *:nth-child(6) { transition-delay: 0.40s; }
-.mobile-menu.open > *:nth-child(7) { transition-delay: 0.46s; }
+.mobile-menu.open > *:nth-child(1) { transition-delay: 0.08s; }
+.mobile-menu.open > *:nth-child(2) { transition-delay: 0.14s; }
+.mobile-menu.open > *:nth-child(3) { transition-delay: 0.20s; }
+.mobile-menu.open > *:nth-child(4) { transition-delay: 0.26s; }
+.mobile-menu.open > *:nth-child(5) { transition-delay: 0.32s; }
+.mobile-menu.open > *:nth-child(6) { transition-delay: 0.38s; }
+.mobile-menu.open > *:nth-child(7) { transition-delay: 0.44s; }
 
-/* the Shop Nu call-to-action stands out in dark */
 .mobile-cta {
-  background: var(--dark) !important;
+  background: var(--brand-blue) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-}
-
-/* ── VIDEO SECTIONS (crossfade) ── */
-.video-section {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100vh;
-  height: 100lvh; /* match video which uses 100lvh - section ends at same point as video */
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.video-bg {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100lvh; /* largest viewport height - fills under iOS bottom bar entirely */
-  object-fit: cover;
-  z-index: 0;
-  opacity: 0;
-  will-change: opacity;
-  transition: opacity 900ms cubic-bezier(0.4, 0.0, 0.2, 1);
-  pointer-events: none;
-}
-
-.video-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100lvh;
-  z-index: 1;
-  background: rgba(0,0,0,0.55);
-  opacity: 0;
-  will-change: opacity;
-  transition: opacity 900ms cubic-bezier(0.4, 0.0, 0.2, 1);
-  pointer-events: none;
-}
-
-.overlay-dark   { background: rgba(0,0,0,0.55); }
-.overlay-medium { background: rgba(0,0,0,0.55); }
-
-.video-section.is-active .video-bg,
-.video-section.is-active .video-overlay {
-  opacity: 1;
-}
-
-/* When user has scrolled past all video sections, hide the fixed videos entirely
-   so iOS overscroll bounce past the footer doesn't reveal them underneath. */
-body.past-videos .video-bg,
-body.past-videos .video-overlay {
-  /* Keep videos visible always - rely on z-index stacking instead of fade-out */
-}
-
-/* ── HERO CONTENT ── */
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
-  animation: fadeUp 1.2s ease both;
-  padding: 0 1.5rem;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero-logo {
-  width: min(260px, 48vw);
-  filter: drop-shadow(0 4px 24px rgba(0,0,0,0.5));
-}
-
-.hero-title {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(2.4rem, 7vw, 4.8rem);
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 0.02em;
-  line-height: 1.05;
-  text-transform: uppercase;
-  text-shadow: 0 2px 24px rgba(0,0,0,0.45);
-  margin-top: 0.3rem;
-}
-
-.hero-sub {
-  color: var(--text-light);
-  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  max-width: 600px;
-}
-
-/* ── BUTTONS ── */
-.btn-primary {
-  display: inline-block;
-  background: var(--cream);
-  color: var(--dark);
-  text-decoration: none;
-  padding: 0.9rem 2.5rem;
+  padding: 0.7rem 2rem;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  font-family: 'Inter', sans-serif !important;
+  font-size: 1rem !important;
+  box-shadow: 0 2px 12px rgba(39, 48, 113, 0.25);
 }
-
-.btn-primary:hover {
-  background: #f5f0e8;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.3);
-}
-
-.btn-ghost {
-  display: inline-block;
-  border: 2px solid rgba(255,255,255,0.7);
-  color: #fff;
-  text-decoration: none;
-  padding: 0.75rem 2rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.95rem;
-  transition: background 0.2s, border-color 0.2s;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-ghost:hover {
-  background: rgba(255,255,255,0.15);
-  border-color: #fff;
-}
-
-.btn-dark {
-  display: inline-block;
-  background: var(--dark);
-  color: #fff;
-  text-decoration: none;
-  padding: 0.9rem 2.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: background 0.2s, transform 0.2s;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-dark:hover { background: var(--mid); transform: translateY(-2px); }
-
-/* ── TEXT BLOCKS (over video) ── */
-.text-block {
-  position: relative;
-  z-index: 2;
-  max-width: 560px;
-  padding: 0 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  animation: fadeUp 0.8s ease both;
-}
-
-.text-left  { margin-right: auto; margin-left: 8vw; }
-.text-right { margin-left: auto; margin-right: 8vw; text-align: right; align-items: flex-end; }
-
-.text-block h2 {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(2rem, 4.5vw, 3rem);
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.text-block p {
-  color: var(--text-light);
-  font-size: 1.05rem;
-  line-height: 1.7;
-  font-weight: 400;
-}
-
-.text-block .season-note {
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.7);
-  font-style: italic;
-  margin-top: -0.3rem;
-}
-
-/* ── EYEBROW ── */
-.eyebrow {
-  display: inline-block;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.85);
-}
-
-.eyebrow-dark { color: var(--brand-blue); }
 
 /* ── SCROLL HINT ── */
 .scroll-hint {
@@ -1983,14 +1759,3 @@ body:has(.product-hero-band) .nav {
 .cart-btn { margin-left: auto; }
 .nav.nav-light .cart-btn { color: #fff; }
 .nav.nav-light .cart-count { background: #fff; color: var(--dark); }
-
-/* centre the language pill inside the mobile menu */
-.mobile-menu .lang-switch { width: min(320px, 78vw); }
-.mobile-menu .lang-switch button,
-.mobile-menu .lang-switch .lang-switch-btn {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
