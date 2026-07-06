@@ -21,8 +21,11 @@
        switches the background colour live: dark on the videos, cream on
        the content. The soft transition makes the swap invisible. */
     html {
-      background-color: #0b0b0d;
-      background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #0b0b0d 480px) !important;
+      /* pure black in BOTH states so the bottom overscroll under the footer
+         is always the footer's exact #000000 - no seam whatever the scroll
+         state. */
+      background-color: #000000;
+      background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #000000 480px) !important;
       background-repeat: no-repeat !important;
       transition: background-color 0.35s ease;
     }
