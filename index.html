@@ -64,30 +64,6 @@
       height: 130lvh !important;
       will-change: transform;
     }
-    /* Modern browsers: the pin runs as a CSS scroll-driven animation on
-       the compositor - perfectly in sync with the scroll, no JS lag. The
-       stage height is measured by JS and provided as a plain pixel value
-       (--qm-stage-h) because iOS rejects calc()/lvh in these spots. A JS
-       self-test below switches to the script pin if the animation is not
-       actually driving the transform. */
-    @supports (animation-timeline: scroll()) {
-      #videoStage .video-bg,
-      #videoStage .video-overlay {
-        animation: qm-pin linear both;
-        animation-timeline: scroll(root);
-        animation-range: 0px var(--qm-stage-h, 245vh);
-      }
-      /* 92% pin: the videos drift at 8% of the scroll speed. Anything
-         100% screen-stationary (fixed/sticky/full pin) gets excluded from
-         the bottom safe-area sliver by iOS - slight motion keeps them
-         classified as normal scrolling content, so the sliver stays glass
-         (this is exactly why the old parallax version had no bar). */
-      @keyframes qm-pin {
-        from { transform: translateY(0); }
-        to   { transform: translateY(var(--qm-pin-end, 225vh)); }
-      }
-    }
-
     /* shorter curtain zone - video 2 doesn't scroll on forever */
     #vs2b {
       height: 45vh;
@@ -408,25 +384,10 @@
         applyJs();
       }
 
-      var cssPin = window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()');
-      if (!cssPin) { enableJs(); return; }
-
-      /* CSS path claimed - verify it actually works once there is real
-         scroll to judge by. */
-      var checks = 0, settle = null;
-      function selfTest() {
-        if (jsActive) { window.removeEventListener('scroll', onScrollTest); return; }
-        var pin = currentPin();
-        if (pin < 80) return;                    // not enough scroll yet
-        var actual = transformY(els[0]);
-        if (Math.abs(actual - pin * PIN_FACTOR) > 100) {
-          enableJs();                            // CSS pin is broken here
-        } else if (++checks >= 2) {
-          window.removeEventListener('scroll', onScrollTest); // CSS pin verified
-        }
-      }
-      function onScrollTest() { clearTimeout(settle); settle = setTimeout(selfTest, 150); }
-      window.addEventListener('scroll', onScrollTest, { passive: true });
+      /* JS inline transforms only - iOS paints these into the bottom
+         sliver (same mechanism as the confirmed bar-free version), while
+         CSS scroll-driven animation layers get excluded from it. */
+      enableJs();
 
       /* Canvas colour follows the scroll: dark while the videos are on
          screen (the bottom sliver melts into them), cream once you are
