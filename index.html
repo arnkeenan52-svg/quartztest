@@ -155,6 +155,12 @@
       width: min(1150px, 100%);
       margin: 2.4rem auto 2.5rem;
     }
+
+    /* The cream page canvas was showing through in the overscroll area
+       below the black footer. A spread box-shadow paints the footer's dark
+       colour down into that area - adds no scroll height, touches nothing
+       else. */
+    .footer { box-shadow: 0 100vh 0 100vh var(--dark); }
   </style>
 </head>
 <body>
