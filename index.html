@@ -14,14 +14,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    /* Canvas: blue at the very top (status-bar strip), cream below - plain
-       px stops only (calc()/lvh inside gradients can fail on iOS and kill
-       the whole gradient). background-COLOR black so the home-indicator
-       sliver melts into the screen edge. */
+    /* Apple reserves a small sliver at the very bottom (home indicator)
+       and paints it with the page's background colour - on every part of
+       the page, video or not. One fixed colour can't match both the dark
+       videos and the cream content, so a scroll script (bottom of file)
+       switches the background colour live: dark on the videos, cream on
+       the content. The soft transition makes the swap invisible. */
     html {
-      background-color: #000 !important;
-      background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #faf7f2 480px) !important;
+      background-color: #0b0b0d;
+      background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #0b0b0d 480px) !important;
       background-repeat: no-repeat !important;
+      transition: background-color 0.35s ease;
+    }
+    html.qm-light-canvas {
+      background-color: #faf7f2;
+      background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #faf7f2 480px) !important;
     }
     body { background: transparent !important; }
 
@@ -415,6 +422,21 @@
       }
       function onScrollTest() { clearTimeout(settle); settle = setTimeout(selfTest, 150); }
       window.addEventListener('scroll', onScrollTest, { passive: true });
+
+      /* Canvas colour follows the scroll: dark while the videos are on
+         screen (the bottom sliver melts into them), cream once you are
+         down in the content (the sliver melts into that instead). */
+      var lightCanvas = false;
+      function canvasColor() {
+        var threshold = stage.offsetHeight - window.innerHeight * 0.55;
+        var light = (window.scrollY || window.pageYOffset || 0) > threshold;
+        if (light !== lightCanvas) {
+          lightCanvas = light;
+          document.documentElement.classList.toggle('qm-light-canvas', light);
+        }
+      }
+      window.addEventListener('scroll', function () { requestAnimationFrame(canvasColor); }, { passive: true });
+      canvasColor();
     })();
   </script>
 
