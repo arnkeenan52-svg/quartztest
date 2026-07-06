@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Anton&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@800&display=swap");
 
 /* ============================================================
    QUARTZ MØLLE — CSS
@@ -1971,9 +1971,9 @@ body:has(.product-hero-band) .nav {
 
 
 /* ── MEYERS-STYLE HEADINGS ──
-   Anton: a free heavy condensed font very close to meyers.dk's custom
-   "Meyer Grand". Body text stays Inter (Meyers' body font Graphik is
-   near-identical to Inter). */
+   Barlow Semi Condensed 800: the free font closest to meyers.dk's custom
+   "Meyer Grand" (72% letterform overlap in direct comparison). Body text
+   stays Inter. */
 .hero-title,
 .text-block h2,
 .highlights-header h2.dark,
@@ -1984,11 +1984,11 @@ body:has(.product-hero-band) .nav {
 .product-page-name,
 .forhandlere-hero h1,
 .om-hero h1 {
-  font-family: 'Anton', 'Inter', sans-serif;
-  font-weight: 400;            /* Anton only ships one weight */
+  font-family: 'Barlow Semi Condensed', 'Inter', sans-serif;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.01em;
 }
 
 /* the MENU block matches the heading font, like on meyers.dk */
-.nav-burger::before { font-family: 'Anton', 'Inter', sans-serif; font-weight: 400; letter-spacing: 0.08em; }
+.nav-burger::before { font-family: 'Barlow Semi Condensed', 'Inter', sans-serif; font-weight: 800; letter-spacing: 0.06em; }
