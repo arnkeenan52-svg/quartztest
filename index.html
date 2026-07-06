@@ -44,7 +44,12 @@
        layers get rendered all the way into the bottom safe-area, so the
        strip becomes real glass instead of showing the canvas colour. */
     #videoStage { position: relative; overflow: hidden; }
-    #videoStage .video-section { position: static; }
+    /* The sections get a REAL background in the video tone. Normal in-flow
+       content DOES get painted in Apple's bottom sliver (that's why the
+       strip disappears on the cream sections) - only the video layer is
+       excluded there. So the sliver shows this dark section background
+       instead of a foreign colour, and melts into the video above it. */
+    #videoStage .video-section { position: static; background: #191b15; }
     #videoStage .video-bg,
     #videoStage .video-overlay {
       position: absolute !important;
