@@ -27,7 +27,11 @@
       transition: background-color 0.35s ease;
     }
     html.qm-light-canvas {
-      background-color: #faf7f2;
+      /* base colour stays dark (matches the footer) so the bottom overscroll
+         area is dark, not a white strip. The cream content sections paint
+         their own colour, so only the empty overscroll below the footer is
+         affected. */
+      background-color: #0b0b0d;
       background-image: linear-gradient(to bottom, #273071 0px, #273071 160px, #faf7f2 480px) !important;
     }
     body { background: transparent !important; }
@@ -155,12 +159,6 @@
       width: min(1150px, 100%);
       margin: 2.4rem auto 2.5rem;
     }
-
-    /* The cream page canvas was showing through in the overscroll area
-       below the black footer. A spread box-shadow paints the footer's dark
-       colour down into that area - adds no scroll height, touches nothing
-       else. */
-    .footer { box-shadow: 0 100vh 0 100vh var(--dark); }
   </style>
 </head>
 <body>
