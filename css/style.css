@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Changa:wght@600;800&display=swap");
 /* ============================================================
    QUARTZ MØLLE — CSS
    Blue #273071 accent, readable Inter typography
@@ -2007,7 +2007,7 @@ body:has(.product-hero-band) .nav {
 .product-page-name,
 .forhandlere-hero h1,
 .om-hero h1 {
-  font-family: 'Meyers Oe', 'Meyers Q', 'Barlow Semi Condensed', 'Inter', system-ui, sans-serif;
+  font-family: 'Changa', 'Inter', system-ui, sans-serif;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -2019,7 +2019,7 @@ body:has(.product-hero-band) .nav {
 .product-card-name,
 .product-card-sub,
 .product-page-type {
-  font-family: 'Meyers Oe', 'Meyers Q', 'Barlow Semi Condensed', 'Inter', sans-serif;
+  font-family: 'Changa', 'Inter', sans-serif;
   font-weight: 800;
 }
 .product-card-sub,
