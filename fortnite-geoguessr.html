@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fortnite Map Guessr – Guess the Season & Location</title>
+<meta name="description" content="GeoGuessr for Fortnite: see a zoomed-in piece of a real Fortnite map, guess which chapter & season it is and click where it is on the map. 39 real maps from Chapter 1 to Chapter 7." />
+<meta name="robots" content="noindex" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg1: #1c1240;
+    --bg2: #2a2a72;
+    --accent: #ffd600;
+    --accent2: #00e0ff;
+    --good: #3ddc84;
+    --bad: #ff5252;
+    --card: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: #14102e; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(0,224,255,0.18), transparent 60%),
+      radial-gradient(1000px 700px at -10% 110%, rgba(255,214,0,0.10), transparent 55%),
+      linear-gradient(160deg, var(--bg1), var(--bg2) 55%, #0e0b22);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
+
+  h1, .fh { font-family: 'Anton', 'Inter', sans-serif; letter-spacing: 0.02em; text-transform: uppercase; font-weight: 400; }
+
+  /* ---------- top bar ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 2px 18px; flex-wrap: wrap; }
+  header h1 { font-size: clamp(22px, 4vw, 34px); line-height: 1; }
+  header h1 .y { color: var(--accent); }
+  header h1 .b { color: var(--accent2); }
+  .hud { display: flex; gap: 10px; }
+  .hud .pill {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 999px;
+    padding: 8px 16px; font-weight: 800; font-size: 14px; white-space: nowrap;
+  }
+  .hud .pill span { color: var(--accent); }
+
+  /* ---------- cards / layout ---------- */
+  .game { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .game { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 16px; backdrop-filter: blur(6px);
+  }
+  .card h2 { font-family: 'Anton', sans-serif; font-weight: 400; text-transform: uppercase; font-size: 18px; letter-spacing: 0.04em; margin-bottom: 12px; color: var(--accent); }
+  .card h2 small { color: rgba(255,255,255,0.55); font-family: 'Inter', sans-serif; text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; }
+
+  /* ---------- clue ---------- */
+  #clueCanvas { width: 100%; aspect-ratio: 1/1; display: block; border-radius: 12px; background: #0b0a1d; box-shadow: 0 10px 30px rgba(0,0,0,0.45); image-rendering: auto; }
+  .clue-tools { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    font-family: 'Anton', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;
+    border: none; border-radius: 12px; cursor: pointer; color: #14102e;
+    background: linear-gradient(180deg, #ffe259, var(--accent));
+    padding: 12px 26px; font-size: 17px;
+    box-shadow: 0 4px 0 #b89a00, 0 10px 24px rgba(0,0,0,0.35);
+    transition: transform 0.06s ease, filter 0.15s ease;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #b89a00; }
+  .btn:disabled { filter: grayscale(0.8) brightness(0.7); cursor: not-allowed; transform: none; }
+  .btn.blue { background: linear-gradient(180deg, #6ef3ff, var(--accent2)); box-shadow: 0 4px 0 #0091a8, 0 10px 24px rgba(0,0,0,0.35); }
+  .btn.ghost { background: var(--card); color: #fff; box-shadow: none; border: 1px solid var(--card-border); font-size: 14px; padding: 9px 16px; }
+
+  /* ---------- season picker ---------- */
+  .chapters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .chapters button, .seasons button {
+    background: var(--card); border: 1px solid var(--card-border); color: #fff;
+    border-radius: 9px; padding: 7px 12px; font-weight: 800; font-size: 13px; cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .chapters button:hover, .seasons button:hover { background: rgba(255,255,255,0.16); }
+  .chapters button.on { background: var(--accent); color: #14102e; border-color: var(--accent); }
+  .seasons { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .seasons button.on { background: var(--accent2); color: #14102e; border-color: var(--accent2); }
+
+  /* ---------- guess / result map ---------- */
+  .mapbox { position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.45); cursor: crosshair; }
+  .mapbox img { width: 100%; aspect-ratio: 1/1; display: block; user-select: none; -webkit-user-drag: none; }
+  .mapbox .placeholder { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: rgba(255,255,255,0.55); font-weight: 700; font-size: 15px; background: rgba(0,0,0,0.25); }
+  .mapbox.noclick { cursor: default; }
+  .pin { position: absolute; width: 26px; height: 26px; margin: -26px 0 0 -13px; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.6)); }
+  .maplabel { position: absolute; left: 10px; top: 10px; background: rgba(10,8,30,0.75); border: 1px solid var(--card-border); border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 800; pointer-events: none; }
+  svg.trace { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  .actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+  .hintnote { font-size: 12.5px; color: rgba(255,255,255,0.6); font-weight: 600; }
+
+  /* ---------- result ---------- */
+  .result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+  @media (max-width: 480px) { .result-stats { grid-template-columns: 1fr; } }
+  .stat { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 14px; }
+  .stat .k { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat .v { font-family: 'Anton', sans-serif; font-size: 26px; margin-top: 2px; }
+  .stat .v.good { color: var(--good); }
+  .stat .v.bad { color: var(--bad); }
+  .stat .v.mid { color: var(--accent); }
+  .flavor { font-size: 14px; color: rgba(255,255,255,0.85); background: rgba(0,224,255,0.08); border: 1px solid rgba(0,224,255,0.25); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-weight: 600; }
+
+  /* ---------- screens ---------- */
+  .screen { display: none; }
+  .screen.on { display: block; }
+  .center-card { max-width: 640px; margin: 6vh auto 0; text-align: center; padding: 34px 26px; }
+  .center-card h1 { font-size: clamp(34px, 7vw, 58px); line-height: 1.05; margin-bottom: 14px; }
+  .center-card p { color: rgba(255,255,255,0.8); font-weight: 600; font-size: 15px; line-height: 1.55; margin-bottom: 10px; }
+  .bigscore { font-family: 'Anton', sans-serif; font-size: clamp(48px, 10vw, 84px); color: var(--accent); line-height: 1; margin: 10px 0 4px; }
+  .rank { font-family: 'Anton', sans-serif; font-size: clamp(20px, 4vw, 30px); color: var(--accent2); margin-bottom: 18px; }
+  .roundlist { text-align: left; margin: 18px auto; max-width: 460px; display: grid; gap: 8px; }
+  .roundlist .r { display: flex; justify-content: space-between; gap: 10px; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 9px 14px; font-weight: 700; font-size: 14px; }
+  .roundlist .r b { color: var(--accent); }
+  .credit { text-align: center; margin-top: 40px; font-size: 11.5px; color: rgba(255,255,255,0.4); font-weight: 600; line-height: 1.6; }
+  .credit a { color: rgba(255,255,255,0.55); }
+  .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,8,30,0.65); font-family: 'Anton', sans-serif; font-size: 20px; letter-spacing: 0.06em; border-radius: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ START SCREEN ============ -->
+  <div id="startScreen" class="screen on">
+    <div class="card center-card">
+      <h1><span class="y">Fortnite</span> <span class="b">Map</span> Guessr</h1>
+      <p>You get a zoomed-in piece of a <b>real Fortnite map</b>. Figure out <b>where</b> it is — and <b>which chapter &amp; season</b> it's from.</p>
+      <p>🗺️ 39 real maps &nbsp;·&nbsp; Chapter 1 (2017) → Chapter 7 &nbsp;·&nbsp; OG, Remix, Star Wars &amp; Simpsons included</p>
+      <p>📍 Up to <b>5000 pts</b> for the location &nbsp;+&nbsp; 🗓️ up to <b>2500 pts</b> for the season. 5 rounds.</p>
+      <p id="hsLine" style="display:none">🏆 Your high score: <b id="hsVal" style="color:var(--accent)"></b></p>
+      <br />
+      <button class="btn" id="startBtn">Drop in</button>
+    </div>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="gameScreen" class="screen">
+    <header>
+      <h1><span class="y">Fortnite</span> <span class="b">Map</span> Guessr</h1>
+      <div class="hud">
+        <div class="pill">Round <span id="roundNo">1</span>/5</div>
+        <div class="pill">Score <span id="scoreNo">0</span></div>
+      </div>
+    </header>
+
+    <div class="game">
+      <!-- clue -->
+      <div class="card">
+        <h2>Where is this? <small>zoomed-in piece of a real map</small></h2>
+        <div style="position:relative">
+          <canvas id="clueCanvas" width="1000" height="1000"></canvas>
+          <div id="clueLoading" class="loading" style="display:none">Loading…</div>
+        </div>
+        <div class="clue-tools">
+          <button class="btn ghost" id="hintBtn">🔍 Zoom out (−500 pts)</button>
+        </div>
+      </div>
+
+      <!-- guess -->
+      <div class="card" id="guessCard">
+        <h2>Your guess <small>pick a season, then click the map</small></h2>
+        <div class="chapters" id="chapterBtns"></div>
+        <div class="seasons" id="seasonBtns"></div>
+        <div class="mapbox" id="guessMap">
+          <img id="guessImg" alt="Fortnite map" draggable="false" style="display:none" />
+          <div class="placeholder" id="mapPlaceholder">👆 Pick a chapter &amp; season to open a map</div>
+          <div class="maplabel" id="guessLabel" style="display:none"></div>
+          <div class="pin" id="guessPin" style="display:none">
+            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="#ff5252" stroke="#fff" stroke-width="1.4" d="M12 1C7.6 1 4 4.6 4 9c0 5.6 8 14 8 14s8-8.4 8-14c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="guessBtn" disabled>Lock in guess</button>
+          <span class="hintnote" id="guessNote">Tip: flip through the maps — find the one that matches the picture!</span>
+        </div>
+      </div>
+
+      <!-- result (replaces guess card) -->
+      <div class="card" id="resultCard" style="display:none">
+        <h2 id="resultTitle">Result</h2>
+        <div class="flavor" id="resultFlavor"></div>
+        <div class="mapbox noclick">
+          <img id="resultImg" alt="Correct Fortnite map" draggable="false" />
+          <div class="maplabel" id="resultLabel"></div>
+          <svg class="trace" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line id="traceLine" x1="0" y1="0" x2="0" y2="0" stroke="#fff" stroke-width="0.5" stroke-dasharray="1.6 1.2" />
+          </svg>
+          <div class="pin" id="truePin">
+            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="#3ddc84" stroke="#fff" stroke-width="1.4" d="M12 1C7.6 1 4 4.6 4 9c0 5.6 8 14 8 14s8-8.4 8-14c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+          </div>
+          <div class="pin" id="resGuessPin">
+            <svg viewBox="0 0 24 24" width="26" height="26"><path fill="#ff5252" stroke="#fff" stroke-width="1.4" d="M12 1C7.6 1 4 4.6 4 9c0 5.6 8 14 8 14s8-8.4 8-14c0-4.4-3.6-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+          </div>
+        </div>
+        <div class="result-stats">
+          <div class="stat"><div class="k">📍 Location</div><div class="v" id="statDist"></div><div class="k" id="statDistPts"></div></div>
+          <div class="stat"><div class="k">🗓️ Season</div><div class="v" id="statSeason"></div><div class="k" id="statSeasonPts"></div></div>
+        </div>
+        <div class="actions">
+          <button class="btn blue" id="nextBtn">Next round →</button>
+          <span class="hintnote" id="roundPts"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ END SCREEN ============ -->
+  <div id="endScreen" class="screen">
+    <div class="card center-card">
+      <h1>Match over!</h1>
+      <div class="bigscore" id="finalScore">0</div>
+      <div class="rank" id="finalRank"></div>
+      <p id="newHs" style="display:none; color:var(--accent)">🏆 New high score!</p>
+      <div class="roundlist" id="roundList"></div>
+      <button class="btn" id="againBtn">Play again</button>
+    </div>
+  </div>
+
+  <div class="credit">
+    Fan-made game. Map images from the <a href="https://fortnite.fandom.com" target="_blank" rel="noopener">Fortnite Wiki</a> (CC-BY-SA).<br />
+    Not affiliated with or endorsed by Epic Games. Fortnite is a trademark of Epic Games, Inc.
+  </div>
+</div>
+
+<script>
+/* ================= DATA ================= */
+const IMG_DIR = 'images/fortnite-maps/';
+const SEASONS = [
+  { id:'c1s1',  ch:1, label:'Chapter 1 · Season 1', chip:'S1',  date:'Oct 2017', flavor:'The original island — Anarchy Acres, Moisty Mire and Loot Lake.' },
+  { id:'c1s2',  ch:1, label:'Chapter 1 · Season 2', chip:'S2',  date:'Dec 2017', flavor:'Medieval season — Tilted Towers has just landed on the map.' },
+  { id:'c1s3',  ch:1, label:'Chapter 1 · Season 3', chip:'S3',  date:'Feb 2018', flavor:'Meteors in the sky, Lucky Landing joins in the far south.' },
+  { id:'c1s4',  ch:1, label:'Chapter 1 · Season 4', chip:'S4',  date:'May 2018', flavor:'The meteor hit! Dusty Depot became Dusty Divot.' },
+  { id:'c1s5',  ch:1, label:'Chapter 1 · Season 5', chip:'S5',  date:'Jul 2018', flavor:'Worlds collide — the desert biome and Paradise Palms arrive.' },
+  { id:'c1s6',  ch:1, label:'Chapter 1 · Season 6', chip:'S6',  date:'Sep 2018', flavor:'Darkness rises — the floating island and Leaky Lake.' },
+  { id:'c1s7',  ch:1, label:'Chapter 1 · Season 7', chip:'S7',  date:'Dec 2018', flavor:'The iceberg crashed in — Polar Peak, Frosty Flights and Happy Hamlet.' },
+  { id:'c1s8',  ch:1, label:'Chapter 1 · Season 8', chip:'S8',  date:'Feb 2019', flavor:'The volcano looms over Sunny Steps and Lazy Lagoon.' },
+  { id:'c1s9',  ch:1, label:'Chapter 1 · Season 9', chip:'S9',  date:'May 2019', flavor:'The future is yours — Neo Tilted and Mega Mall.' },
+  { id:'c1s10', ch:1, label:'Chapter 1 · Season X', chip:'SX',  date:'Aug 2019', flavor:'Season X — Dusty Depot returns and rift zones warp the island.' },
+  { id:'c2s1',  ch:2, label:'Chapter 2 · Season 1', chip:'S1',  date:'Oct 2019', flavor:'A brand-new island after The End — Chapter 2 begins.' },
+  { id:'c2s2',  ch:2, label:'Chapter 2 · Season 2', chip:'S2',  date:'Feb 2020', flavor:'Top Secret — The Agency, The Grotto and spy bases everywhere.' },
+  { id:'c2s3',  ch:2, label:'Chapter 2 · Season 3', chip:'S3',  date:'Jun 2020', flavor:'Splash down! The island is flooded and sharks patrol the water.' },
+  { id:'c2s4',  ch:2, label:'Chapter 2 · Season 4', chip:'S4',  date:'Aug 2020', flavor:'Nexus War — Marvel heroes arrive, Doom’s Domain and Stark Industries.' },
+  { id:'c2s5',  ch:2, label:'Chapter 2 · Season 5', chip:'S5',  date:'Dec 2020', flavor:'Zero Point — the desert rips open the middle with Salty Towers.' },
+  { id:'c2s6',  ch:2, label:'Chapter 2 · Season 6', chip:'S6',  date:'Mar 2021', flavor:'Primal — The Spire rises and Colossal Crops grows.' },
+  { id:'c2s7',  ch:2, label:'Chapter 2 · Season 7', chip:'S7',  date:'Jun 2021', flavor:'Invasion — aliens abduct Coral Castle and hover over Corny Complex.' },
+  { id:'c2s8',  ch:2, label:'Chapter 2 · Season 8', chip:'S8',  date:'Sep 2021', flavor:'Cubed — the Sideways spreads and cubes roam the island.' },
+  { id:'c3s1',  ch:3, label:'Chapter 3 · Season 1', chip:'S1',  date:'Dec 2021', flavor:'Flipped — the island turned over: Sanctuary and Greasy Grove returns.' },
+  { id:'c3s2',  ch:3, label:'Chapter 3 · Season 2', chip:'S2',  date:'Mar 2022', flavor:'Resistance — the IO invades, blimps hang over Tilted Towers.' },
+  { id:'c3s3',  ch:3, label:'Chapter 3 · Season 3', chip:'S3',  date:'Jun 2022', flavor:'Vibin’ — the Reality Tree blooms and Rave Cave parties on.' },
+  { id:'c3s4',  ch:3, label:'Chapter 3 · Season 4', chip:'S4',  date:'Sep 2022', flavor:'Paradise — chrome slowly swallows the island.' },
+  { id:'c4s1',  ch:4, label:'Chapter 4 · Season 1', chip:'S1',  date:'Dec 2022', flavor:'A new realm — The Citadel, Brutal Bastion and Frenzy Fields.' },
+  { id:'c4s2',  ch:4, label:'Chapter 4 · Season 2', chip:'S2',  date:'Mar 2023', flavor:'MEGA — neo-Tokyo vibes in Mega City with grind rails.' },
+  { id:'c4s3',  ch:4, label:'Chapter 4 · Season 3', chip:'S3',  date:'Jun 2023', flavor:'WILDS — the jungle hides Rumble Ruins and raptors.' },
+  { id:'c4s4',  ch:4, label:'Chapter 4 · Season 4', chip:'S4',  date:'Aug 2023', flavor:'Last Resort — heists on Relentless Retreat and Sanguine Suites.' },
+  { id:'c4og',  ch:4, label:'Fortnite OG (Ch. 4 S5)', chip:'OG', date:'Nov 2023', flavor:'Fortnite OG — the beloved old island came back for a victory lap.' },
+  { id:'c5s1',  ch:5, label:'Chapter 5 · Season 1', chip:'S1',  date:'Dec 2023', flavor:'Underground — the train loops past Reckless Railways.' },
+  { id:'c5s2',  ch:5, label:'Chapter 5 · Season 2', chip:'S2',  date:'Mar 2024', flavor:'Myths & Mortals — Mount Olympus and The Underworld.' },
+  { id:'c5s3',  ch:5, label:'Chapter 5 · Season 3', chip:'S3',  date:'May 2024', flavor:'Wrecked — the Wasteland tears up the south, Nitrodrome roars.' },
+  { id:'c5s4',  ch:5, label:'Chapter 5 · Season 4', chip:'S4',  date:'Aug 2024', flavor:'Absolute Doom — Doomstadt and Castle Doom take over.' },
+  { id:'c5rmx', ch:5, label:'Fortnite Remix (Ch. 2)', chip:'RMX', date:'Nov 2024', flavor:'Remix — the Chapter 2 island returns with musical guests.' },
+  { id:'c6s1',  ch:6, label:'Chapter 6 · Season 1', chip:'S1',  date:'Dec 2024', flavor:'Demon hunters — the Japanese island with Masked Meadows.' },
+  { id:'c6s2',  ch:6, label:'Chapter 6 · Season 2', chip:'S2',  date:'Feb 2025', flavor:'Lawless — Crime City and the Outlaw Keycard heists.' },
+  { id:'c6gb',  ch:6, label:'Galactic Battle (Star Wars)', chip:'SW', date:'May 2025', flavor:'Galactic Battle — Star Destroyers over the island, the First Order lands.' },
+  { id:'c6s3',  ch:6, label:'Chapter 6 · Season 3', chip:'S3',  date:'Jun 2025', flavor:'Super — heroes and villains, Demon’s Domain gets a makeover.' },
+  { id:'c6s4',  ch:6, label:'Chapter 6 · Season 4', chip:'S4',  date:'Aug 2025', flavor:'Shock ’N Awesome — bugs invade the island!' },
+  { id:'c7simp',ch:7, label:'Fortnite × Simpsons', chip:'🍩', date:'Nov 2025', flavor:'Springfield! The Simpsons mini-season with its own island.' },
+  { id:'c7s1',  ch:7, label:'Chapter 7 · Season 1', chip:'S1',  date:'Dec 2025', flavor:'Chapter 7 — welcome to the Golden Coast.' },
+];
+// seasons whose maps are near-identical twins (OG/Remix reuse old islands) — generous credit
+const TWINS = { c4og:['c1s5','c1s6'], c1s5:['c4og'], c1s6:['c4og'], c5rmx:['c2s1','c2s2'], c2s1:['c5rmx'], c2s2:['c5rmx'] };
+const CHAPTERS = [
+  { n:1, name:'CH 1' }, { n:2, name:'CH 2' }, { n:3, name:'CH 3' }, { n:4, name:'CH 4' },
+  { n:5, name:'CH 5' }, { n:6, name:'CH 6' }, { n:7, name:'CH 7' },
+];
+const ROUNDS = 5;
+const MAP_METERS = 2500;           // rough width of a Fortnite island
+const CROP = 0.20;                 // clue shows 20% of the map
+const CROP_HINT = 0.34;            // zoomed-out hint view
+const HINT_COST = 500;
+
+/* ================= STATE ================= */
+let rounds = [];                   // [{season, cx, cy}]
+let roundIdx = 0;
+let totalScore = 0;
+let roundResults = [];
+let hintUsed = false;
+let guessNorm = null;              // {x,y} 0..1
+let selectedSeason = null;
+let currentClueImg = null;
+const imgCache = {};
+
+const $ = id => document.getElementById(id);
+
+/* ================= HELPERS ================= */
+function loadImg(id) {
+  return new Promise((res, rej) => {
+    if (imgCache[id]) { res(imgCache[id]); return; }
+    const im = new Image();
+    im.onload = () => { imgCache[id] = im; res(im); };
+    im.onerror = rej;
+    im.src = IMG_DIR + id + '.jpg';
+  });
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+// pick a crop centre that is not open ocean: sample the region and demand colour variety
+function pickCrop(img) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  for (let t = 0; t < 26; t++) {
+    const cx = 0.16 + Math.random() * 0.68;
+    const cy = 0.16 + Math.random() * 0.68;
+    const sz = CROP * img.width;
+    ctx.drawImage(img, cx * img.width - sz / 2, cy * img.height - sz / 2, sz, sz, 0, 0, 64, 64);
+    const d = ctx.getImageData(0, 0, 64, 64).data;
+    let sum = 0, sum2 = 0, blue = 0, n = 64 * 64;
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      sum += lum; sum2 += lum * lum;
+      if (d[i + 2] > d[i] + 18 && d[i + 2] > d[i + 1] + 6) blue++;
+    }
+    const mean = sum / n;
+    const sd = Math.sqrt(Math.max(0, sum2 / n - mean * mean));
+    if (sd > 16 && blue / n < 0.72) return { cx, cy };
+  }
+  return { cx: 0.5, cy: 0.5 }; // safe fallback: island centres are always land
+}
+function drawClue(zoomOut) {
+  const img = currentClueImg, r = rounds[roundIdx];
+  const cv = $('clueCanvas'), ctx = cv.getContext('2d');
+  const frac = zoomOut ? CROP_HINT : CROP;
+  let sz = frac * img.width;
+  let sx = r.cx * img.width - sz / 2, sy = r.cy * img.height - sz / 2;
+  sx = Math.max(0, Math.min(img.width - sz, sx));
+  sy = Math.max(0, Math.min(img.height - sz, sy));
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(img, sx, sy, sz, sz, 0, 0, cv.width, cv.height);
+}
+
+/* ================= SEASON PICKER ================= */
+let pickerChapter = 1;
+function renderChapterBtns() {
+  const box = $('chapterBtns');
+  box.innerHTML = '';
+  CHAPTERS.forEach(ch => {
+    const b = document.createElement('button');
+    b.textContent = ch.name;
+    b.className = ch.n === pickerChapter ? 'on' : '';
+    b.onclick = () => { pickerChapter = ch.n; renderChapterBtns(); renderSeasonBtns(); };
+    box.appendChild(b);
+  });
+}
+function renderSeasonBtns() {
+  const box = $('seasonBtns');
+  box.innerHTML = '';
+  SEASONS.filter(s => s.ch === pickerChapter).forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.chip;
+    b.title = s.label;
+    b.className = selectedSeason && selectedSeason.id === s.id ? 'on' : '';
+    b.onclick = () => selectSeason(s);
+    box.appendChild(b);
+  });
+}
+function selectSeason(s) {
+  selectedSeason = s;
+  renderSeasonBtns();
+  $('mapPlaceholder').style.display = 'none';
+  $('guessImg').style.display = '';
+  $('guessLabel').style.display = '';
+  $('guessLabel').textContent = s.label + ' · ' + s.date;
+  $('guessImg').src = IMG_DIR + s.id + '.jpg';
+  updateGuessBtn();
+}
+function updateGuessBtn() {
+  $('guessBtn').disabled = !(selectedSeason && guessNorm);
+  $('guessNote').textContent = !selectedSeason ? 'Pick a season above.' :
+    (!guessNorm ? 'Now click the spot on the map!' : 'Locked and loaded — lock it in!');
+}
+
+/* ================= GAME FLOW ================= */
+async function startGame() {
+  totalScore = 0; roundIdx = 0; roundResults = [];
+  const pool = shuffle(SEASONS.slice()).slice(0, ROUNDS);
+  rounds = pool.map(s => ({ season: s }));
+  $('scoreNo').textContent = '0';
+  show('gameScreen');
+  await startRound();
+}
+async function startRound() {
+  const r = rounds[roundIdx];
+  hintUsed = false; guessNorm = null; selectedSeason = null;
+  pickerChapter = 1;
+  $('roundNo').textContent = roundIdx + 1;
+  $('hintBtn').disabled = false;
+  $('hintBtn').textContent = '🔍 Zoom out (−' + HINT_COST + ' pts)';
+  $('guessPin').style.display = 'none';
+  $('guessCard').style.display = '';
+  $('resultCard').style.display = 'none';
+  renderChapterBtns(); renderSeasonBtns();
+  $('mapPlaceholder').style.display = '';
+  $('guessImg').style.display = 'none';
+  $('guessLabel').style.display = 'none';
+  $('guessImg').removeAttribute('src');
+  updateGuessBtn();
+  $('clueLoading').style.display = 'flex';
+  currentClueImg = await loadImg(r.season.id);
+  const { cx, cy } = pickCrop(currentClueImg);
+  r.cx = cx; r.cy = cy;
+  drawClue(false);
+  $('clueLoading').style.display = 'none';
+  // greedily pre-warm a couple of other maps so browsing feels instant
+  shuffle(SEASONS.slice()).slice(0, 3).forEach(s => loadImg(s.id).catch(() => {}));
+}
+function seasonPoints(guess, truth) {
+  if (guess.id === truth.id) return { pts: 2500, txt: 'Perfect!' };
+  if ((TWINS[truth.id] || []).includes(guess.id)) return { pts: 1500, txt: 'Same island — close enough!' };
+  if (guess.ch === truth.ch) {
+    const list = SEASONS.filter(s => s.ch === truth.ch);
+    const d = Math.abs(list.findIndex(s => s.id === guess.id) - list.findIndex(s => s.id === truth.id));
+    return d === 1 ? { pts: 1200, txt: 'One season off' } : { pts: 700, txt: 'Right chapter' };
+  }
+  return { pts: 0, txt: 'Wrong chapter' };
+}
+function lockGuess() {
+  const r = rounds[roundIdx], truth = r.season;
+  const dx = guessNorm.x - r.cx, dy = guessNorm.y - r.cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const meters = Math.round(dist * MAP_METERS);
+  let locPts = dist <= 0.015 ? 5000 : Math.round(5000 * Math.exp(-9 * dist));
+  if (hintUsed) locPts = Math.max(0, locPts - HINT_COST);
+  const sea = seasonPoints(selectedSeason, truth);
+  const pts = locPts + sea.pts;
+  totalScore += pts;
+  roundResults.push({ truth, guessSeason: selectedSeason, meters, locPts, seaPts: sea.pts, pts });
+  $('scoreNo').textContent = totalScore;
+
+  // ---- render result ----
+  $('guessCard').style.display = 'none';
+  $('resultCard').style.display = '';
+  $('resultTitle').textContent = 'It was: ' + truth.label + ' (' + truth.date + ')';
+  $('resultFlavor').textContent = truth.flavor;
+  $('resultImg').src = IMG_DIR + truth.id + '.jpg';
+  $('resultLabel').textContent = truth.label;
+  const tp = $('truePin'), gp = $('resGuessPin'), ln = $('traceLine');
+  tp.style.left = (r.cx * 100) + '%'; tp.style.top = (r.cy * 100) + '%';
+  gp.style.left = (guessNorm.x * 100) + '%'; gp.style.top = (guessNorm.y * 100) + '%';
+  ln.setAttribute('x1', r.cx * 100); ln.setAttribute('y1', r.cy * 100);
+  ln.setAttribute('x2', guessNorm.x * 100); ln.setAttribute('y2', guessNorm.y * 100);
+  const dEl = $('statDist');
+  dEl.textContent = meters <= 40 ? 'Spot on!' : '≈ ' + meters + ' m off';
+  dEl.className = 'v ' + (locPts >= 3500 ? 'good' : locPts >= 1200 ? 'mid' : 'bad');
+  $('statDistPts').textContent = '+' + locPts + ' pts' + (hintUsed ? ' (incl. −' + HINT_COST + ' hint)' : '');
+  const sEl = $('statSeason');
+  sEl.textContent = sea.txt;
+  sEl.className = 'v ' + (sea.pts >= 2500 ? 'good' : sea.pts > 0 ? 'mid' : 'bad');
+  $('statSeasonPts').textContent = '+' + sea.pts + ' pts (you said: ' + selectedSeason.label + ')';
+  $('roundPts').textContent = 'Round: +' + pts + ' pts';
+  $('nextBtn').textContent = roundIdx === ROUNDS - 1 ? 'See final score →' : 'Next round →';
+}
+function endGame() {
+  show('endScreen');
+  $('finalScore').textContent = totalScore;
+  const max = ROUNDS * 7500;
+  const ranks = [
+    [0.80, '👑 Victory Royale!'], [0.64, '🥈 Top 5'], [0.48, '🎯 Top 10'],
+    [0.32, '💪 Top 25'], [0.16, '🌪️ Storm survivor'], [0, '🤖 Bot lobby'],
+  ];
+  $('finalRank').textContent = ranks.find(r => totalScore >= r[0] * max)[1];
+  const list = $('roundList');
+  list.innerHTML = '';
+  roundResults.forEach((r, i) => {
+    const div = document.createElement('div');
+    div.className = 'r';
+    div.innerHTML = '<span>R' + (i + 1) + ' · ' + r.truth.label + ' <small style="color:rgba(255,255,255,.5)">(' + r.meters + ' m off)</small></span><b>+' + r.pts + '</b>';
+    list.appendChild(div);
+  });
+  const hs = +(localStorage.getItem('fmg_highscore') || 0);
+  $('newHs').style.display = totalScore > hs ? '' : 'none';
+  if (totalScore > hs) localStorage.setItem('fmg_highscore', totalScore);
+}
+function show(id) {
+  ['startScreen', 'gameScreen', 'endScreen'].forEach(s => $(s).classList.toggle('on', s === id));
+  window.scrollTo({ top: 0 });
+}
+
+/* ================= EVENTS ================= */
+$('startBtn').onclick = startGame;
+$('againBtn').onclick = startGame;
+$('hintBtn').onclick = () => {
+  if (hintUsed) return;
+  hintUsed = true;
+  drawClue(true);
+  $('hintBtn').disabled = true;
+  $('hintBtn').textContent = '🔍 Zoomed out (−' + HINT_COST + ' pts)';
+};
+$('guessMap').addEventListener('click', e => {
+  if (!selectedSeason) return;
+  const rect = $('guessMap').getBoundingClientRect();
+  guessNorm = {
+    x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
+    y: Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height)),
+  };
+  const p = $('guessPin');
+  p.style.display = '';
+  p.style.left = (guessNorm.x * 100) + '%';
+  p.style.top = (guessNorm.y * 100) + '%';
+  updateGuessBtn();
+});
+$('guessBtn').onclick = lockGuess;
+$('nextBtn').onclick = async () => {
+  roundIdx++;
+  if (roundIdx >= ROUNDS) endGame();
+  else await startRound();
+};
+
+// high score on start screen
+(() => {
+  const hs = +(localStorage.getItem('fmg_highscore') || 0);
+  if (hs > 0) { $('hsLine').style.display = ''; $('hsVal').textContent = hs; }
+})();
+</script>
+</body>
+</html>
