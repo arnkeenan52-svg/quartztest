@@ -1477,6 +1477,56 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
   pointer-events: auto;
 }
 
+/* ── DELIVERY COUNTRY STEP (bottom sheet over the cart) ── */
+.cs-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(20, 18, 14, 0.5);
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cs-backdrop.open { display: flex; }
+.cs-panel {
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  padding: 1.4rem 1.4rem calc(1.4rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 40px rgba(39, 48, 113, 0.25);
+  animation: csUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 620px) {
+  .cs-backdrop { align-items: center; }
+  .cs-panel { border-radius: 22px; }
+}
+@keyframes csUp { from { transform: translateY(28px); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } }
+.cs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 1rem; }
+.cs-title { font-size: 1.15rem; font-weight: 800; color: var(--dark); }
+.cs-sub { font-size: 0.82rem; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+.cs-close { background: #f0ece3; color: var(--dark); width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; border: none; }
+.cs-list { display: flex; flex-direction: column; gap: 0.55rem; margin-bottom: 1rem; }
+.cs-country {
+  display: flex; align-items: center; gap: 0.85rem;
+  width: 100%; text-align: left;
+  padding: 0.8rem 0.9rem;
+  border: 2px solid var(--line, #e7e1d6);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+.cs-country:hover { border-color: #c9d0ea; }
+.cs-country.sel { border-color: var(--brand-blue); background: rgba(39, 48, 113, 0.05); }
+.cs-flag { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+.cs-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cs-name { font-weight: 700; color: var(--dark); font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.cs-auto { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--brand-blue); background: rgba(39, 48, 113, 0.1); padding: 2px 7px; border-radius: 20px; }
+.cs-price { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cs-check { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--brand-blue); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.6); transition: opacity 0.14s, transform 0.14s; }
+.cs-country.sel .cs-check { opacity: 1; transform: scale(1); }
+
 .cart-backdrop {
   position: absolute;
   inset: 0;
@@ -1637,36 +1687,6 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
   padding: 1.25rem 1.5rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(0,0,0,0.08);
   background: #fff;
-}
-
-.cart-country-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.9rem;
-}
-.cart-country-row label {
-  font-size: 0.95rem;
-  color: var(--dark);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.cart-country-row select {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.6rem 0.7rem;
-  border: 1.5px solid rgba(0,0,0,0.18);
-  border-radius: 8px;
-  background: #fff;
-  font-family: inherit;
-  font-size: 0.95rem;
-  color: var(--dark);
-  cursor: pointer;
-}
-.cart-country-row select:focus {
-  outline: none;
-  border-color: var(--brand-blue);
 }
 
 .cart-total-row {

@@ -77,12 +77,13 @@ export default async function handler(req, res) {
     // Total cart weight (kg) from the AUTHORITATIVE per-line weight
     const totalWeightKg = validated.reduce((sum, it) => sum + it.kg * it.qty, 0);
 
-    // ── Destination country — detected automatically from the visitor's
-    //    location (Vercel sets x-vercel-ip-country on every request). No cart
-    //    dropdown: the customer just checks out and the correct country's GLS
-    //    prices are loaded. Only DK/DE/SE/NL/NO are supported; anything else
-    //    falls back to Denmark. DENMARK keeps its exact old prices. ──
-    const geo = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
+    // ── Destination country. The customer picks it in the checkout country step
+    //    (pre-selected from their location); we fall back to Vercel's geo header
+    //    (x-vercel-ip-country) and finally Denmark. Only DK/DE/SE/NL/NO are
+    //    supported; anything else becomes Denmark. DENMARK keeps its exact old
+    //    prices. ──
+    const picked = String((req.body && req.body.country) || '').toUpperCase();
+    const geo = picked || String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
 
     // GLS DENMARK prices by weight (øre) — UNCHANGED.
     const PAKKESHOP_LIMIT = 19.9;

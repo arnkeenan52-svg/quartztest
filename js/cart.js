@@ -130,10 +130,41 @@ function injectCartUI() {
     `;
     document.body.appendChild(drawer);
 
+    // Delivery-country step. Slides up when the customer taps "Til kassen":
+    // the country is pre-selected automatically (from their location) and can be
+    // changed; each option shows the live GLS shipping price for this cart.
+    const sheet = document.createElement('div');
+    sheet.id = 'country-sheet';
+    sheet.className = 'cs-backdrop';
+    sheet.innerHTML = `
+      <div class="cs-panel" role="dialog" aria-label="Leveringsland">
+        <div class="cs-head">
+          <div>
+            <div class="cs-title">Hvor skal det leveres?</div>
+            <div class="cs-sub">Vi har valgt dit land automatisk — ret det, hvis det er forkert.</div>
+          </div>
+          <button class="cs-close" data-cs-close aria-label="Luk">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="country-list" class="cs-list"></div>
+        <p id="cs-error" class="cart-error"></p>
+        <button class="btn-buy" id="cs-continue">Til betaling →</button>
+        <p class="cart-secure-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Sikker betaling med Stripe
+        </p>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.querySelectorAll('[data-cs-close]').forEach(el => el.addEventListener('click', closeCountrySheet));
+    sheet.addEventListener('click', (e) => { if (e.target === sheet) closeCountrySheet(); });
+    document.getElementById('cs-continue').addEventListener('click', () => startCheckout(SELECTED_COUNTRY || 'DK'));
+
     drawer.querySelectorAll('[data-cart-close]').forEach(el => {
       el.addEventListener('click', closeCart);
     });
-    document.getElementById('cart-checkout-btn').addEventListener('click', checkoutCart);
+    document.getElementById('cart-checkout-btn').addEventListener('click', openCountrySheet);
     document.getElementById('cart-continue-btn').addEventListener('click', () => {
       // Continue shopping: go to the shop (or just close the cart if already there)
       if (window.location.pathname.includes('shop')) {
@@ -211,19 +242,126 @@ function closeCart() {
   window.location.reload();
 }
 
-async function checkoutCart() {
+// ── DELIVERY COUNTRY STEP ──
+// Countries we ship to. Denmark first (default). Prices are shown as an estimate
+// only; the authoritative price is computed server-side in api/checkout.js.
+const SHIP_COUNTRIES = [
+  { code: 'DK', name: 'Danmark', flag: '🇩🇰' },
+  { code: 'DE', name: 'Tyskland', flag: '🇩🇪' },
+  { code: 'SE', name: 'Sverige', flag: '🇸🇪' },
+  { code: 'NL', name: 'Holland', flag: '🇳🇱' },
+  { code: 'NO', name: 'Norge', flag: '🇳🇴' },
+];
+let SELECTED_COUNTRY = 'DK';
+
+// Total cart weight in kg (from the "3 kg" / "12,5 kg" labels).
+function cartWeightKg() {
+  return readCart().reduce((sum, it) => {
+    const m = String(it.weightLabel || '').replace(',', '.').match(/([\d.]+)/);
+    return sum + (m ? parseFloat(m[1]) : 0) * (it.qty || 1);
+  }, 0);
+}
+
+// Cheapest shipping (kr) for a country + weight — MIRRORS api/checkout.js.
+// Display only; Stripe shows the authoritative amount.
+function shipFromKr(country, kg) {
+  const bands = [1, 5, 10, 15, 20, 25, 30];
+  let idx = -1;
+  for (let i = 0; i < bands.length; i++) { if (kg <= bands[i]) { idx = i; break; } }
+  if (country === 'DK') {
+    const shop = kg <= 5 ? 46 : kg <= 10 ? 55 : kg <= 15 ? 66 : (kg <= 19.9 ? 81 : null);
+    const priv = kg <= 5 ? 63 : kg <= 10 ? 75 : kg <= 15 ? 90 : (kg <= 20 ? 105 : (kg <= 24.9 ? 139 : null));
+    const o = [shop, priv].filter(v => v != null);
+    return o.length ? Math.min(...o) : null;
+  }
+  const T = {
+    DE: { b: [70, 88, 112, 147, 175.5, 232.5, 279], sur: 20, home: true, shop: true },
+    NL: { b: [80, 101, 127.5, 168, 200.5, 265.5, 318.5], sur: 20, home: true, shop: true },
+    SE: { b: [100, 126.5, 156, 203, 244, 319, 383], sur: 0, home: false, shop: true },
+    NO: { b: [120, 151.5, 191.5, 252, 300.5, 398.5, 478], sur: 0, home: true, shop: false },
+  }[country];
+  if (!T || idx < 0) return null;
+  const o = [];
+  if (T.shop && idx <= 4) o.push(T.b[idx]);
+  if (T.home) o.push(T.b[idx] + T.sur);
+  return o.length ? Math.min(...o) : null;
+}
+
+// Best-guess country from the browser (timezone first, then language).
+function detectCountry() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const map = { 'Europe/Copenhagen': 'DK', 'Europe/Berlin': 'DE', 'Europe/Stockholm': 'SE', 'Europe/Amsterdam': 'NL', 'Europe/Oslo': 'NO' };
+    if (map[tz]) return map[tz];
+  } catch (e) {}
+  const lang = (navigator.language || '').toLowerCase();
+  if (lang.includes('de')) return 'DE';
+  if (lang.includes('sv')) return 'SE';
+  if (lang.startsWith('nb') || lang.startsWith('nn') || lang.includes('-no')) return 'NO';
+  if (lang.includes('nl')) return 'NL';
+  return 'DK';
+}
+
+function krLabel(v) {
+  if (v == null) return 'Kun afhentning';
+  const n = Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',');
+  return 'Fragt fra ' + n + ' kr';
+}
+
+function openCountrySheet() {
+  if (readCart().length === 0) return;
+  const sheet = document.getElementById('country-sheet');
+  const list = document.getElementById('country-list');
+  const err = document.getElementById('cs-error');
+  if (err) err.textContent = '';
+  const kg = cartWeightKg();
+  const detected = detectCountry();
+  SELECTED_COUNTRY = detected;
+
+  list.innerHTML = SHIP_COUNTRIES.map(c => {
+    const sel = c.code === SELECTED_COUNTRY ? ' sel' : '';
+    const tag = c.code === detected ? '<span class="cs-auto">Fundet automatisk</span>' : '';
+    return `
+      <button type="button" class="cs-country${sel}" data-code="${c.code}">
+        <span class="cs-flag">${c.flag}</span>
+        <span class="cs-info">
+          <span class="cs-name">${c.name}${tag}</span>
+          <span class="cs-price">${krLabel(shipFromKr(c.code, kg))}</span>
+        </span>
+        <span class="cs-check" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+      </button>`;
+  }).join('');
+
+  list.querySelectorAll('.cs-country').forEach(b => {
+    b.addEventListener('click', () => {
+      SELECTED_COUNTRY = b.dataset.code;
+      list.querySelectorAll('.cs-country').forEach(x => x.classList.toggle('sel', x === b));
+    });
+  });
+
+  sheet.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCountrySheet() {
+  const sheet = document.getElementById('country-sheet');
+  if (sheet) sheet.classList.remove('open');
+}
+
+async function startCheckout(country) {
   const items = readCart();
   if (items.length === 0) return;
-  const btn = document.getElementById('cart-checkout-btn');
-  const errEl = document.getElementById('cart-error');
+  const btn = document.getElementById('cs-continue');
+  const errEl = document.getElementById('cs-error');
   if (errEl) errEl.textContent = '';
-  btn.disabled = true;
-  btn.textContent = 'Forbereder…';
+  if (btn) { btn.disabled = true; btn.textContent = 'Forbereder…'; }
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items })
+      body: JSON.stringify({ items, country })
     });
     let data = {};
     try { data = await res.json(); } catch { /* non-JSON response */ }
@@ -236,13 +374,11 @@ async function checkoutCart() {
     const msg = data.error || `Kunne ikke åbne betaling (status ${res.status}). Prøv igen.`;
     console.error('Checkout failed:', res.status, data);
     if (errEl) errEl.textContent = msg;
-    btn.disabled = false;
-    btn.textContent = 'Til kassen';
+    if (btn) { btn.disabled = false; btn.textContent = 'Til betaling →'; }
   } catch (err) {
     console.error(err);
     if (errEl) errEl.textContent = 'Netværksfejl — tjek forbindelse og prøv igen.';
-    btn.disabled = false;
-    btn.textContent = 'Til kassen';
+    if (btn) { btn.disabled = false; btn.textContent = 'Til betaling →'; }
   }
 }
 
