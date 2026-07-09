@@ -806,7 +806,7 @@
     const body = { id: omCurrentId, code: code.trim() };
     if (isPartial) body.amount = amount;
 
-    fetch('/api/admin-refund', {
+    fetch('/api/admin-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -907,7 +907,7 @@
     ordersEl.textContent = 'Søger i alle ordrer…';
     setSearchNote('Søger på tværs af alle ordrer…');
 
-    fetch('/api/admin-search?q=' + encodeURIComponent(raw))
+    fetch('/api/admin-order?q=' + encodeURIComponent(raw))
       .then(r => {
         if (r.status === 401) { showLogin(); throw new Error('auth'); }
         return r.json();
