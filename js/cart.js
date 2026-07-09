@@ -118,30 +118,10 @@ function injectCartUI() {
             <label for="cart-country">Leveringsland</label>
             <select id="cart-country" aria-label="Leveringsland">
               <option value="DK">Danmark</option>
-              <option value="BE">Belgien</option>
-              <option value="BG">Bulgarien</option>
-              <option value="FI">Finland</option>
-              <option value="FR">Frankrig</option>
-              <option value="GR">Grækenland</option>
               <option value="NL">Holland</option>
-              <option value="IE">Irland</option>
-              <option value="IT">Italien</option>
-              <option value="HR">Kroatien</option>
-              <option value="LU">Luxembourg</option>
               <option value="NO">Norge</option>
-              <option value="PL">Polen</option>
-              <option value="PT">Portugal</option>
-              <option value="RO">Rumænien</option>
-              <option value="CH">Schweiz</option>
-              <option value="SK">Slovakiet</option>
-              <option value="SI">Slovenien</option>
-              <option value="ES">Spanien</option>
-              <option value="GB">Storbritannien</option>
               <option value="SE">Sverige</option>
-              <option value="CZ">Tjekkiet</option>
               <option value="DE">Tyskland</option>
-              <option value="HU">Ungarn</option>
-              <option value="AT">Østrig</option>
             </select>
           </div>
           <div class="cart-total-row">

@@ -103,36 +103,12 @@ export default async function handler(req, res) {
     //   [0-1, >1-5, >5-10, >10-15, >15-20, >20-25, >25-30] kg.
     // Pakkeshop (ShopDelivery) uses base (max 20 kg, only where shop:true).
     // Privatadresse (PrivateDelivery) = base + privSur (only where home:true).
+    // Only the countries offered in the cart's Leveringsland selector.
     const INTL_SHIPPING = {
-      BE: { base: [7000, 8800, 11200, 14700, 17550, 23250, 27900], privSur: 2000, home: true, shop: true },
-      BG: { base: [15000, 19500, 22400, 27850, 31600, 42950, 51500], privSur: 2000, home: true, shop: false },
-      CY: { base: [30300, 39300, 54900, 80100, 108600, 143100, 162800], privSur: 0, home: false, shop: false },
-      EE: { base: [14500, 18850, 21650, 26900, 30550, 41500, 49800], privSur: 0, home: false, shop: false },
-      FI: { base: [15000, 19600, 22950, 27300, 32750, 43800, 52600], privSur: 0, home: true, shop: true },
-      FR: { base: [7000, 10250, 11750, 14050, 15400, 19550, 23450], privSur: 2000, home: true, shop: true },
-      GR: { base: [30300, 39300, 54900, 72300, 88700, 125800, 146200], privSur: 2000, home: true, shop: false },
-      NL: { base: [8000, 10100, 12750, 16800, 20050, 26550, 31850], privSur: 2000, home: true, shop: true },
-      IE: { base: [15000, 19600, 22950, 27300, 32750, 43800, 52600], privSur: 2000, home: true, shop: true },
-      IT: { base: [15000, 19500, 22400, 27850, 31600, 42950, 51500], privSur: 2000, home: true, shop: true },
-      HR: { base: [15000, 19450, 27200, 39650, 53750, 70850, 85000], privSur: 2000, home: true, shop: false },
-      LV: { base: [14000, 18200, 20900, 26000, 29500, 40050, 48100], privSur: 0, home: false, shop: false },
-      LT: { base: [14000, 18200, 20900, 26000, 29500, 40050, 48100], privSur: 0, home: false, shop: false },
-      LU: { base: [11000, 13850, 17550, 23100, 27550, 36500, 43800], privSur: 2000, home: true, shop: true },
-      MT: { base: [30300, 39300, 54900, 80100, 108600, 143100, 162800], privSur: 0, home: false, shop: false },
-      NO: { base: [12000, 15150, 19150, 25200, 30050, 39850, 47800], privSur: 0, home: true, shop: false },
-      PL: { base: [7000, 8800, 11200, 14700, 17550, 23250, 27900], privSur: 2000, home: true, shop: true },
-      PT: { base: [15000, 19600, 22950, 27300, 32750, 43800, 52600], privSur: 2000, home: true, shop: true },
-      RO: { base: [15000, 19500, 22400, 27850, 31600, 42950, 51500], privSur: 2000, home: true, shop: false },
-      CH: { base: [14000, 17700, 21850, 28400, 34150, 44650, 53600], privSur: 2000, home: true, shop: false },
-      SK: { base: [14000, 17650, 22350, 29400, 35050, 46450, 55750], privSur: 2000, home: true, shop: true },
-      SI: { base: [14000, 18200, 20900, 26000, 29500, 40050, 48100], privSur: 2000, home: true, shop: true },
-      ES: { base: [14500, 18950, 22200, 26400, 31650, 42350, 50850], privSur: 2000, home: true, shop: true },
-      GB: { base: [13000, 19050, 21800, 26150, 28600, 36300, 43600], privSur: 2000, home: true, shop: false },
-      SE: { base: [10000, 12650, 15600, 20300, 24400, 31900, 38300], privSur: 0, home: false, shop: true },
-      CZ: { base: [14000, 17650, 22350, 29400, 35050, 46450, 55750], privSur: 2000, home: true, shop: true },
       DE: { base: [7000, 8800, 11200, 14700, 17550, 23250, 27900], privSur: 2000, home: true, shop: true },
-      HU: { base: [14000, 18200, 20900, 26000, 29500, 40050, 48100], privSur: 2000, home: true, shop: true },
-      AT: { base: [11000, 13900, 17200, 22300, 26800, 35100, 42100], privSur: 2000, home: true, shop: true },
+      NL: { base: [8000, 10100, 12750, 16800, 20050, 26550, 31850], privSur: 2000, home: true, shop: true },
+      SE: { base: [10000, 12650, 15600, 20300, 24400, 31900, 38300], privSur: 0, home: false, shop: true },
+      NO: { base: [12000, 15150, 19150, 25200, 30050, 39850, 47800], privSur: 0, home: true, shop: false },
     };
 
     const WEIGHT_BANDS = [1, 5, 10, 15, 20, 25, 30]; // upper bounds (kg)
