@@ -16,7 +16,9 @@ const CONFIGURED = CODE.length > 0 && SECRET.length > 0 && SECRET !== 'CHANGE_ME
 const DEVICE_SECRET = process.env.LOCKER_DEVICE_SECRET || '';
 const DOORS = 22;
 const SESSION_HOURS = 8;
-const STALE_MS = 20000;
+const STALE_MS = 60000; // tablet counts as online if it synced within the last 60s
+                        // (was 20s — too tight if the tablet syncs less frequently,
+                        //  which showed a false "offline" between heartbeats)
 const MAX_FAILS = 5;
 const GLOBAL_MAX_FAILS = 50; // backstop across all IPs so header-rotation can't brute force
 const LOCK_SECONDS = 900;
@@ -76,19 +78,45 @@ function genCode(lockers) {
 }
 
 export default async function handler(req, res) {
-  const action = (req.body && req.body.action) ||
+  // ── Robust body parsing ──
+  // Vercel normally parses JSON automatically, but only when the request has a
+  // correct `Content-Type: application/json`. If the tablet's HTTP client sends
+  // the sync without that header, the body arrives as a raw string (or Buffer)
+  // and req.body.action is undefined -> the request falls through to a 401. Parse
+  // it defensively here so the tablet's sync works regardless of Content-Type.
+  let body = req.body;
+  if (Buffer.isBuffer(body)) body = body.toString('utf8');
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  if (!body || typeof body !== 'object') body = {};
+
+  // The tablet may also pass its params via the query string (?action=sync&secret=…).
+  const action = body.action ||
                  (req.query && req.query.action) ||
+                 (req.method === 'GET' && req.query && req.query.secret ? 'sync' : '') ||
                  (req.method === 'GET' ? 'state' : '');
 
   try {
     // ---------------- TABLET SYNC ----------------
     if (action === 'sync') {
-      if (!DEVICE_SECRET || (req.headers['x-device-secret'] || '') !== DEVICE_SECRET) {
+      // Accept the device secret from the header, the query string OR the body —
+      // some HTTP clients silently drop custom headers, which would otherwise
+      // reject every sync and leave the panel stuck on "offline".
+      const providedSecret = req.headers['x-device-secret']
+        || (req.query && req.query.secret)
+        || body.secret
+        || '';
+      if (!DEVICE_SECRET || providedSecret !== DEVICE_SECRET) {
+        console.warn('[locker] sync REJECTED — device secret missing or mismatch. configured=%s provided=%s',
+          !!DEVICE_SECRET, providedSecret ? 'yes' : 'no');
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      await kv.set('locker:device', { lastSeen: Date.now() });
+      // Never let a transient KV hiccup 500 the whole sync (which would flip the
+      // panel to offline). The heartbeat is the important part.
+      try { await kv.set('locker:device', { lastSeen: Date.now() }); }
+      catch (e) { console.error('[locker] device heartbeat kv.set failed', e); }
+      console.log('[locker] sync OK — heartbeat written at', new Date().toISOString());
 
-      const events = (req.body && Array.isArray(req.body.events)) ? req.body.events : [];
+      const events = Array.isArray(body.events) ? body.events : [];
       if (events.length) {
         const lockers = await getLockers();
         for (const ev of events) {
@@ -131,7 +159,7 @@ export default async function handler(req, res) {
       if (fails >= MAX_FAILS || gfails >= GLOBAL_MAX_FAILS) {
         return res.status(429).json({ error: 'For mange forsøg. Prøv igen om lidt.' });
       }
-      const code = (req.body?.code ?? '').toString();
+      const code = (body?.code ?? '').toString();
       if (!code || code.length !== CODE.length || !safeEqual(code, CODE)) {
         try { await kv.set(failKey, fails + 1, { ex: LOCK_SECONDS }); } catch {}
         try { await kv.set(globalKey, gfails + 1, { ex: LOCK_SECONDS }); } catch {}
@@ -157,7 +185,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ lockers, history, device: { lastSeen: device.lastSeen || 0, online }, now: Date.now() });
     }
 
-    const door = parseInt(req.body?.door, 10);
+    const door = parseInt(body?.door, 10);
     const lockers = await getLockers();
 
     if (action === 'open') {
@@ -183,8 +211,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, door: d, code });
     }
     if (action === 'depositmulti') {
-      const doors = Array.isArray(req.body?.doors)
-        ? req.body.doors.map(n => parseInt(n, 10)).filter(n => n >= 1 && n <= DOORS) : [];
+      const doors = Array.isArray(body?.doors)
+        ? body.doors.map(n => parseInt(n, 10)).filter(n => n >= 1 && n <= DOORS) : [];
       if (!doors.length) return res.status(400).json({ error: 'Ingen skabe valgt' });
       const targets = [];
       for (const dn of doors) {
