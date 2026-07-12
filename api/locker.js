@@ -96,6 +96,73 @@ export default async function handler(req, res) {
                  (req.method === 'GET' ? 'state' : '');
 
   try {
+    // ---------------- ONE-TIME DATA MIGRATION (old Upstash -> new Redis) ----------------
+    // Passcode-protected, browser-triggerable:
+    //   /api/locker?action=migrate&code=LOCKER_CODE
+    // Copies existing data from the old Upstash store (read via @vercel/kv, still
+    // reachable through the old KV_REST_API_* env vars) into the new Redis. It
+    // lives here rather than in its own api/ file so it adds NO extra serverless
+    // function (Vercel Hobby allows max 12). Idempotent and safe: it only ever
+    // copies keys that are NOT already in the new DB (so it can never clobber
+    // fresh locker/heartbeat data) and self-disables once finished.
+    if (action === 'migrate') {
+      const code = (body.code || (req.query && req.query.code) || '').toString();
+      if (!CODE || !safeEqual(code, CODE)) return res.status(401).json({ error: 'Unauthorized' });
+      try { if (await kv.get('migrate:done')) return res.status(200).json({ ok: true, alreadyDone: true, note: 'Allerede migreret tidligere.' }); } catch {}
+      let oldkv;
+      try { ({ kv: oldkv } = await import('@vercel/kv')); }
+      catch (e) { return res.status(500).json({ error: 'Kunne ikke indlæse @vercel/kv (gammel database)', detail: String(e && e.message || e) }); }
+      const report = { copied: {}, skipped: [], errors: {} };
+      const existsNew = async (k) => { try { return !!(await kv.exists(k)); } catch { return false; } };
+      // strings / json
+      for (const key of ['locker:state', 'locker:device']) {
+        try {
+          if (await existsNew(key)) { report.skipped.push(key + ' (findes allerede)'); continue; }
+          const v = await oldkv.get(key);
+          if (v == null) { report.skipped.push(key + ' (tom i gammel)'); continue; }
+          await kv.set(key, v); report.copied[key] = 'værdi';
+        } catch (e) { report.errors[key] = String(e && e.message || e); }
+      }
+      // lists (preserve order)
+      for (const key of ['locker:history', 'locker:cmds', 'pickup:orders']) {
+        try {
+          if (await existsNew(key)) { report.skipped.push(key + ' (findes allerede)'); continue; }
+          const items = (await oldkv.lrange(key, 0, -1)) || [];
+          if (!items.length) { report.skipped.push(key + ' (tom i gammel)'); continue; }
+          await kv.del(key); for (const it of items) await kv.rpush(key, it);
+          report.copied[key] = items.length + ' items';
+        } catch (e) { report.errors[key] = String(e && e.message || e); }
+      }
+      // hash
+      for (const key of ['pickup:fulfilled']) {
+        try {
+          if (await existsNew(key)) { report.skipped.push(key + ' (findes allerede)'); continue; }
+          const obj = (await oldkv.hgetall(key)) || {};
+          if (!Object.keys(obj).length) { report.skipped.push(key + ' (tom i gammel)'); continue; }
+          await kv.hset(key, obj); report.copied[key] = Object.keys(obj).length + ' felter';
+        } catch (e) { report.errors[key] = String(e && e.message || e); }
+      }
+      // optional: visitor-stats sets (best-effort)
+      try {
+        const vkeys = (await oldkv.keys('visitors:*')) || [];
+        let days = 0;
+        for (const key of vkeys) {
+          try {
+            if (await existsNew(key)) continue;
+            const m = (await oldkv.smembers(key)) || [];
+            if (!m.length) continue;
+            await kv.sadd(key, ...m);
+            const ttl = await oldkv.ttl(key); if (ttl && ttl > 0) await kv.expire(key, ttl);
+            days++;
+          } catch { /* skip this day */ }
+        }
+        if (days) report.copied['visitors:* (statistik)'] = days + ' dage';
+      } catch (e) { report.errors['visitors:*'] = String(e && e.message || e); }
+      try { await kv.set('migrate:done', { at: Date.now() }); } catch {}
+      report.ok = true; report.note = 'Migrering færdig. Intet at slette — endpointet er nu selv-deaktiveret.';
+      return res.status(200).json(report);
+    }
+
     // ---------------- TABLET SYNC ----------------
     if (action === 'sync') {
       // Accept the device secret from the header, the query string OR the body —
