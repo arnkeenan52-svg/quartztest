@@ -79,6 +79,26 @@
       background: #f0ece3; border: 1px solid #e0d9c8; border-radius: 999px;
       padding: 2px 8px; letter-spacing: 0.01em;
     }
+
+    /* ── PC: big & elegant, fills the screen. Phone is UNTOUCHED (min-width only). ── */
+    @media (min-width: 1024px) {
+      .shop-search { max-width: min(1640px, 90vw) !important; }
+      .shop-grid,
+      .shop-grid.view-compact {
+        max-width: min(1640px, 90vw);
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.8rem;
+      }
+      .product-card-name { font-size: 1.12rem; }
+      .product-card-sub { font-size: 0.86rem; }
+      .product-card-price { font-size: 1rem; }
+      .size-chip { font-size: 0.76rem; padding: 3px 10px; }
+    }
+    @media (min-width: 1800px) {
+      .shop-search,
+      .shop-grid,
+      .shop-grid.view-compact { max-width: 1760px; }
+    }
   </style>
   <!-- from-resolver -->
   <script>
