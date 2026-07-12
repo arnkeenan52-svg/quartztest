@@ -693,6 +693,38 @@ async function recoverPickupOrders(req, res) {
       report.diagnostics.push(row);
     };
 
+    // 0) DIRECT recovery by explicit Stripe id(s): ?ids=cs_live_...,pi_...
+    //    Saves exactly those orders as pickup orders, regardless of how they'd
+    //    otherwise be classified — used when you know the exact orders to restore
+    //    (e.g. from the confirmation emails). Bypasses the deliveryKey filter.
+    const ids = (req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (ids.length) {
+      for (const id of ids) {
+        const row = { kind: 'direct', id, decision: '' };
+        try {
+          let od = null;
+          if (id.startsWith('cs_')) od = await parseCheckoutSession({ id });
+          else if (id.startsWith('pi_')) od = parsePaymentIntent(await stripe.paymentIntents.retrieve(id));
+          else { row.decision = 'unknown id type (need cs_ or pi_)'; report.diagnostics.push(row); continue; }
+          row.deliveryKey = od && od.deliveryKey; row.name = od && od.customerName; row.amountKr = od && od.amountKr;
+          if (!od || !od.externalId) { row.decision = 'no order data from Stripe'; report.diagnostics.push(row); continue; }
+          const ref = refOf(od.externalId); row.ref = ref;
+          if (have.has(String(od.externalId)) || have.has(ref)) { row.decision = 'already had'; report.diagnostics.push(row); continue; }
+          if (dry) { row.decision = 'WOULD restore'; report.diagnostics.push(row); continue; }
+          await savePickupOrder(od);
+          have.add(String(od.externalId)); have.add(ref);
+          row.decision = 'RESTORED';
+          report.recovered.push({ ref, name: od.customerName || '', total: od.amountKr || 0, deliveryKey: od.deliveryKey });
+          report.diagnostics.push(row);
+        } catch (e) { row.decision = 'error: ' + (e && e.message || e); report.diagnostics.push(row); }
+      }
+      report.recovered_count = report.recovered.length;
+      report.note = report.recovered.length
+        ? `${report.recovered.length} ordre(r) hentet direkte ind via id.`
+        : 'Ingen af de angivne id(er) blev gemt — se diagnostics.';
+      return res.status(200).json(report);
+    }
+
     // 1) PaymentIntents (Elements flow)
     try {
       for await (const pi of stripe.paymentIntents.list({ created: { gte: since }, limit: 100 })) {
