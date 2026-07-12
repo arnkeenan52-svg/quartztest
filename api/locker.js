@@ -110,33 +110,43 @@ export default async function handler(req, res) {
           !!DEVICE_SECRET, providedSecret ? 'yes' : 'no');
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      // Never let a transient KV hiccup 500 the whole sync (which would flip the
-      // panel to offline). The heartbeat is the important part.
+      // The heartbeat is the ONLY thing that keeps the panel "online". Write it
+      // first, and from here on NEVER throw a 500 back at the tablet: a single 500
+      // response can crash a fragile kiosk sync-loop, which then stops calling home
+      // entirely and freezes the panel on "offline" until the tablet is physically
+      // restarted. So the heartbeat and every step after it are individually guarded
+      // and we ALWAYS return 200 with the fields the tablet expects.
       try { await kv.set('locker:device', { lastSeen: Date.now() }); }
       catch (e) { console.error('[locker] device heartbeat kv.set failed', e); }
       console.log('[locker] sync OK — heartbeat written at', new Date().toISOString());
 
-      const events = Array.isArray(body.events) ? body.events : [];
-      if (events.length) {
-        const lockers = await getLockers();
-        for (const ev of events) {
-          const t = lockers.find(l => l.door === ev.locker);
-          if (t) {
-            if (ev.type === 'in') { t.occ = true; t.code = ev.code; t.since = ev.t || Date.now(); }
-            else if (ev.type === 'out') { t.occ = false; t.code = null; t.since = 0; }
-            else if (ev.type === 'oos') { t.oos = !!ev.value; }
+      let opens = [], lockers = [];
+      try {
+        const events = Array.isArray(body.events) ? body.events : [];
+        if (events.length) {
+          lockers = await getLockers();
+          for (const ev of events) {
+            const t = lockers.find(l => l.door === ev.locker);
+            if (t) {
+              if (ev.type === 'in') { t.occ = true; t.code = ev.code; t.since = ev.t || Date.now(); }
+              else if (ev.type === 'out') { t.occ = false; t.code = null; t.since = 0; }
+              else if (ev.type === 'oos') { t.oos = !!ev.value; }
+            }
+            try {
+              await kv.lpush('locker:history', {
+                t: ev.t || Date.now(), type: ev.type, locker: ev.locker, code: ev.code || '', source: 'kiosk',
+              });
+            } catch (e) { /* history is best-effort; never fail the sync over it */ }
           }
-          await kv.lpush('locker:history', {
-            t: ev.t || Date.now(), type: ev.type, locker: ev.locker, code: ev.code || '', source: 'kiosk',
-          });
+          try { await kv.ltrim('locker:history', 0, 499); } catch (e) {}
+          await saveLockers(lockers);
         }
-        await kv.ltrim('locker:history', 0, 499);
-        await saveLockers(lockers);
-      }
 
-      const opens = [];
-      for (let i = 0; i < 50; i++) { const c = await kv.lpop('locker:cmds'); if (!c) break; opens.push(c); }
-      const lockers = await getLockers();
+        for (let i = 0; i < 50; i++) { const c = await kv.lpop('locker:cmds'); if (!c) break; opens.push(c); }
+        lockers = await getLockers();
+      } catch (e) {
+        console.error('[locker] sync post-heartbeat work failed — returning 200 anyway', e);
+      }
       return res.status(200).json({ ok: true, opens, lockers });
     }
 
