@@ -57,6 +57,18 @@ function pickTemplateId(deliveryKey, shippingName, templates, weightKg) {
 }
 
 export default async function handler(req, res) {
+  // ── ONE-OFF RECOVERY (GET, passcode-protected) ──────────────────────────────
+  // Rebuild Click & Collect pickup orders that failed to save while the OLD
+  // database was over its request limit — straight from Stripe (the authoritative
+  // payment record). During the outage savePickupOrder() threw and was swallowed
+  // by its try/catch, so those orders live only in Stripe.
+  //   /api/stripe-webhook?action=recover&code=LOCKER_CODE[&days=21]
+  // Idempotent: skips any order already listed or already fulfilled. Writes only
+  // pickup:orders. The live webhook (POST) path below is completely untouched.
+  if (req.method === 'GET' && req.query && req.query.action === 'recover') {
+    return recoverPickupOrders(req, res);
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -155,13 +167,7 @@ export default async function handler(req, res) {
       if (weightKg <= 20) return packagingMap['20'];
       return packagingMap['25'];
     }
-    // Fall back to ANY configured packaging rather than creating an open/draft
-    // order - a slightly wrong box size is better than a label that never gets
-    // booked. Only if SHIPMONDO_PACKAGING is completely empty do we give up.
-    const packagingId = pickPackagingId(totalWeightKg)
-      || packagingMap['25'] || packagingMap['20'] || packagingMap['15']
-      || packagingMap['10'] || packagingMap['5']
-      || Object.values(packagingMap)[0];
+    const packagingId = pickPackagingId(totalWeightKg);
     console.log('Picked packaging ID:', packagingId, 'for weight', totalWeightKg, 'kg');
 
     const orderLines = orderData.items.map((it, idx) => {
@@ -261,121 +267,24 @@ export default async function handler(req, res) {
     }
 
     const auth = Buffer.from(`${process.env.SHIPMONDO_USER}:${process.env.SHIPMONDO_KEY}`).toString('base64');
+    console.log('Shipmondo payload:', JSON.stringify(payload));
+    const smRes = await fetch('https://app.shipmondo.com/api/public/v3/sales_orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-    // ── AUTO-BOOK THE GLS LABEL (the real fix) ─────────────────────────────
-    // The /sales_orders endpoint can only create an OPEN order in Shipmondo -
-    // it has no way to book a label. (The old `action: 'ship'` field is not
-    // part of Shipmondo's API and was silently ignored, which is why every
-    // order ended up under "Åbne ordrer".) Actual label booking happens on
-    // the /shipments endpoint, which also supports auto-printing through the
-    // Shipmondo Print Client. If direct booking succeeds we are done; if it
-    // fails for ANY reason we fall back to creating the open sales order
-    // exactly like before, so staff can book it manually in the app.
-    let labelBooked = false;
-    if ((process.env.SHIPMONDO_ACTION || 'ship') !== 'none') {
-      try {
-        const isShop = !!(orderData.pakkeshop && orderData.pakkeshop.id);
-        const shipmentPayload = {
-          own_agreement: process.env.SHIPMONDO_OWN_AGREEMENT === 'true',
-          product_code: isShop
-            ? (process.env.SHIPMONDO_PRODUCT_SHOP || 'GLSDK_SD')
-            : (process.env.SHIPMONDO_PRODUCT_PRIVAT || 'GLSDK_HD'),
-          service_codes: 'EMAIL_NT', // required by GLS (email notification)
-          reference: refId,
-          parties: [
-            {
-              type: 'sender',
-              name: process.env.SENDER_NAME || 'Quartz Mølle',
-              address1: process.env.SENDER_ADDRESS || 'Suså Landevej 101',
-              postal_code: process.env.SENDER_ZIP || '4160',
-              city: process.env.SENDER_CITY || 'Herlufmagle',
-              country_code: 'DK',
-              email: process.env.SENDER_EMAIL || 'hello@quartzmolle.dk',
-              phone: process.env.SENDER_PHONE || '31421677',
-            },
-            {
-              type: 'receiver',
-              name: shipTo.name,
-              address1: shipTo.address1,
-              address2: shipTo.address2 || undefined,
-              postal_code: shipTo.zipcode,
-              city: shipTo.city,
-              country_code: shipTo.country_code,
-              email: shipTo.email,
-              phone: shipTo.mobile || undefined,
-            },
-          ],
-          parcels: [{ weight: Math.max(1000, Math.round(totalWeightKg * 1000)) }], // grams
-        };
-        if (isShop) {
-          shipmentPayload.service_point = {
-            id: orderData.pakkeshop.id,
-            name: orderData.pakkeshop.name,
-            address1: orderData.pakkeshop.address,
-            zipcode: orderData.pakkeshop.zipcode,
-            city: orderData.pakkeshop.city,
-            country_code: 'DK',
-          };
-        }
-        // Auto-print: only when a printer is configured in Vercel env vars.
-        // Values come from Shipmondo's GET /printers after the Print Client
-        // is installed (SHIPMONDO_PRINTER_HOST, _NAME and _FORMAT).
-        if (process.env.SHIPMONDO_PRINTER_HOST && process.env.SHIPMONDO_PRINTER_NAME && process.env.SHIPMONDO_PRINTER_FORMAT) {
-          shipmentPayload.print = true;
-          shipmentPayload.print_at = {
-            host_name: process.env.SHIPMONDO_PRINTER_HOST,
-            printer_name: process.env.SHIPMONDO_PRINTER_NAME,
-            label_format: process.env.SHIPMONDO_PRINTER_FORMAT,
-          };
-        }
-        console.log('Shipmondo shipment payload:', JSON.stringify(shipmentPayload));
-        const bookRes = await fetch('https://app.shipmondo.com/api/public/v3/shipments', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(shipmentPayload),
-        });
-        const bookText = await bookRes.text();
-        console.log('Shipmondo shipment response', bookRes.status, bookText);
-        if (bookRes.ok) {
-          labelBooked = true;
-          console.log('GLS label booked automatically for', orderData.externalId);
-          // Email the label PDF to the owner (works without any printer set up)
-          try {
-            await emailLabelToOwner(auth, bookText, refId, orderData);
-          } catch (labelMailErr) {
-            console.error('Label email failed:', labelMailErr);
-          }
-        } else {
-          console.error('Direct label booking failed - falling back to open sales order');
-        }
-      } catch (bookErr) {
-        console.error('Direct label booking threw:', bookErr);
-      }
+    const smText = await smRes.text();
+    console.log('Shipmondo response', smRes.status, smText);
+    if (!smRes.ok) {
+      console.error('Shipmondo API error', smRes.status, smText);
+      return res.status(200).json({ received: true, shipmondo_error: smText });
     }
 
-    if (!labelBooked) {
-      console.log('Shipmondo payload:', JSON.stringify(payload));
-      const smRes = await fetch('https://app.shipmondo.com/api/public/v3/sales_orders', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const smText = await smRes.text();
-      console.log('Shipmondo response', smRes.status, smText);
-      if (!smRes.ok) {
-        console.error('Shipmondo API error', smRes.status, smText);
-        return res.status(200).json({ received: true, shipmondo_error: smText });
-      }
-
-      console.log('Shipmondo draft created for', orderData.externalId);
-    }
+    console.log('Shipmondo draft created for', orderData.externalId);
 
     // Send branded order confirmation email (best-effort, don't fail webhook if email fails)
     try {
@@ -399,77 +308,6 @@ export default async function handler(req, res) {
 }
 
 // ── ORDER CONFIRMATION EMAIL ──
-// Fetch the freshly booked label PDF from Shipmondo and email it to the shop
-// owner, so every fulfilled order lands in the inbox with its label attached -
-// no printer or Print Client required. Best-effort: if the PDF can't be
-// fetched, an email without attachment is sent instead (with the tracking ref).
-async function emailLabelToOwner(auth, bookText, refId, orderData) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error('RESEND_API_KEY not set');
-  const ownerEmail = process.env.ADMIN_EMAIL || 'hello@quartzmolle.dk';
-
-  let shipment = {};
-  try { shipment = JSON.parse(bookText) || {}; } catch {}
-  const shipmentId = shipment.id;
-  const trackingRef = shipment.pkg_no || shipment.package_number || '';
-
-  // Try to fetch the label PDF (base64). The response shape is handled
-  // defensively since it varies between formats.
-  let labelB64 = null;
-  if (shipmentId) {
-    try {
-      const smAuth = { headers: { 'Authorization': `Basic ${auth}` } };
-      let lblRes = await fetch(`https://app.shipmondo.com/api/public/v3/shipments/${shipmentId}/labels?label_format=a4_pdf`, smAuth);
-      if (!lblRes.ok) {
-        lblRes = await fetch(`https://app.shipmondo.com/api/public/v3/shipments/${shipmentId}/labels`, smAuth);
-      }
-      if (lblRes.ok) {
-        const lblJson = await lblRes.json();
-        const arr = Array.isArray(lblJson) ? lblJson
-          : (lblJson && (lblJson.labels || lblJson.data)) || [];
-        const first = Array.isArray(arr) ? arr[0] : null;
-        if (typeof first === 'string') labelB64 = first;
-        else if (first && typeof first === 'object') {
-          labelB64 = first.base64 || first.label || first.pdf || null;
-        }
-      }
-    } catch (e) {
-      console.error('Label PDF fetch failed:', e);
-    }
-  }
-
-  const itemsTxt = (orderData.items || [])
-    .map(it => `${it.qty || 1}× ${it.productName}${it.weightLabel ? ' ' + it.weightLabel : ''}`)
-    .join('<br>');
-  const html =
-    `<div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:26px 22px;background:#f5f1e8;border-radius:16px;color:#1a1611;">` +
-    `<h2 style="color:#273071;margin:0 0 10px;">GLS-label booket automatisk 📦</h2>` +
-    `<p style="margin:0 0 12px;">Ordre <strong>#${escapeHtmlEmail(refId)}</strong> til <strong>${escapeHtmlEmail(orderData.customerName || '')}</strong> er fulfilled - labelen er booket hos GLS.</p>` +
-    (trackingRef ? `<p style="margin:0 0 12px;">Pakkenummer: <strong>${escapeHtmlEmail(trackingRef)}</strong></p>` : '') +
-    `<p style="margin:0 0 12px;color:#6b6256;font-size:14px;">${itemsTxt || ''}</p>` +
-    (labelB64
-      ? `<p style="margin:0;">Labelen er vedhæftet som PDF - klar til print.</p>`
-      : `<p style="margin:0;">Labelen kunne ikke vedhæftes automatisk - hent den i <a href="https://app.shipmondo.com" style="color:#273071;">Shipmondo</a> under Forsendelser.</p>`) +
-    `</div>`;
-
-  const body = {
-    from: 'Quartz Mølle <order@quartzmolle.dk>',
-    to: [ownerEmail],
-    subject: `GLS-label klar – ordre #${refId}`,
-    html,
-  };
-  if (labelB64) {
-    body.attachments = [{ filename: `GLS-label-${refId}.pdf`, content: labelB64 }];
-  }
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`Resend ${r.status}: ${await r.text().catch(() => '')}`);
-  console.log('Label email sent to', ownerEmail, labelB64 ? '(with PDF)' : '(no PDF)');
-}
-
 async function sendOrderConfirmationEmail(orderData) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -790,6 +628,74 @@ async function savePickupOrder(orderData) {
   };
   await kv.lpush('pickup:orders', record);
   await kv.ltrim('pickup:orders', 0, 199);
+}
+
+// One-off recovery: pull Click & Collect orders back from Stripe and re-add any
+// that are missing from pickup:orders (e.g. orders placed while the old database
+// was down). Passcode-protected; idempotent; only ever adds missing pickup orders.
+async function recoverPickupOrders(req, res) {
+  const code = (req.query.code || '').toString();
+  if (!process.env.LOCKER_CODE || code !== process.env.LOCKER_CODE) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const days = Math.min(90, Math.max(1, parseInt(req.query.days || '21', 10)));
+  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+  const { kv } = await import('./_kv.js');
+
+  // Everything we already have (saved or already fulfilled) — dedupe against this.
+  const have = new Set();
+  try {
+    (await kv.lrange('pickup:orders', 0, -1) || []).forEach(o => {
+      if (o && o.externalId) have.add(String(o.externalId));
+      if (o && o.ref) have.add(String(o.ref));
+    });
+  } catch {}
+  try {
+    const f = (await kv.hgetall('pickup:fulfilled')) || {};
+    Object.keys(f).forEach(k => have.add(String(k)));
+  } catch {}
+
+  const report = { window_days: days, scanned: 0, recovered: [], skipped_non_pickup: 0, already_had: 0, errors: [] };
+  const refOf = (extId) => String(extId).slice(-12).toUpperCase();
+
+  const consider = async (orderData) => {
+    if (!orderData) return;
+    report.scanned++;
+    if (orderData.deliveryKey !== 'pickup') { report.skipped_non_pickup++; return; }
+    const ref = refOf(orderData.externalId);
+    if (have.has(String(orderData.externalId)) || have.has(ref)) { report.already_had++; return; }
+    await savePickupOrder(orderData);
+    have.add(String(orderData.externalId)); have.add(ref);
+    report.recovered.push({ ref, name: orderData.customerName || '', total: orderData.amountKr || 0 });
+  };
+
+  // 1) New Elements flow — succeeded PaymentIntents.
+  try {
+    for await (const pi of stripe.paymentIntents.list({ created: { gte: since }, limit: 100 })) {
+      if (pi.status !== 'succeeded') continue;
+      try { await consider(parsePaymentIntent(pi)); }
+      catch (e) { report.errors.push('pi ' + pi.id + ': ' + (e && e.message || e)); }
+      if (report.scanned > 1000) break;
+    }
+  } catch (e) { report.errors.push('list PI: ' + (e && e.message || e)); }
+
+  // 2) Legacy Checkout redirect flow — paid Checkout Sessions.
+  try {
+    for await (const s of stripe.checkout.sessions.list({ created: { gte: since }, limit: 100 })) {
+      if (s.payment_status !== 'paid') continue;
+      try { await consider(await parseCheckoutSession(s)); }
+      catch (e) { report.errors.push('cs ' + s.id + ': ' + (e && e.message || e)); }
+      if (report.scanned > 2000) break;
+    }
+  } catch (e) { report.errors.push('list CS: ' + (e && e.message || e)); }
+
+  report.ok = true;
+  report.recovered_count = report.recovered.length;
+  report.note = report.recovered.length
+    ? report.recovered.length + ' afhentnings-ordre(r) hentet tilbage fra Stripe og lagt i fulfillment-listen.'
+    : 'Ingen manglende afhentnings-ordrer i vinduet — alt var der allerede.';
+  return res.status(200).json(report);
 }
 
 // Human-readable delivery label for emails.
