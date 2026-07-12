@@ -677,6 +677,48 @@ async function recoverPickupOrders(req, res) {
     };
     const refOf = (extId) => String(extId).slice(-12).toUpperCase();
 
+    // 0a) SEED: insert known orders straight from their email data — NO Stripe call
+    //     at all, so this cannot fail on an API hiccup. Trigger with ?seed=1.
+    if (String(req.query.seed || '') === '1') {
+      const SEED_ORDERS = [
+        {
+          externalId: 'cs_live_b1JW5FwCLB2AYDRLeN92nvEum1lt2O9VDO27dPCWbC5SAhcgRxCM1Tb6aG',
+          customerName: 'Ann-Britt Frøstrup', customerEmail: '6021affe@gmail.com', customerPhone: '+4551844485',
+          amountKr: 646, items: [
+            { productName: 'Rød hvede – Fintsigtet hvedemel – Type 70', weightLabel: '3 kg', qty: 2 },
+            { productName: 'Mariagertoba – Fintsigtet hvedemel – Type 70', weightLabel: '3 kg', qty: 2 },
+            { productName: 'Rug – Rugmel fuldkorn', weightLabel: '11 kg', qty: 1 },
+          ],
+        },
+        {
+          externalId: 'cs_live_b1vpt2RBMCAO89MolbGUpE4xF8vqpjEZ97LY5vtshXR6Tw2BaMxR7Y72MQ',
+          customerName: 'Camilla Hansen', customerEmail: 'camilla@tovborg.com', customerPhone: '+4520216621',
+          amountKr: 837, items: [
+            { productName: 'Mariagertoba – Fintsigtet hvedemel – Type 70', weightLabel: '12,5 kg', qty: 2 },
+            { productName: 'Ølands / Quarna – Fuldkornshvedemel', weightLabel: '3 kg', qty: 1 },
+            { productName: 'Purpurhvede – Fuldkornshvedemel', weightLabel: '3 kg', qty: 1 },
+          ],
+        },
+      ];
+      for (const od of SEED_ORDERS) {
+        const ref = refOf(od.externalId);
+        const row = { kind: 'seed', ref, name: od.customerName, amountKr: od.amountKr, decision: '' };
+        try {
+          if (have.has(String(od.externalId)) || have.has(ref)) { row.decision = 'already had'; report.diagnostics.push(row); continue; }
+          await savePickupOrder(od);
+          have.add(String(od.externalId)); have.add(ref);
+          row.decision = 'RESTORED';
+          report.recovered.push({ ref, name: od.customerName, total: od.amountKr });
+        } catch (e) { row.decision = 'error: ' + (e && e.message || e); }
+        report.diagnostics.push(row);
+      }
+      report.recovered_count = report.recovered.length;
+      report.note = report.recovered.length
+        ? `${report.recovered.length} ordre(r) lagt direkte ind i afhentningslisten (uden Stripe).`
+        : 'Begge seed-ordrer var der allerede.';
+      return res.status(200).json(report);
+    }
+
     const consider = async (kind, id, od) => {
       const row = { kind, id, deliveryKey: od && od.deliveryKey, shipping: od && od.shippingDisplayName || '', amountKr: od && od.amountKr, name: od && od.customerName, decision: '' };
       if (!od) { row.decision = 'no order data'; report.diagnostics.push(row); return; }
