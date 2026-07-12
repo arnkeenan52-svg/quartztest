@@ -339,6 +339,9 @@
     + '.it .n{font-weight:500}.it .wl{color:#9b9488;font-weight:400}'
     + '.it .q{font-weight:800;color:#273071;white-space:nowrap}'
     + '.total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;color:#273071;margin-top:14px;padding-top:14px;border-top:2px solid #273071;text-align:left}'
+    + '.skab{display:flex;align-items:center;justify-content:center;gap:14px;background:#273071;color:#fff;border-radius:14px;padding:16px 18px;margin:22px 0 4px}'
+    + '.skab .sl{font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.85}'
+    + '.skab .sn{font-size:34px;font-weight:800;line-height:1;letter-spacing:.5px}'
     + '.pickup{font-size:13px;color:#6b6256;margin-top:22px;line-height:1.6}'
     + '.pickup b{color:#1a1611}'
     + '.thanks{font-size:14px;font-weight:600;color:#273071;margin-top:22px}'
@@ -346,13 +349,16 @@
 
   // The printed confirmation is always in Danish — it's a customer document for
   // the Danish pickup shop (the DA/EN/ES switch only changes the staff screen).
-  function buildConfirmation(o){
+  function buildConfirmation(o, skab){
     var total = Number(o.total||0).toFixed(2).replace('.', ',');
     var rows = (o.items||[]).map(function(it){
       return '<div class="it"><span class="n">'+esc(it.name)
         + (it.weightLabel?' <span class="wl">'+esc(it.weightLabel)+'</span>':'')
         + '</span><span class="q">'+(it.qty||1)+'×</span></div>';
     }).join('') || '<div class="it"><span class="n">—</span></div>';
+    var skabHtml = (skab != null)
+      ? '<div class="skab"><span class="sl">Læg i skab</span><span class="sn">'+esc(String(skab))+'</span></div>'
+      : '';
     return '<div class="paper">'
       + '<img class="logo" src="/images/favicon.png" alt="" onerror="this.style.display=\'none\'">'
       + '<h1>Ordrebekræftelse</h1>'
@@ -361,6 +367,7 @@
       + '<div class="rule"></div>'
       + '<div class="items">'+rows+'</div>'
       + '<div class="total"><span>I alt</span><span>'+total+' kr.</span></div>'
+      + skabHtml
       + '<div class="pickup"><b>Afhentning</b><br>Suså Landevej 101, 4160 Herlufmagle</div>'
       + '<div class="thanks">Tak for din ordre</div>'
       + '<div class="foot">Quartz Mølle · CVR 42117188 · hello@quartzmolle.dk</div>'
@@ -377,7 +384,21 @@
     var orders = (lastData.orders||[]).filter(function(o){ return o && !fulfilled[o.ref]; });
     if(!orders.length){ alert(T('none')); return; }
 
-    var pages = orders.map(buildConfirmation).join('');
+    // Assign each order a free locker — never one occupied or out of service,
+    // never the same one twice. Fall back to all 22 doors if we have no state.
+    var lockers = lastData.lockers || [];
+    var freeDoors;
+    if (lockers.length) {
+      freeDoors = lockers.filter(function(l){ return !l.occ && !l.oos; })
+                         .map(function(l){ return l.door; })
+                         .sort(function(a,b){ return a-b; });
+    } else {
+      freeDoors = []; for (var i = 1; i <= 22; i++) freeDoors.push(i);
+    }
+
+    var pages = orders.map(function(o, idx){
+      return buildConfirmation(o, idx < freeDoors.length ? freeDoors[idx] : null);
+    }).join('');
     var docHtml = '<!doctype html><html lang="da"><head><meta charset="utf-8">'
       + '<title>Ordrebekræftelse · Quartz Mølle</title><style>'+CONF_CSS+'</style></head><body>'
       + pages + '</body></html>';
