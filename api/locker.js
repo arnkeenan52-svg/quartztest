@@ -4,7 +4,7 @@
 //   login / logout / state / open / deposit / clear / oos  -> web panel (cookie auth)
 //   sync                                                    -> tablet (device-secret auth)
 
-import { kv } from '@vercel/kv';
+import { kv } from './_kv.js';
 import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
 
 // SECURITY: never fall back to a guessable default. If these env vars are not

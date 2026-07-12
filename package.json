@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Quartz Mølle webshop",
   "dependencies": {
-    "stripe": "^14.0.0",
-    "@vercel/kv": "^1.0.1"
+    "@vercel/kv": "^1.0.1",
+    "ioredis": "^5.11.1",
+    "stripe": "^14.0.0"
   }
 }
