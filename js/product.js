@@ -27,8 +27,20 @@ function getBadgeHTML(badge) {
   return '';
 }
 
+// Current customer-page language (Danish source, English via the switcher).
+// The rich-text accordion content below is rendered directly in the chosen
+// language — the i18n dictionary can't reliably translate text split by <strong>.
+function qmLang() {
+  try { return localStorage.getItem('qm_lang') === 'en' ? 'en' : 'da'; } catch (e) { return 'da'; }
+}
+
 // ── Fragt Regler content (same for every product) ──
 function fragtReglerHTML() {
+  if (qmLang() === 'en') return `
+    <p><strong>GLS</strong> Delivery to a parcel shop in Denmark – <strong>max 20 kg</strong></p>
+    <p><strong>GLS</strong> Delivery to a private address in Denmark – <strong>max 25 kg</strong></p>
+    <p>Note: you <strong>cannot order two 12.5 kg flour bags</strong> in the same order. Our 12.5 kg bags always contain a little more flour than stated, so two of them weigh around <strong>25.2 kg</strong> – which exceeds GLS' 25 kg limit.</p>
+  `;
   return `
     <p><strong>GLS</strong> Levering til pakkeshop i Danmark – <strong>max 20 kg</strong></p>
     <p><strong>GLS</strong> Levering til privatadresse i Danmark – <strong>max 25 kg</strong></p>
@@ -38,6 +50,11 @@ function fragtReglerHTML() {
 
 // ── Click & Collect content (same for every product) ──
 function clickCollectHTML() {
+  if (qmLang() === 'en') return `
+    <p><strong>Click &amp; Collect (pickup from the locker)</strong> is ordered <strong>only here on the website</strong>.</p>
+    <p>Add your items to the basket, go to <strong>checkout</strong> and choose <strong>Click &amp; Collect</strong> as the delivery method. When your order is ready, you'll receive a code for the locker at Suså Landevej 101, 4160 Herlufmagle.</p>
+    <p><strong>Do not call us</strong> to arrange pickup – it happens exclusively through the checkout here on the website.</p>
+  `;
   return `
     <p><strong>Click &amp; Collect (afhentning i automaten)</strong> bestilles <strong>kun her på hjemmesiden</strong>.</p>
     <p>Læg dine varer i kurven, gå til <strong>checkout</strong> og vælg <strong>Click &amp; Collect</strong> som leveringsmetode. Når din ordre er klar, får du en kode til automaten på Suså Landevej 101, 4160 Herlufmagle.</p>
