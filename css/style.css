@@ -2051,3 +2051,15 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
   /* smaller cards so the next one clearly peeks in = obvious it scrolls */
   .suggested-grid > .product-card { flex: 0 0 54%; scroll-snap-align: start; }
 }
+
+/* Cart heads-up when the order exceeds GLS' 25 kg limit (pickup only) */
+.cart-weight-note {
+  background: var(--brand-blue-softbg, rgba(39,48,113,.08));
+  border: 1px solid rgba(39,48,113,.18);
+  border-radius: 10px;
+  color: var(--brand-blue, #273071);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  padding: 0.7rem 0.85rem;
+  margin: 0 0 0.75rem;
+}
