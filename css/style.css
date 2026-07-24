@@ -2037,6 +2037,10 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
     scrollbar-width: none;
   }
   .suggested-grid::-webkit-scrollbar { display: none; }
+  /* Lock touch gestures on the row to horizontal only — a finger on the cards
+     can never drag/scroll them up and down, only sideways. */
+  .suggested-grid { touch-action: pan-x; overscroll-behavior-x: contain; }
+  .suggested-grid > .product-card { touch-action: pan-x; }
   /* smaller cards so the next one clearly peeks in = obvious it scrolls */
   .suggested-grid > .product-card { flex: 0 0 54%; scroll-snap-align: start; }
 }
