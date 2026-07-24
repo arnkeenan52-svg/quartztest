@@ -82,8 +82,39 @@ function nutritionTableHTML(n) {
   `;
 }
 
+// Inject Product structured data (JSON-LD) so Google can show price, brand and
+// availability as a rich result. Googlebot renders JS, so a dynamically added
+// tag is read.
+function injectProductSchema(product) {
+  try {
+    const prices = (product.weights || []).map(w => w.price).filter(p => typeof p === 'number');
+    const low = prices.length ? Math.min.apply(null, prices) : null;
+    let img = safeUrl(product.previewImage || (product.weights && product.weights[0] && product.weights[0].image) || '');
+    const abs = img ? (img.indexOf('http') === 0 ? img : 'https://www.quartzmolle.dk/' + String(img).replace(/^\//, '')) : '';
+    const data = {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      name: product.name + ' – ' + product.type,
+      description: product.description || (product.name + ' – økologisk mel malet på stenkværn i Danmark.'),
+      brand: { '@type': 'Brand', name: 'Quartz Mølle' }
+    };
+    if (abs) data.image = [abs];
+    data.offers = {
+      '@type': 'Offer',
+      priceCurrency: 'DKK',
+      availability: 'https://schema.org/InStock',
+      url: (typeof location !== 'undefined' ? location.href : 'https://www.quartzmolle.dk/')
+    };
+    if (low != null) data.offers.price = low.toFixed(2);
+    let el = document.getElementById('qm-product-schema');
+    if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'qm-product-schema'; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(data);
+  } catch (e) { /* schema is best-effort */ }
+}
+
 function renderProduct(product) {
   currentProduct = product;
+  injectProductSchema(product);
   const inner = document.getElementById('productInner');
   document.title = `${product.name} – ${product.type} | Quartz Mølle`;
 
@@ -126,7 +157,7 @@ function renderProduct(product) {
     <div>
       <a href="shop.html" class="btn-back">← Tilbage til shop</a>
       <img src="${esc(safeUrl(defaultImage))}" alt="${esc(product.name)}"
-           class="product-page-img" id="productImg" />
+           class="product-page-img" id="productImg" width="1000" height="1250" />
       ${thumbsHTML}
     </div>
     <div class="product-page-info">
@@ -300,6 +331,7 @@ async function handleBuy() {
       image: w.image,
       qty: qty,
     });
+    if (window.qmFlyToCart) window.qmFlyToCart(document.getElementById('productImg'));
     window.QuartzCart.open();
   }
 }
@@ -331,7 +363,7 @@ function renderSuggested(product) {
       : '';
     return `
       <a href="product.html?id=${encodeURIComponent(p.id)}" class="product-card">
-        <img src="${esc(safeUrl(img))}" alt="${esc(p.name + ' ' + p.type)}" class="product-card-img" loading="lazy" />
+        <img src="${esc(safeUrl(img))}" alt="${esc(p.name + ' ' + p.type)}" class="product-card-img" width="900" height="1200" loading="lazy" />
         <div class="product-card-body">
           ${badgeHTML}
           <div class="product-card-name">${esc(p.name)}</div>
