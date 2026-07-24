@@ -215,8 +215,8 @@ function updateCartUI() {
       const kgTxt = String(Math.round(totalKg * 10) / 10).replace('.', ',');
       const en = (function () { try { return localStorage.getItem('qm_lang') === 'en'; } catch (e) { return false; } })();
       note.innerHTML = en
-        ? `📦 Your order weighs <strong>${kgTxt} kg</strong> — above GLS' 25 kg shipping limit. It can therefore only be collected with <strong>free Click &amp; Collect</strong> at the mill (Suså Landevej 101), which is preselected at checkout.`
-        : `📦 Din ordre vejer <strong>${kgTxt} kg</strong> — over GLS' grænse på 25 kg for levering. Den kan derfor kun afhentes med <strong>gratis Click &amp; Collect</strong> på møllen (Suså Landevej 101), som er valgt på forhånd i checkout.`;
+        ? `Your order weighs <strong>${kgTxt} kg</strong> — above GLS' 25 kg shipping limit. It can therefore only be collected with <strong>free Click &amp; Collect</strong> at the mill (Suså Landevej 101), which is preselected at checkout.`
+        : `Din ordre vejer <strong>${kgTxt} kg</strong> — over GLS' grænse på 25 kg for levering. Den kan derfor kun afhentes med <strong>gratis Click &amp; Collect</strong> på møllen (Suså Landevej 101), som er valgt på forhånd i checkout.`;
       note.hidden = false;
     } else {
       note.hidden = true;
