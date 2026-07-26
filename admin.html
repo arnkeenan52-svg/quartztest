@@ -8,6 +8,7 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/images/favicon.png">
 <link rel="apple-touch-icon" href="/images/appletouchicon.png">
+<link rel="manifest" href="/manifest.json">
 <meta name="apple-mobile-web-app-title" content="Quartz Mølle">
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -283,6 +284,9 @@
     <span class="upd" id="lastUpdate"></span>
     <!-- Language switch drops in here as a normal header button (not the floating pill) -->
     <span data-lang-slot></span>
+    <button class="logout" id="pushBtn" onclick="enablePush()" title="Notifikationer ved nye ordrer" aria-label="Notifikationer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </button>
     <button class="logout" onclick="logout()">Log ud</button>
   </div>
 
@@ -939,6 +943,65 @@
       if (id === 'customDays') applyCustomDays(); else applyDateRange();
     });
   });
+</script>
+
+<script>
+// ── PUSH-NOTIFIKATIONER VED NYE ORDRER ──────────────────────────────────────
+// Works when the site is installed on the Home Screen (iOS 16.4+) or in a
+// normal desktop browser. The VAPID public key is safe to embed; the private
+// key lives only in Vercel (VAPID_PRIVATE_KEY).
+const QM_VAPID_PUBLIC = 'BO1VNQRG3or-Sm9xL0EQoqZ3UUMUYlZXJOCFhhcP0BlG7asMkdSTaaSceGDxkpnnDmTkjE_fLNhoxR9ATeVgHsc';
+
+function qmB64ToU8(base64) {
+  const pad = '='.repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+function qmMarkPushOn(on) {
+  const b = document.getElementById('pushBtn');
+  if (b) b.style.background = on ? 'rgba(90,208,127,.28)' : '';
+}
+
+async function enablePush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      alert('Notifikationer kræver at siden er føjet til hjemmeskærmen (Del → Føj til hjemmeskærm) og åbnes derfra. Kræver iOS 16.4 eller nyere.');
+      return;
+    }
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('Notifikationer blev ikke tilladt.'); return; }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: qmB64ToU8(QM_VAPID_PUBLIC),
+    });
+    const r = await fetch('/api/locker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ action: 'pushsub', sub: sub.toJSON() }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.ok) { qmMarkPushOn(true); alert('Notifikationer er slået til — du får besked ved hver ny ordre.'); }
+    else alert(d.error || 'Kunne ikke gemme tilmeldingen. Er du logget ind?');
+  } catch (e) {
+    console.error(e);
+    alert('Kunne ikke aktivere notifikationer: ' + (e && e.message || e));
+  }
+}
+
+// Silently re-register the worker and light the bell up if already subscribed.
+(async function () {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) qmMarkPushOn(true);
+  } catch (e) {}
+})();
 </script>
 
 <script src="js/i18n.js"></script>

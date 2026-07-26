@@ -108,6 +108,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, skipped: 'no order data' });
     }
 
+    // Push notification to the owner's phone(s) for every new order (best-effort,
+    // never blocks the webhook).
+    try { await sendOrderPush(orderData); } catch (e) { console.error('Order push failed:', e); }
+
     // ── CLICK & COLLECT (afhentning) ──
     // No carrier shipment: skip Shipmondo/GLS label booking entirely and just send
     // the order confirmation + admin notification emails. This also covers orders
@@ -935,4 +939,36 @@ async function parseCheckoutSession(session) {
     shippingDisplayName,
     items,
   };
+}
+
+// ── PUSH NOTIFICATION til ejeren ved nye ordrer ─────────────────────────────
+// Sends a Web Push to every admin device saved via /api/locker action=pushsub.
+// Public key matches the one embedded in admin.html; the private key lives only
+// in Vercel env (VAPID_PRIVATE_KEY). Dead subscriptions are pruned.
+const QM_VAPID_PUBLIC = 'BO1VNQRG3or-Sm9xL0EQoqZ3UUMUYlZXJOCFhhcP0BlG7asMkdSTaaSceGDxkpnnDmTkjE_fLNhoxR9ATeVgHsc';
+async function sendOrderPush(orderData) {
+  const priv = process.env.VAPID_PRIVATE_KEY || '';
+  if (!priv) return; // not configured yet — skip silently
+  const webpush = (await import('web-push')).default;
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:hello@quartzmolle.dk', QM_VAPID_PUBLIC, priv);
+  const { kv } = await import('./_kv.js');
+  let subs = {};
+  try { subs = (await kv.hgetall('push:subs')) || {}; } catch {}
+  if (!Object.keys(subs).length) return;
+
+  const isPickup = orderData.deliveryKey === 'pickup';
+  const kr = Number(orderData.amountKr || 0).toFixed(2).replace('.', ',');
+  const payload = JSON.stringify({
+    title: `Ny ordre – ${kr} kr.`,
+    body: `${orderData.customerName || 'Kunde'} · ${isPickup ? 'Click & Collect (afhentning)' : 'GLS levering'}`,
+    url: isPickup ? '/fufill' : '/admin',
+    tag: 'order-' + String(orderData.externalId || '').slice(-10),
+  });
+  await Promise.all(Object.entries(subs).map(async ([k, sub]) => {
+    try { await webpush.sendNotification(sub, payload); }
+    catch (e) {
+      const c = e && e.statusCode;
+      if (c === 404 || c === 410) { try { await kv.hdel('push:subs', k); } catch {} }
+    }
+  }));
 }
