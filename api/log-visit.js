@@ -4,6 +4,7 @@
 // Stores: visitor IDs with timestamps for "active now" + daily counters.
 
 import { kv } from './_kv.js';
+import { randomInt } from 'crypto';
 
 // Only allow the site's own origins to post visitor heartbeats (reduces
 // off-site abuse / metric pollution). '*' previously let anyone write.
@@ -62,11 +63,11 @@ export default async function handler(req, res) {
 }
 
 // ── NEWSLETTER SIGNUP ────────────────────────────────────────────────────────
-// Stores the email in Redis (newsletter:emails hash), makes sure the 10%
-// welcome promotion code exists in Stripe (VELKOMMEN10), and
-// sends the welcome email with the code via Resend. Duplicate signups return ok
+// Stores the email in Redis (newsletter:emails hash) together with a UNIQUE
+// single-use 10% discount code created in Stripe for that subscriber, and sends
+// the welcome email with the code via Resend. Duplicate signups return ok
 // without re-sending, so the form can't be abused to spam someone's inbox.
-const NEWSLETTER_CODE = 'VELKOMMEN10';
+const FALLBACK_CODE = 'VELKOMMEN10';
 
 async function handleNewsletter(req, res, body) {
   try {
@@ -75,21 +76,24 @@ async function handleNewsletter(req, res, body) {
       return res.status(400).json({ ok: false, error: 'Skriv en gyldig e-mailadresse.' });
     }
 
-    // Dedupe: already on the list → done (no second email).
+    // Dedupe: already on the list → done (their code was already emailed).
     let existing = null;
     try { existing = await kv.hget('newsletter:emails', email); } catch {}
     if (existing) return res.status(200).json({ ok: true, already: true });
 
-    try { await kv.hset('newsletter:emails', { [email]: { t: Date.now() } }); } catch (e) {
+    // Unique single-use 10% code for THIS subscriber (falls back to the shared
+    // code if Stripe is unreachable, so the promised email always has a code).
+    let code = null;
+    try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', e.message); }
+    if (!code) { try { await ensureFallbackPromo(); code = FALLBACK_CODE; } catch (e) { code = FALLBACK_CODE; } }
+
+    try { await kv.hset('newsletter:emails', { [email]: { t: Date.now(), code } }); } catch (e) {
       console.error('newsletter store failed:', e.message);
       return res.status(500).json({ ok: false, error: 'Kunne ikke gemme tilmeldingen. Prøv igen.' });
     }
 
-    // Make sure the promotion code exists in Stripe (10% off).
-    try { await ensureWelcomePromo(); } catch (e) { console.error('promo ensure failed:', e.message); }
-
     // Welcome email with the code (best-effort — the signup itself is saved).
-    try { await sendWelcomeEmail(email); } catch (e) { console.error('welcome email failed:', e.message); }
+    try { await sendWelcomeEmail(email, code); } catch (e) { console.error('welcome email failed:', e.message); }
 
     return res.status(200).json({ ok: true });
   } catch (e) {
@@ -98,22 +102,58 @@ async function handleNewsletter(req, res, body) {
   }
 }
 
-// Create the Stripe coupon + promotion code on first use; no dashboard work needed.
-async function ensureWelcomePromo() {
-  if (!process.env.STRIPE_SECRET_KEY) return;
-  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
-  const found = await stripe.promotionCodes.list({ code: NEWSLETTER_CODE, limit: 1 });
-  if (found.data && found.data.length) return;
+// One shared 10% coupon (created once, id cached in Redis) + a fresh promotion
+// code per subscriber, limited to a SINGLE redemption — so every email gets its
+// own personal code that stops working after one order.
+async function getSharedCouponId(stripe) {
+  let id = null;
+  try { id = await kv.get('newsletter:couponId'); } catch {}
+  if (id) {
+    try { await stripe.coupons.retrieve(id); return id; } catch { /* deleted — recreate */ }
+  }
   const coupon = await stripe.coupons.create({
     percent_off: 10, duration: 'once', name: 'Nyhedsbrev – 10% velkomstrabat',
   });
-  await stripe.promotionCodes.create({
-    coupon: coupon.id,
-    code: NEWSLETTER_CODE,
-  });
+  try { await kv.set('newsletter:couponId', coupon.id); } catch {}
+  return coupon.id;
 }
 
-async function sendWelcomeEmail(email) {
+function randomCode() {
+  // No 0/O/1/I — codes are easy to read and type. Format: QM10-XXXXXX
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[randomInt(chars.length)];
+  return 'QM10-' + s;
+}
+
+async function createUniqueDiscountCode() {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+  const couponId = await getSharedCouponId(stripe);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const code = randomCode();
+    try {
+      await stripe.promotionCodes.create({ coupon: couponId, code, max_redemptions: 1 });
+      return code;
+    } catch (e) {
+      if (e && e.code === 'resource_already_exists') continue; // collision — retry
+      throw e;
+    }
+  }
+  return null;
+}
+
+// Shared fallback code (multi-use) — only used if unique-code creation fails.
+async function ensureFallbackPromo() {
+  if (!process.env.STRIPE_SECRET_KEY) return;
+  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+  const found = await stripe.promotionCodes.list({ code: FALLBACK_CODE, limit: 1 });
+  if (found.data && found.data.length) return;
+  const couponId = await getSharedCouponId(stripe);
+  await stripe.promotionCodes.create({ coupon: couponId, code: FALLBACK_CODE });
+}
+
+async function sendWelcomeEmail(email, code) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
   const html = `
@@ -121,13 +161,14 @@ async function sendWelcomeEmail(email) {
     <div style="text-align:center;margin-bottom:18px;">
       <img src="https://www.quartzmolle.dk/images/qm-icon-192.png" alt="Quartz Mølle" width="64" height="64" style="border-radius:50%;">
     </div>
-    <h2 style="color:#273071;text-align:center;margin:0 0 8px;">Velkommen til Quartz Mølle</h2>
-    <p style="text-align:center;margin:0 0 20px;color:#4a463f;">Tak fordi du tilmeldte dig vores nyhedsbrev. Her er din velkomstgave:</p>
+    <h2 style="color:#273071;text-align:center;margin:0 0 8px;">Tak for din tilmelding</h2>
+    <p style="text-align:center;margin:0 0 6px;color:#4a463f;">Velkommen til Quartz Mølles nyhedsbrev.</p>
+    <p style="text-align:center;margin:0 0 20px;color:#4a463f;">Du bliver blandt de første til at høre om <strong>nye melvarianter</strong>, nyheder fra møllen, opskrifter og sæsonens korn.</p>
     <div style="background:#fff;border:2px dashed #3a4599;border-radius:14px;padding:20px;text-align:center;margin:0 0 8px;">
-      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">10% på din næste ordre med koden</div>
-      <div style="font-size:30px;font-weight:800;letter-spacing:3px;color:#273071;">${NEWSLETTER_CODE}</div>
+      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">Din personlige rabatkode – 10% på din næste ordre</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:#273071;">${code}</div>
     </div>
-    <p style="text-align:center;font-size:13px;color:#6b6256;margin:0 0 22px;">Indtast koden i feltet "Tilføj rabatkode" ved betalingen.</p>
+    <p style="text-align:center;font-size:13px;color:#6b6256;margin:0 0 22px;">Indtast koden i feltet "Tilføj rabatkode" ved betalingen. Koden er personlig og kan bruges én gang.</p>
     <div style="text-align:center;margin-bottom:26px;">
       <a href="https://www.quartzmolle.dk/shop" style="background:#273071;color:#fff;text-decoration:none;font-weight:600;padding:13px 30px;border-radius:10px;display:inline-block;">Se vores mel</a>
     </div>
@@ -143,7 +184,7 @@ async function sendWelcomeEmail(email) {
     body: JSON.stringify({
       from: 'Quartz Mølle <order@quartzmolle.dk>',
       to: [email],
-      subject: 'Din rabatkode: 10% på din næste ordre 🌾',
+      subject: 'Velkommen! Din personlige rabatkode: 10% på din næste ordre 🌾',
       html,
     }),
   });

@@ -1004,13 +1004,15 @@ async function loadNewsletter() {
     if (!d.emails.length) { list.className = 'empty'; list.textContent = 'Ingen tilmeldinger endnu.'; return; }
     list.className = '';
     list.innerHTML = d.emails.map(e =>
-      '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid #f0ece3;font-size:13.5px">'
+      '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 2px;border-bottom:1px solid #f0ece3;font-size:13.5px;flex-wrap:wrap">'
       + '<span style="font-weight:600">' + escapeHtml(e.email) + '</span>'
-      + '<span style="color:var(--muted);font-size:12px;white-space:nowrap">' + (e.t ? new Date(e.t).toLocaleDateString('da-DK') : '') + '</span>'
+      + '<span style="color:var(--muted);font-size:12px;white-space:nowrap">'
+      + (e.code ? '<span style="font-weight:700;color:var(--blue);margin-right:10px">' + escapeHtml(e.code) + '</span>' : '')
+      + (e.t ? new Date(e.t).toLocaleDateString('da-DK') : '') + '</span>'
       + '</div>').join('');
     csvBtn.style.display = 'inline-block';
     csvBtn.onclick = () => {
-      const csv = 'email;dato\n' + d.emails.map(e => e.email + ';' + (e.t ? new Date(e.t).toISOString().slice(0, 10) : '')).join('\n');
+      const csv = 'email;rabatkode;dato\n' + d.emails.map(e => e.email + ';' + (e.code || '') + ';' + (e.t ? new Date(e.t).toISOString().slice(0, 10) : '')).join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
       a.download = 'nyhedsbrev-tilmeldinger.csv';
