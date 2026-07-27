@@ -112,8 +112,11 @@ async function handleNewsletter(req, res, body) {
 
     let code = null;
     if (allowCode) {
-      try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', e.message); }
-      if (!code) { try { await ensureFallbackPromo(); code = FALLBACK_CODE; } catch (e) { code = FALLBACK_CODE; } }
+      try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', (e && e.raw && e.raw.message) || (e && e.message), '| type:', e && e.type, '| code:', e && e.code); }
+      if (!code) {
+        try { await ensureFallbackPromo(); code = FALLBACK_CODE; }
+        catch (e) { console.error('fallback promo failed too:', (e && e.raw && e.raw.message) || (e && e.message)); code = null; }
+      }
     } else {
       console.warn('newsletter: IP over code limit, no code minted', ip);
     }
@@ -155,7 +158,7 @@ function randomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
   for (let i = 0; i < 6; i++) s += chars[randomInt(chars.length)];
-  return 'QM10-' + s;
+  return 'QM10' + s;
 }
 
 async function createUniqueDiscountCode() {
