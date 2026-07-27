@@ -35,6 +35,8 @@
     "Statskontrolleret Økologisk": "State-Controlled Organic",
     "Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen": "Smiley report – see our inspection report from the Danish Veterinary and Food Administration",
     "Smiley­rapport": "Smiley report",
+    "Fortrydelse & refusion": "Returns & refunds",
+    "Privatlivspolitik": "Privacy policy",
 
     // index.html
     "Quartz Mølle – Økologisk Mel fra Stenkværn": "Quartz Mølle – Organic Stone-Milled Flour",
@@ -274,6 +276,8 @@
     "Statskontrolleret Økologisk": "Ecológico con control estatal",
     "Smileyrapport – se vores kontrolrapport fra Fødevarestyrelsen": "Informe Smiley – vea nuestro informe de inspección de la Agencia Danesa de Alimentos",
     "Smiley­rapport": "Informe Smiley",
+    "Fortrydelse & refusion": "Devoluciones y reembolsos",
+    "Privatlivspolitik": "Política de privacidad",
 
     // index.html
     "Quartz Mølle – Økologisk Mel fra Stenkværn": "Quartz Mølle – Harina ecológica molida a la piedra",
