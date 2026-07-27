@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
 // ── NEWSLETTER SIGNUP ────────────────────────────────────────────────────────
 // Stores the email in Redis (newsletter:emails hash), makes sure the 10%
-// welcome promotion code exists in Stripe (VELKOMMEN10, first order only), and
+// welcome promotion code exists in Stripe (VELKOMMEN10), and
 // sends the welcome email with the code via Resend. Duplicate signups return ok
 // without re-sending, so the form can't be abused to spam someone's inbox.
 const NEWSLETTER_CODE = 'VELKOMMEN10';
@@ -85,7 +85,7 @@ async function handleNewsletter(req, res, body) {
       return res.status(500).json({ ok: false, error: 'Kunne ikke gemme tilmeldingen. Prøv igen.' });
     }
 
-    // Make sure the promotion code exists in Stripe (10% off, first order only).
+    // Make sure the promotion code exists in Stripe (10% off).
     try { await ensureWelcomePromo(); } catch (e) { console.error('promo ensure failed:', e.message); }
 
     // Welcome email with the code (best-effort — the signup itself is saved).
@@ -110,7 +110,6 @@ async function ensureWelcomePromo() {
   await stripe.promotionCodes.create({
     coupon: coupon.id,
     code: NEWSLETTER_CODE,
-    restrictions: { first_time_transaction: true }, // only for first-time customers
   });
 }
 
@@ -125,7 +124,7 @@ async function sendWelcomeEmail(email) {
     <h2 style="color:#273071;text-align:center;margin:0 0 8px;">Velkommen til Quartz Mølle</h2>
     <p style="text-align:center;margin:0 0 20px;color:#4a463f;">Tak fordi du tilmeldte dig vores nyhedsbrev. Her er din velkomstgave:</p>
     <div style="background:#fff;border:2px dashed #3a4599;border-radius:14px;padding:20px;text-align:center;margin:0 0 8px;">
-      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">10% på din første ordre med koden</div>
+      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">10% på din næste ordre med koden</div>
       <div style="font-size:30px;font-weight:800;letter-spacing:3px;color:#273071;">${NEWSLETTER_CODE}</div>
     </div>
     <p style="text-align:center;font-size:13px;color:#6b6256;margin:0 0 22px;">Indtast koden i feltet "Tilføj rabatkode" ved betalingen.</p>
@@ -144,7 +143,7 @@ async function sendWelcomeEmail(email) {
     body: JSON.stringify({
       from: 'Quartz Mølle <order@quartzmolle.dk>',
       to: [email],
-      subject: 'Din rabatkode: 10% på din første ordre 🌾',
+      subject: 'Din rabatkode: 10% på din næste ordre 🌾',
       html,
     }),
   });
