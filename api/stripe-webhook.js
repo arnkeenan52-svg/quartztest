@@ -112,6 +112,13 @@ export default async function handler(req, res) {
     // never blocks the webhook).
     try { await sendOrderPush(orderData); } catch (e) { console.error('Order push failed:', e); }
 
+    // Anti-abuse: one newsletter discount per CARD. Records the paying card's
+    // fingerprint when a newsletter code was redeemed; a repeat card triggers a
+    // push alert to the owner. Best-effort, never blocks the webhook.
+    if (event.type === 'checkout.session.completed') {
+      try { await guardDiscountCardReuse(event.data.object, orderData); } catch (e) { console.error('Discount card guard failed:', e); }
+    }
+
     // ── CLICK & COLLECT (afhentning) ──
     // No carrier shipment: skip Shipmondo/GLS label booking entirely and just send
     // the order confirmation + admin notification emails. This also covers orders
@@ -971,4 +978,64 @@ async function sendOrderPush(orderData) {
       if (c === 404 || c === 410) { try { await kv.hdel('push:subs', k); } catch {} }
     }
   }));
+}
+
+// ── ANTI-MISBRUG: én velkomstrabat pr. betalingskort ─────────────────────────
+// The signup side already limits codes per email (normalised) and per IP, but a
+// determined abuser could still mint codes with throwaway addresses from
+// several networks. The card is the hardest thing to fake, so when an order
+// redeems a newsletter code (QM10-… or VELKOMMEN10) we record the paying
+// card's fingerprint (Stripe's stable per-card id — available when the payment
+// is card-based). If the SAME card redeems a second newsletter code, the owner
+// gets a push alert with both order refs so the discount can be refunded.
+async function guardDiscountCardReuse(sessionStub, orderData) {
+  if (!process.env.STRIPE_SECRET_KEY) return;
+  const stripe = (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+  const session = await stripe.checkout.sessions.retrieve(sessionStub.id, {
+    expand: ['discounts.promotion_code', 'payment_intent.latest_charge'],
+  });
+
+  // Which promotion code (if any) was used?
+  const promo = session.discounts && session.discounts[0] && session.discounts[0].promotion_code;
+  const code = (promo && typeof promo === 'object' ? promo.code : '') || '';
+  if (!/^QM10-|^VELKOMMEN10$/i.test(code)) return; // not a newsletter discount
+
+  // Card fingerprint — only present for card-based payments ("if card is available").
+  const pi = session.payment_intent;
+  const charge = pi && typeof pi === 'object' && typeof pi.latest_charge === 'object' ? pi.latest_charge : null;
+  const fp = charge?.payment_method_details?.card?.fingerprint || null;
+  const ref = String(session.id).slice(-12).toUpperCase();
+
+  const { kv } = await import('./_kv.js');
+  if (!fp) {
+    // No card fingerprint (e.g. some wallet payments) — still log the redemption.
+    try { await kv.lpush('discount:redemptions', { t: Date.now(), ref, code, fp: null }); await kv.ltrim('discount:redemptions', 0, 499); } catch {}
+    return;
+  }
+
+  let prev = null;
+  try { prev = await kv.hget('discount:cards', fp); } catch {}
+  try { await kv.lpush('discount:redemptions', { t: Date.now(), ref, code, fp }); await kv.ltrim('discount:redemptions', 0, 499); } catch {}
+
+  if (prev && prev.ref !== ref) {
+    // Same card, second newsletter code — alert the owner.
+    console.warn('DISCOUNT ABUSE: card reused newsletter discount', { fp, prevRef: prev.ref, prevCode: prev.code, ref, code });
+    try {
+      const priv = process.env.VAPID_PRIVATE_KEY || '';
+      if (priv) {
+        const webpush = (await import('web-push')).default;
+        webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:hello@quartzmolle.dk', QM_VAPID_PUBLIC, priv);
+        let subs = {};
+        try { subs = (await kv.hgetall('push:subs')) || {}; } catch {}
+        const payload = JSON.stringify({
+          title: 'Muligt rabat-misbrug',
+          body: `Samme kort har brugt velkomstrabat før (${prev.code} på #${prev.ref}) — nu igen (${code} på #${ref}). Overvej at refundere rabatten.`,
+          url: '/admin', tag: 'abuse-' + ref,
+        });
+        await Promise.all(Object.values(subs).map(sub => webpush.sendNotification(sub, payload).catch(() => {})));
+      }
+    } catch (e) { console.error('abuse push failed:', e); }
+  } else if (!prev) {
+    try { await kv.hset('discount:cards', { [fp]: { t: Date.now(), ref, code } }); } catch {}
+  }
 }

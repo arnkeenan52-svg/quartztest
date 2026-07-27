@@ -69,30 +69,62 @@ export default async function handler(req, res) {
 // without re-sending, so the form can't be abused to spam someone's inbox.
 const FALLBACK_CODE = 'VELKOMMEN10';
 
+// Normalise an address so alias tricks can't harvest extra codes:
+// everything after "+" in the local part is dropped for all domains, and dots
+// in the local part are dropped for gmail (where they're ignored anyway).
+function normalizeEmail(email) {
+  const at = email.lastIndexOf('@');
+  let local = email.slice(0, at), domain = email.slice(at + 1);
+  if (domain === 'googlemail.com') domain = 'gmail.com';
+  const plus = local.indexOf('+');
+  if (plus > 0) local = local.slice(0, plus);
+  if (domain === 'gmail.com') local = local.replace(/\./g, '');
+  return local + '@' + domain;
+}
+
+const MAX_CODES_PER_IP = 3;          // per 30 days
+const IP_WINDOW_SECONDS = 30 * 86400;
+
 async function handleNewsletter(req, res, body) {
   try {
     const email = String(body.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 120) {
       return res.status(400).json({ ok: false, error: 'Skriv en gyldig e-mailadresse.' });
     }
+    const key = normalizeEmail(email);
 
-    // Dedupe: already on the list → done (their code was already emailed).
+    // Dedupe on the NORMALISED address: name+2@gmail.com can't harvest a second
+    // code for name@gmail.com.
     let existing = null;
-    try { existing = await kv.hget('newsletter:emails', email); } catch {}
+    try { existing = await kv.hget('newsletter:emails', key); } catch {}
     if (existing) return res.status(200).json({ ok: true, already: true });
 
-    // Unique single-use 10% code for THIS subscriber (falls back to the shared
-    // code if Stripe is unreachable, so the promised email always has a code).
-    let code = null;
-    try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', e.message); }
-    if (!code) { try { await ensureFallbackPromo(); code = FALLBACK_CODE; } catch (e) { code = FALLBACK_CODE; } }
+    // IP throttle: collect the signup IP and only mint codes for the first few
+    // signups per IP per 30 days. Further signups still join the list but get
+    // no code (the response stays ok so abusers learn nothing).
+    const ip = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+    let ipCount = 0;
+    try {
+      ipCount = await kv.incr(`newsletter:ipcount:${ip}`);
+      if (ipCount === 1) await kv.expire(`newsletter:ipcount:${ip}`, IP_WINDOW_SECONDS);
+    } catch {}
+    const allowCode = ipCount <= MAX_CODES_PER_IP;
 
-    try { await kv.hset('newsletter:emails', { [email]: { t: Date.now(), code } }); } catch (e) {
+    let code = null;
+    if (allowCode) {
+      try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', e.message); }
+      if (!code) { try { await ensureFallbackPromo(); code = FALLBACK_CODE; } catch (e) { code = FALLBACK_CODE; } }
+    } else {
+      console.warn('newsletter: IP over code limit, no code minted', ip);
+    }
+
+    try { await kv.hset('newsletter:emails', { [key]: { t: Date.now(), code, email, ip } }); } catch (e) {
       console.error('newsletter store failed:', e.message);
       return res.status(500).json({ ok: false, error: 'Kunne ikke gemme tilmeldingen. Prøv igen.' });
     }
 
-    // Welcome email with the code (best-effort — the signup itself is saved).
+    // Welcome email (best-effort — the signup itself is saved). Over-limit
+    // signups get the welcome WITHOUT a discount code.
     try { await sendWelcomeEmail(email, code); } catch (e) { console.error('welcome email failed:', e.message); }
 
     return res.status(200).json({ ok: true });
@@ -156,6 +188,12 @@ async function ensureFallbackPromo() {
 async function sendWelcomeEmail(email, code) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return;
+  const codeBlock = code ? `
+    <div style="background:#fff;border:2px dashed #3a4599;border-radius:14px;padding:20px;text-align:center;margin:0 0 8px;">
+      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">Din personlige rabatkode – 10% på din næste ordre</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:#273071;">${code}</div>
+    </div>
+    <p style="text-align:center;font-size:13px;color:#6b6256;margin:0 0 22px;">Indtast koden i feltet "Tilføj rabatkode" ved betalingen. Koden er personlig og kan bruges én gang.</p>` : '';
   const html = `
   <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:30px 24px;background:#faf7f2;border-radius:16px;color:#1a1611;">
     <div style="text-align:center;margin-bottom:18px;">
@@ -164,11 +202,7 @@ async function sendWelcomeEmail(email, code) {
     <h2 style="color:#273071;text-align:center;margin:0 0 8px;">Tak for din tilmelding</h2>
     <p style="text-align:center;margin:0 0 6px;color:#4a463f;">Velkommen til Quartz Mølles nyhedsbrev.</p>
     <p style="text-align:center;margin:0 0 20px;color:#4a463f;">Du bliver blandt de første til at høre om <strong>nye melvarianter</strong>, nyheder fra møllen, opskrifter og sæsonens korn.</p>
-    <div style="background:#fff;border:2px dashed #3a4599;border-radius:14px;padding:20px;text-align:center;margin:0 0 8px;">
-      <div style="font-size:13px;color:#6b6256;margin-bottom:6px;">Din personlige rabatkode – 10% på din næste ordre</div>
-      <div style="font-size:28px;font-weight:800;letter-spacing:2px;color:#273071;">${code}</div>
-    </div>
-    <p style="text-align:center;font-size:13px;color:#6b6256;margin:0 0 22px;">Indtast koden i feltet "Tilføj rabatkode" ved betalingen. Koden er personlig og kan bruges én gang.</p>
+    ${codeBlock}
     <div style="text-align:center;margin-bottom:26px;">
       <a href="https://www.quartzmolle.dk/shop" style="background:#273071;color:#fff;text-decoration:none;font-weight:600;padding:13px 30px;border-radius:10px;display:inline-block;">Se vores mel</a>
     </div>
@@ -184,7 +218,7 @@ async function sendWelcomeEmail(email, code) {
     body: JSON.stringify({
       from: 'Quartz Mølle <order@quartzmolle.dk>',
       to: [email],
-      subject: 'Velkommen! Din personlige rabatkode: 10% på din næste ordre 🌾',
+      subject: code ? 'Velkommen! Din personlige rabatkode: 10% på din næste ordre 🌾' : 'Velkommen til Quartz Mølles nyhedsbrev 🌾',
       html,
     }),
   });

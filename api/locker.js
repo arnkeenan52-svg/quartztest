@@ -363,7 +363,7 @@ export default async function handler(req, res) {
       let all = {};
       try { all = (await kv.hgetall('newsletter:emails')) || {}; } catch {}
       const emails = Object.entries(all)
-        .map(([email, v]) => ({ email, t: (v && v.t) || 0, code: (v && v.code) || '' }))
+        .map(([key, v]) => ({ email: (v && v.email) || key, t: (v && v.t) || 0, code: (v && v.code) || '' }))
         .sort((a, b) => b.t - a.t);
       return res.status(200).json({ ok: true, count: emails.length, emails });
     }
