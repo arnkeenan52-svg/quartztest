@@ -2107,43 +2107,32 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
 .nl-modal { position: fixed; inset: 0; z-index: 220; display: none; align-items: center; justify-content: center; padding: 18px; }
 .nl-modal.open { display: flex; }
 .nl-backdrop { position: absolute; inset: 0; background: rgba(20,16,12,.55); }
-/* The whole popup IS the artwork: the mill-logo world expanded to a full
-   square (Higgsfield), with a warm cream "paper" sheet floating at the bottom.
-   Nature Distilled: organic radius, soft natural shadows, ease-out motion. */
+/* The whole popup IS the artwork: a portrait (2:3) hand-painted poster of the
+   mill-logo world with the headline lettered INTO the painting (Higgsfield).
+   Only the email field + button float on the clean hill at the bottom. */
 .nl-card {
-  position: relative; overflow: hidden; width: 100%; max-width: 430px;
-  height: min(650px, 88vh); border-radius: 26px; background: var(--brand-blue);
+  position: relative; overflow: hidden;
+  width: min(400px, 92vw); aspect-ratio: 2 / 3; max-height: 88vh;
+  border-radius: 24px; background: var(--brand-blue);
   box-shadow: 0 30px 80px rgba(0,0,0,.4);
   animation: nlPop .5s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes nlPop { from { opacity: 0; transform: translateY(28px) scale(.96); } to { opacity: 1; transform: none; } }
-.nl-bg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: center top;
-  animation: nlDrift 14s ease-in-out infinite alternate;
+.nl-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.nl-formwrap { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 2; }
+.nl-formwrap .newsletter-form { flex-direction: column; gap: .55rem; max-width: none; }
+.nl-formwrap .newsletter-form input {
+  border: none; background: rgba(255,255,255,.97); box-shadow: 0 8px 26px rgba(0,0,0,.28);
 }
-@keyframes nlDrift { from { transform: scale(1); } to { transform: scale(1.06); } }
-.nl-badge {
-  position: absolute; top: 14px; left: 14px; z-index: 2;
-  background: #fff; color: var(--brand-blue);
-  font-weight: 800; font-size: 1.1rem; border-radius: 999px; padding: 9px 16px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.28); letter-spacing: .02em;
+.nl-formwrap .newsletter-form input:focus { outline: 3px solid rgba(255,255,255,.5); }
+.nl-formwrap .newsletter-form button {
+  background: var(--brand-blue); color: #fff; box-shadow: 0 8px 26px rgba(27,34,82,.45);
 }
-.nl-sheet {
-  position: absolute; left: 13px; right: 13px; bottom: 13px; z-index: 2;
-  background: rgba(250,247,242,.96);
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  border-radius: 19px; padding: 22px 20px 19px;
-  box-shadow: 0 14px 44px rgba(0,0,0,.28);
+.nl-formwrap .newsletter-msg {
+  color: #fff; text-align: center; margin-top: .5rem; min-height: 1.2em;
+  text-shadow: 0 1px 8px rgba(0,0,0,.55); font-weight: 700; font-size: .88rem;
 }
-.nl-sheet h2 { font-family: 'Inter', sans-serif; font-size: 1.42rem; font-weight: 700; color: var(--text); margin: .3rem 0 .4rem; letter-spacing: -0.01em; }
-.nl-sheet p { color: #6b6256; font-size: .89rem; line-height: 1.55; margin: 0 0 1rem; }
-.nl-sheet .newsletter-form { flex-direction: column; gap: .55rem; max-width: none; }
-.nl-sheet .newsletter-form input { border: 1.5px solid #e0d9c8; background: #fff; }
-.nl-sheet .newsletter-form input:focus { outline: none; border-color: var(--brand-blue-light); }
-.nl-sheet .newsletter-form button { background: var(--brand-blue); color: #fff; }
-.nl-sheet .newsletter-msg { color: var(--brand-blue); text-align: left; margin-top: .55rem; min-height: 1.2em; }
-.nl-sheet .newsletter-msg.err { color: #b23b3b; }
+.nl-formwrap .newsletter-msg.err { color: #ffd9d9; }
 .nl-close {
   position: absolute; top: 12px; right: 12px; z-index: 3; width: 38px; height: 38px;
   border: none; border-radius: 50%; background: rgba(255,255,255,.92); color: var(--text);
@@ -2152,9 +2141,4 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
   transition: transform .2s cubic-bezier(.22,1,.36,1);
 }
 .nl-close:hover { transform: rotate(90deg); }
-@media (max-width: 480px) {
-  .nl-card { max-width: 400px; height: min(600px, 86vh); border-radius: 22px; }
-  .nl-sheet { padding: 18px 17px 16px; }
-  .nl-sheet h2 { font-size: 1.28rem; }
-}
-@media (prefers-reduced-motion: reduce) { .nl-card { animation: none; } .nl-bg { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .nl-card { animation: none; } }
