@@ -538,12 +538,13 @@
       modal.querySelectorAll('[data-nl-close]').forEach(function (el) { el.addEventListener('click', closeNl); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNl(); });
 
-      // Auto-vis én gang pr. besøgende (ikke hvis allerede tilmeldt).
+      // Auto-vis én gang pr. besøgende — aldrig hvis man er (eller lige er
+      // blevet) tilmeldt på denne enhed.
       try {
         if (!subscribed() && !localStorage.getItem('qm_nl_seen')) {
           setTimeout(function () {
             localStorage.setItem('qm_nl_seen', '1');
-            if (!modal.classList.contains('open')) openNl();
+            if (!subscribed() && !modal.classList.contains('open')) openNl();
           }, 5000);
         }
       } catch (e) {}
@@ -567,7 +568,7 @@
               ? 'Du er allerede tilmeldt — tjek din indbakke for koden.'
               : 'Tak! Tjek din indbakke — din 10%-rabatkode er på vej.';
             input.value = '';
-            try { localStorage.setItem('qm_nl_sub', '1'); } catch (err) {}
+            try { localStorage.setItem('qm_nl_sub', '1'); localStorage.setItem('qm_nl_seen', '1'); } catch (err) {}
             tab.classList.add('hidden');
             setTimeout(closeNl, 2600);
           } else {
