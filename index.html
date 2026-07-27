@@ -330,6 +330,20 @@
     </div>
   </section>
 
+  <!-- NEWSLETTER -->
+  <section class="newsletter">
+    <div class="newsletter-inner">
+      <span class="eyebrow eyebrow-dark">Nyhedsbrev</span>
+      <h2>Få 10% på din første ordre</h2>
+      <p>Tilmeld dig vores nyhedsbrev og få en rabatkode med det samme — plus nyt om mel, opskrifter og sæsonens korn.</p>
+      <form id="nlForm" class="newsletter-form" novalidate>
+        <input type="email" id="nlEmail" placeholder="Din e-mailadresse" autocomplete="email" required />
+        <button type="submit" id="nlBtn">Tilmeld</button>
+      </form>
+      <div id="nlMsg" class="newsletter-msg" aria-live="polite"></div>
+    </div>
+  </section>
+
   <footer class="footer">
     <div class="footer-inner">
       <img src="images/logopng.png" alt="Quartz Mølle" class="footer-logo" />
@@ -494,6 +508,44 @@
       }
       window.addEventListener('scroll', function () { requestAnimationFrame(canvasColor); }, { passive: true });
       canvasColor();
+    })();
+  </script>
+
+  <script>
+    // Nyhedsbrev: gem e-mailen og udløs velkomstmail med 10%-koden.
+    (function () {
+      var form = document.getElementById('nlForm');
+      if (!form) return;
+      var input = document.getElementById('nlEmail');
+      var btn = document.getElementById('nlBtn');
+      var msg = document.getElementById('nlMsg');
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var email = (input.value || '').trim();
+        msg.className = 'newsletter-msg';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          msg.classList.add('err'); msg.textContent = 'Skriv en gyldig e-mailadresse.'; return;
+        }
+        btn.disabled = true; var t = btn.textContent; btn.textContent = 'Tilmelder…';
+        try {
+          var r = await fetch('/api/log-visit', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'newsletter', email: email }),
+          });
+          var d = await r.json().catch(function () { return {}; });
+          if (r.ok && d.ok) {
+            msg.textContent = d.already
+              ? 'Du er allerede tilmeldt — tjek din indbakke for koden.'
+              : 'Tak! Tjek din indbakke — din 10%-rabatkode er på vej.';
+            input.value = '';
+          } else {
+            msg.classList.add('err'); msg.textContent = d.error || 'Noget gik galt. Prøv igen.';
+          }
+        } catch (err) {
+          msg.classList.add('err'); msg.textContent = 'Netværksfejl — prøv igen.';
+        }
+        btn.disabled = false; btn.textContent = t;
+      });
     })();
   </script>
 
