@@ -128,6 +128,19 @@
     /* first video visible immediately (no black flash before JS runs) */
     #vid1, #vs1 .video-overlay { opacity: 1; }
 
+    /* Dark scrim across the very top of the video screens: the sunset sky in
+       the drone footage is nearly white, so without this the area behind the
+       iPhone status bar and the nav reads as a white header. Fades out ~20%
+       down the screen; the rest keeps the light 0.26/0.30 overlay. */
+    #videoStage .video-overlay {
+      background-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.55) 0%,
+        rgba(0, 0, 0, 0.30) 10%,
+        rgba(0, 0, 0, 0) 24%
+      );
+    }
+
     /* Scroll hint: anchored to the bottom of the FIRST screen of the page (not
        the viewport), so it stays in place and scrolls away with the content —
        while also fading out smoothly. The video sections are position:static
