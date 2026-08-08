@@ -127,8 +127,8 @@ export default async function handler(req, res) {
       console.log('Click & Collect order — skipping Shipmondo, sending emails only for', orderData.externalId);
       // Persist the order so the staff fulfilment page (/fufill) can list it and
       // later email the customer their locker door + code.
-      try { await savePickupOrder(orderData); } catch (e) { console.error('Failed to save pickup order to KV:', e); }
-      try { await sendOrderConfirmationEmail(orderData); } catch (e) { console.error('Order confirmation email failed:', e); }
+      try { await savePickupOrder(orderData); } catch (e) { console.error('Failed to save pickup order to KV:', e); await alertOwner('Skab-ordre blev IKKE gemt', `Click & Collect-ordren kunne ikke gemmes til /fufill — kunden faar ingen skabskode foer den er genskabt. Fejl: ${e.message}`, orderData.externalId); }
+      try { await sendOrderConfirmationEmail(orderData); } catch (e) { console.error('Order confirmation email failed:', e); await alertOwner('Kundemail fejlede', `Ordrebekraeftelsen til ${orderData.customerEmail || 'kunden'} blev ikke sendt: ${e.message}`, orderData.externalId); }
       try { await sendAdminNotificationEmail(orderData); } catch (e) { console.error('Admin notification failed:', e); }
       return res.status(200).json({ received: true, pickup: true });
     }
@@ -292,6 +292,7 @@ export default async function handler(req, res) {
     console.log('Shipmondo response', smRes.status, smText);
     if (!smRes.ok) {
       console.error('Shipmondo API error', smRes.status, smText);
+      await alertOwner('GLS-label fejlede (Shipmondo)', `Shipmondo afviste ordren (HTTP ${smRes.status}) — der er IKKE booket fragtlabel. Svar: ${String(smText).slice(0, 400)}`, orderData.externalId);
       return res.status(200).json({ received: true, shipmondo_error: smText });
     }
 
@@ -302,6 +303,7 @@ export default async function handler(req, res) {
       await sendOrderConfirmationEmail(orderData);
     } catch (emailErr) {
       console.error('Order confirmation email failed:', emailErr);
+      await alertOwner('Kundemail fejlede', `Ordrebekraeftelsen til ${orderData.customerEmail || 'kunden'} blev ikke sendt: ${emailErr.message}`, orderData.externalId);
     }
 
     // Send admin notification email (best-effort)
@@ -314,6 +316,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error('Webhook processing error:', err);
+    await alertOwner('Ordre-webhook fejlede', `Behandlingen af en Stripe-haendelse fejlede: ${err.message}`);
     return res.status(200).json({ received: true, error: err.message });
   }
 }
@@ -946,6 +949,78 @@ async function parseCheckoutSession(session) {
     shippingDisplayName,
     items,
   };
+}
+
+
+// ── DRIFT-OVERVAAGNING: besked til ejeren naar ordrekaeden fejler ────────────
+// Push til alle tilmeldte enheder OG mail til ADMIN_EMAIL naar noget i
+// ordre-pipelinen gaar galt (Shipmondo/GLS-label, kundemails, skab-ordrer).
+// Best-effort (kan aldrig vaelte webhooken) og throttlet pr. unik fejl i 6
+// timer, saa Stripe-genforsoeg og dublet-hændelser ikke spammer telefonen.
+async function alertOwner(title, detail, orderRef) {
+  try {
+    const ref = orderRef ? ` · ordre ${orderRef}` : '';
+    const text = String(detail || '').slice(0, 600);
+
+    // throttle: identisk alarm max en gang pr. 6 timer
+    try {
+      const { kv } = await import('./_kv.js');
+      const crypto = await import('crypto');
+      const key = 'alert:' + crypto.createHash('sha1').update(title + '|' + text).digest('hex').slice(0, 16);
+      const fresh = await kv.set(key, 1, { nx: true, ex: 21600 });
+      if (fresh === null) return;
+    } catch { /* uden throttle er en ekstra alarm bedre end ingen */ }
+
+    // 1) push-notifikation til ejerens enheder
+    try {
+      const priv = process.env.VAPID_PRIVATE_KEY || '';
+      if (priv) {
+        const webpush = (await import('web-push')).default;
+        webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:hello@quartzmolle.dk', QM_VAPID_PUBLIC, priv);
+        const { kv } = await import('./_kv.js');
+        let subs = {};
+        try { subs = (await kv.hgetall('push:subs')) || {}; } catch {}
+        if (Object.keys(subs).length) {
+          const payload = JSON.stringify({
+            title: '\u26a0\ufe0f ' + title,
+            body: text.slice(0, 140) + ref,
+            url: '/admin',
+            tag: 'alert-' + Date.now(),
+          });
+          await Promise.all(Object.entries(subs).map(async ([k, sub]) => {
+            try { await webpush.sendNotification(sub, payload); }
+            catch (e) {
+              const c = e && e.statusCode;
+              if (c === 404 || c === 410) { try { await kv.hdel('push:subs', k); } catch {} }
+            }
+          }));
+        }
+      }
+    } catch (e) { console.error('alertOwner push failed:', e); }
+
+    // 2) mail til ejeren
+    try {
+      const apiKey = process.env.RESEND_API_KEY;
+      const adminEmail = process.env.ADMIN_EMAIL;
+      if (apiKey && adminEmail) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Quartz Mølle <ordre@quartzmolle.dk>',
+            to: [adminEmail],
+            subject: `\u26a0\ufe0f ${title}${ref}`,
+            html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+              <h2 style="color:#c0392b;margin:0 0 12px;">\u26a0\ufe0f ${title}</h2>
+              ${orderRef ? `<p style="margin:0 0 10px;"><strong>Ordre:</strong> ${orderRef}</p>` : ''}
+              <pre style="background:#f5f1e8;border-radius:8px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:13px;color:#333;">${text.replace(/</g, '&lt;')}</pre>
+              <p style="color:#777;font-size:13px;">Tjek ordren i <a href="https://www.quartzmolle.dk/admin" style="color:#273071;">admin</a> og evt. Shipmondo/Stripe. Denne alarm sendes hoejst en gang pr. 6 timer pr. fejltype.</p>
+            </div>`,
+          }),
+        });
+      }
+    } catch (e) { console.error('alertOwner email failed:', e); }
+  } catch (e) { console.error('alertOwner failed:', e); }
 }
 
 // ── PUSH NOTIFICATION til ejeren ved nye ordrer ─────────────────────────────
