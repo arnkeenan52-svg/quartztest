@@ -18,6 +18,7 @@ function writeCart(items) {
   } catch {}
   updateCartUI();
   schedulePrefetch();
+  reportCartState();
 }
 
 function cartCount() {
@@ -295,6 +296,45 @@ window.addEventListener('pageshow', () => {
 });
 
 
+
+// ── KUNDEREJSE-SIGNAL: anonymt "i kurv" / "i checkout" til admin-tragten ─────
+// Sender kun et tilfældigt id + antal varer + total — aldrig navne eller andet
+// personligt. Bruges til "Lige nu i butikken"-panelet i admin.
+function qmVid() {
+  try {
+    let v = localStorage.getItem('qm_vid');
+    if (!v) {
+      v = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('qm_vid', v);
+    }
+    return v;
+  } catch (e) { return 'anon'; }
+}
+
+function sendFunnel(step, items) {
+  const payload = JSON.stringify({
+    action: step === 'checkout' ? 'checkoutstart' : 'cart',
+    id: qmVid(),
+    count: items.reduce((s, i) => s + (i.qty || 0), 0),
+    total: Math.round(items.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0)),
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/log-visit', new Blob([payload], { type: 'application/json' }));
+      return;
+    }
+  } catch (e) {}
+  try {
+    fetch('/api/log-visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(() => {});
+  } catch (e) {}
+}
+
+let _funnelTimer = null;
+function reportCartState() {
+  clearTimeout(_funnelTimer);
+  _funnelTimer = setTimeout(() => sendFunnel('cart', readCart()), 1500);
+}
+
 // ── LYN-CHECKOUT: forbered Stripe-sessionen i baggrunden ─────────────────────
 // Når kurven åbnes (og når indholdet ændres, mens den er åben), oprettes
 // checkout-sessionen hos Stripe i forvejen — kunden mærker intet. Trykket på
@@ -339,6 +379,7 @@ function schedulePrefetch() {
 async function checkoutCart() {
   const items = readCart();
   if (items.length === 0) return;
+  sendFunnel('checkout', items);
   const btn = document.getElementById('cart-checkout-btn');
   const errEl = document.getElementById('cart-error');
   if (errEl) errEl.textContent = '';
