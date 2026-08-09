@@ -157,25 +157,26 @@
     display:flex;align-items:center;gap:8px
   }
   .panel h2 svg{color:var(--blue-light)}
-  .fn-live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#2e7d32}
-  .funnel-grid{display:flex;align-items:stretch;gap:10px;padding:4px 0 2px}
-  .funnel-step{flex:1;text-align:center;background:linear-gradient(165deg,var(--blue-soft),rgba(39,48,113,.02));border:1px solid var(--grey-soft);border-radius:14px;padding:16px 6px 13px;position:relative;overflow:hidden}
-  .funnel-step::before{content:"";position:absolute;inset:0;transform:translateX(-120%) skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:fnShine 5s ease-in-out infinite}
-  .funnel-step:nth-child(3)::before{animation-delay:1.1s}
-  .funnel-step.done::before{animation-delay:2.2s}
-  .funnel-step.done{background:linear-gradient(165deg,rgba(46,125,50,.1),rgba(46,125,50,.02))}
-  .funnel-step.done .fs-num{color:#2e7d32}
-  .fs-num{font-size:34px;font-weight:800;color:var(--blue);line-height:1.1;font-variant-numeric:tabular-nums;position:relative}
-  .fs-num.pop{animation:fnPop .5s cubic-bezier(.22,1,.36,1)}
-  .fs-label{font-size:12.5px;font-weight:700;color:#1a1611;margin-top:3px;position:relative}
-  .fs-label span{display:block;font-weight:500;font-size:10.5px;color:var(--grey);margin-top:1px}
-  .funnel-flow{flex:none;width:26px;height:3px;border-radius:2px;background:var(--grey-soft);align-self:center;position:relative;overflow:hidden}
-  .funnel-flow::after{content:"";position:absolute;top:0;bottom:0;width:10px;border-radius:2px;background:var(--blue-light);animation:fnFlow 1.7s ease-in-out infinite}
-  @keyframes fnFlow{0%{left:-10px;opacity:0}35%{opacity:1}100%{left:100%;opacity:0}}
-  @keyframes fnPop{0%{transform:scale(1)}35%{transform:scale(1.25)}100%{transform:scale(1)}}
-  @keyframes fnShine{0%,72%{transform:translateX(-120%) skewX(-18deg)}88%,100%{transform:translateX(220%) skewX(-18deg)}}
-  @media(prefers-reduced-motion:reduce){.funnel-flow::after,.funnel-step::before{animation:none}.fs-num.pop{animation:none}}
-  @media(max-width:560px){.fs-num{font-size:26px}.funnel-flow{width:12px}.funnel-grid{gap:7px}.funnel-step{padding:13px 3px 11px;border-radius:12px}.fs-label{font-size:11px;letter-spacing:-.01em}.fs-label span{font-size:9.5px}}
+  .fb-chip{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--grey);background:var(--grey-soft);border-radius:999px;padding:4px 11px;letter-spacing:.02em}
+  .fb-grid{display:flex;justify-content:space-around;position:relative;padding:18px 6px 8px}
+  .fb-grid::before{content:"";position:absolute;left:15%;right:15%;top:45px;height:1.5px;background:var(--grey-soft)}
+  .fb-step{flex:1;text-align:center;position:relative}
+  .fb-orb{position:relative;width:54px;height:54px;margin:0 auto 22px;border-radius:50%;
+    background:radial-gradient(circle at 50% 36%,#ffffff 0%,var(--c1) 34%,var(--c2) 80%);
+    box-shadow:0 0 0 0 rgba(0,0,0,0), 0 6px 18px -4px var(--c2);
+    opacity:.4;transform:scale(.78);transition:opacity .4s ease,transform .4s cubic-bezier(.22,1,.36,1)}
+  .fb-orb i{position:absolute;inset:0;margin:auto;width:3px;height:3px;border-radius:50%;background:rgba(20,25,60,.55)}
+  .fb-orb.on{opacity:1;transform:scale(1);animation:fbBreathe 2.8s ease-in-out infinite}
+  .fb-orb::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--c2);opacity:0;transform:scale(1)}
+  .fb-orb.ping::after{animation:fbPing .8s cubic-bezier(.22,1,.36,1)}
+  @keyframes fbBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+  @keyframes fbPing{0%{opacity:.75;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+  .fb-num{font-size:27px;font-weight:800;color:#1a1611;line-height:1.1;font-variant-numeric:tabular-nums}
+  .fb-num.pop{animation:fnPop .5s cubic-bezier(.22,1,.36,1)}
+  @keyframes fnPop{0%{transform:scale(1)}35%{transform:scale(1.22)}100%{transform:scale(1)}}
+  .fb-label{font-size:12.5px;font-weight:500;color:var(--grey);margin-top:2px}
+  @media(prefers-reduced-motion:reduce){.fb-orb.on{animation:none}.fb-orb.ping::after{animation:none}.fb-num.pop{animation:none}}
+  @media(max-width:560px){.fb-orb{width:44px;height:44px;margin-bottom:16px}.fb-grid::before{top:39px}.fb-num{font-size:23px}.fb-label{font-size:11px}}
   .alerts-clear{margin-left:auto;background:none;border:1.5px solid var(--grey-soft);border-radius:8px;padding:4px 12px;font-family:inherit;font-size:12px;font-weight:600;color:var(--grey);cursor:pointer}
   .alerts-clear:hover{border-color:var(--grey);color:#1a1611}
   .alert-ok{color:#2e7d32;font-weight:600;font-size:14px;padding:2px 0}
@@ -394,13 +395,23 @@
 
     <!-- Kunderejse: lige nu i butikken -->
     <div class="panel">
-      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Lige nu i butikken<span class="fn-live"><span class="live-dot"></span>LIVE</span></h2>
-      <div class="funnel-grid">
-        <div class="funnel-step"><div class="fs-num" id="fnCarts">–</div><div class="fs-label">I kurv<span>sidste 30 min</span></div></div>
-        <div class="funnel-flow"></div>
-        <div class="funnel-step"><div class="fs-num" id="fnCheckouts">–</div><div class="fs-label">I checkout<span>sidste 30 min</span></div></div>
-        <div class="funnel-flow"></div>
-        <div class="funnel-step done"><div class="fs-num" id="fnDone">–</div><div class="fs-label">Gennemført<span>i dag</span></div></div>
+      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>Lige nu i butikken<span class="fb-chip"><span class="live-dot"></span>30 min</span></h2>
+      <div class="fb-grid">
+        <div class="fb-step">
+          <div class="fb-orb" id="orbCarts" style="--c1:#8ed0f5;--c2:#3d9de0"><i></i></div>
+          <div class="fb-num" id="fnCarts">–</div>
+          <div class="fb-label">I kurv</div>
+        </div>
+        <div class="fb-step">
+          <div class="fb-orb" id="orbCheckouts" style="--c1:#c3aef7;--c2:#8b6fe8"><i></i></div>
+          <div class="fb-num" id="fnCheckouts">–</div>
+          <div class="fb-label">I checkout</div>
+        </div>
+        <div class="fb-step">
+          <div class="fb-orb" id="orbDone" style="--c1:#93a0f5;--c2:#4a5be0"><i></i></div>
+          <div class="fb-num" id="fnDone">–</div>
+          <div class="fb-label">Købt i dag</div>
+        </div>
       </div>
     </div>
 
@@ -613,14 +624,18 @@
     } catch (err) { /* silent */ }
   }
 
-  // Shopify-agtig tal-animation: tæller op/ned med ease og et lille "pop".
-  function setFnNum(id, target) {
+  // Shopify-agtige orbs: tallet tæller op/ned, kuglen lyser når der er
+  // aktivitet, ånder roligt — og udvider sig med en ring, når tallet stiger.
+  function setFnNum(id, target, orbId) {
     const el = document.getElementById(id);
     if (!el) return;
     target = target || 0;
+    const orb = orbId ? document.getElementById(orbId) : null;
+    if (orb) orb.classList.toggle('on', target > 0);
     const cur = parseInt(el.textContent, 10);
     if (!Number.isFinite(cur)) { el.textContent = target; return; }
     if (cur === target) return;
+    if (orb && target > cur) { orb.classList.remove('ping'); void orb.offsetWidth; orb.classList.add('ping'); }
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
     const start = cur, diff = target - start, t0 = performance.now(), dur = 550;
     (function tick(t) {
@@ -633,8 +648,8 @@
 
   function renderFunnel(f) {
     if (!f) return;
-    setFnNum('fnCarts', f.cartCount);
-    setFnNum('fnCheckouts', f.checkoutCount);
+    setFnNum('fnCarts', f.cartCount, 'orbCarts');
+    setFnNum('fnCheckouts', f.checkoutCount, 'orbCheckouts');
   }
 
   function alertTimeAgo(t) {
@@ -679,7 +694,7 @@
     renderAlerts(data.alerts || []);
     // Top stats
     document.getElementById('ordersToday').textContent = data.ordersToday || 0;
-    setFnNum('fnDone', data.ordersToday || 0);
+    setFnNum('fnDone', data.ordersToday || 0, 'orbDone');
     document.getElementById('ordersWeek').textContent = (data.totalOrders || 0) + ' i ' + label;
     document.getElementById('revenueToday').textContent = formatKr(data.revenueToday || 0);
     document.getElementById('revenueWeek').textContent = formatKr(data.totalRevenue || 0) + ' i ' + label;
