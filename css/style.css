@@ -1972,20 +1972,8 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
 }
 
 /* confirmation on the tapped row before the popup closes */
-.qa-opt-check {
-  position: absolute;
-  right: 9px;
-  top: 50%;
-  color: var(--brand-blue, #273071);
-  opacity: 0;
-  transform: translateY(-50%) scale(0.5);
-  transition: opacity 0.14s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-}
 .qa-opt.qa-picked { background: var(--brand-blue-softbg, rgba(39, 48, 113, 0.08)); }
 .qa-opt.qa-picked > span:first-child { color: var(--brand-blue, #273071); }
-.qa-opt.qa-picked .qa-opt-price { transform: translateX(-22px); }
-.qa-opt.qa-picked .qa-opt-check { opacity: 1; transform: translateY(-50%) scale(1); }
 
 @media (prefers-reduced-motion: reduce) {
   .qa-btn { transition: background-color 0.18s ease, box-shadow 0.18s ease; }
@@ -1995,9 +1983,6 @@ body:has(.mobile-menu.open) .lang-switch-btn .lang-chevron {
   .qa-pop, .qa-pop.out { transform: none; transition: opacity 0.15s ease; }
   .qa-opt { transition: background-color 0.12s ease; }
   .qa-opt:active { transform: none; }
-  .qa-opt-price, .qa-opt.qa-picked .qa-opt-price { transform: none; transition: none; }
-  .qa-opt-check { transition: opacity 0.15s ease; }
-  .qa-opt-check, .qa-opt.qa-picked .qa-opt-check { transform: translateY(-50%); }
   .qa-note, .qa-note.in { transform: none; transition: opacity 0.15s ease; }
 }
 
