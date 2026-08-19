@@ -157,6 +157,43 @@
   .btn-grow{flex:1}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
+  /* ---------- SECTION NAV ---------- */
+  .subnav{
+    display:flex;gap:2px;padding:0 16px;background:var(--surface);
+    border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;
+    position:sticky;top:56px;z-index:39
+  }
+  .subnav::-webkit-scrollbar{display:none}
+  .subnav-item{
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+    padding:11px 10px;font-size:13px;font-weight:500;color:var(--muted-fg);
+    text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+    transition:color .15s ease,border-color .15s ease
+  }
+  .subnav-item svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .subnav-item:hover{color:var(--fg)}
+  .subnav-item.is-active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+
+  /* ---------- ICONS ---------- */
+  .btn .ic,.opt .em svg,.icon-btn svg{
+    width:16px;height:16px;fill:none;stroke:currentColor;
+    stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none
+  }
+  .icon-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:var(--radius-sm);color:var(--muted-fg);
+    border:1px solid var(--border);background:var(--surface);
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease
+  }
+  .icon-btn:hover{background:var(--muted);color:var(--fg);border-color:var(--border-strong)}
+  .panel-tools{display:flex;align-items:center;gap:8px}
+  .btn-block{width:100%}
+  .row-split{margin-top:8px}
+  .btn-danger{color:var(--red);border-color:var(--red-border)}
+  .btn-danger:hover{background:var(--red-tint);border-color:var(--red)}
+  .opt .em{display:inline-flex;align-items:center;justify-content:center;width:18px;flex:none}
+  .opt .em svg{width:17px;height:17px}
+
   /* ---------- CABINET (skeleton unchanged: 6 columns, tablet in column 4) ---------- */
   .cabinet{
     display:flex;gap:4px;background:#0f172a;padding:6px;
@@ -310,6 +347,8 @@
     .pill{font-size:11px;padding:4px 8px;gap:5px}
     .logout{font-size:12px;padding:6px 9px}
     .top .lang-switch-btn{padding:6px 7px!important;font-size:12px!important}
+    .subnav{padding:0 8px}
+    .subnav-item{padding:10px 8px;font-size:12.5px}
   }
   @media (prefers-reduced-motion: reduce){
     *{transition-duration:.01ms!important;animation-duration:.01ms!important}
@@ -341,24 +380,35 @@
     <button class="logout" id="logoutBtn">Log ud</button>
   </div>
 
+  <nav class="subnav" aria-label="Sektioner">
+    <a class="subnav-item is-active" href="/locker" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Skabe</a>
+    <a class="subnav-item" href="/fufill"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Ordrer</a>
+    <a class="subnav-item" href="/packing"><svg viewBox="0 0 24 24"><path d="M9 2h6a1 1 0 0 1 1 1v1H8V3a1 1 0 0 1 1-1z"/><path d="M16 4h2a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2"/><path d="M9 12h6M9 16h4"/></svg>Pakkeliste</a>
+  </nav>
+
   <div class="wrap">
     <!-- Handlinger samlet i én værktøjslinje -->
     <section class="panel">
       <header class="panel-h">
         <h2>Handlinger</h2>
-        <span id="statusPill" class="pill"><span class="dot"></span><span id="statusText">…</span></span>
+        <div class="panel-tools">
+          <span id="statusPill" class="pill"><span class="dot"></span><span id="statusText">…</span></span>
+          <button class="icon-btn" id="refreshBtn" aria-label="Opdatér" title="Opdatér">
+            <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
       </header>
       <div class="panel-b">
-        <div class="row">
-          <button class="btn btn-primary btn-grow" id="depositBtn">＋ Ny aflevering</button>
-          <button class="btn btn-ghost" id="refreshBtn">↻ Opdatér</button>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn btn-blue btn-grow" id="openAllBtn">🔓 Åbn alle</button>
-          <button class="btn btn-ghost btn-grow" id="clearAllBtn" style="color:var(--red);border-color:var(--red-soft)">🧹 Ryd alle</button>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <a class="btn btn-ghost btn-grow" href="/fufill" style="text-decoration:none">📦 Ordre-fulfillment (Click &amp; Collect)</a>
+        <button class="btn btn-primary btn-block" id="depositBtn">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>Ny aflevering
+        </button>
+        <div class="row row-split">
+          <button class="btn btn-ghost btn-grow" id="openAllBtn">
+            <svg viewBox="0 0 24 24" class="ic"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>Åbn alle
+          </button>
+          <button class="btn btn-ghost btn-grow btn-danger" id="clearAllBtn">
+            <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>Ryd alle
+          </button>
         </div>
       </div>
     </section>
@@ -389,6 +439,16 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const IC = {
+  unlock:'<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  copy:'<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  clear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>',
+  ok:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>',
+  warn:'<svg viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  box:'<svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
+  mail:'<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>'
+};
 const DOORS = 22;
 // Physical cabinet layout: 6 columns, numbered top-to-bottom; the tablet screen
 // sits at the top of column 4 (spanning 2 rows). Matches the real locker.
@@ -540,12 +600,12 @@ function closeOverlay(){ $('#overlayRoot').innerHTML=''; }
 
 function openActions(l){
   const opts=[];
-  opts.push('<button class="opt blue" data-a="open"><span class="em">🔓</span> Åbn dør</button>');
+  opts.push('<button class="opt blue" data-a="open"><span class="em">'+IC.unlock+'</span> Åbn dør</button>');
   if(l.occ){
-    opts.push('<button class="opt" data-a="copy"><span class="em">📋</span> Kopiér kode ('+l.code+')</button>');
-    opts.push('<button class="opt danger" data-a="clear"><span class="em">🧹</span> Ryd skab (markér ledig)</button>');
+    opts.push('<button class="opt" data-a="copy"><span class="em">'+IC.copy+'</span> Kopiér kode ('+l.code+')</button>');
+    opts.push('<button class="opt danger" data-a="clear"><span class="em">'+IC.clear+'</span> Ryd skab (markér ledig)</button>');
   }
-  opts.push('<button class="opt" data-a="oos"><span class="em">'+(l.oos?'✅':'⚠️')+'</span> '+(l.oos?'Sæt i drift':'Sæt ud af drift')+'</button>');
+  opts.push('<button class="opt" data-a="oos"><span class="em">'+(l.oos?IC.ok:IC.warn)+'</span> '+(l.oos?'Sæt i drift':'Sæt ud af drift')+'</button>');
   overlay('<h3>Skab '+l.door+'</h3><div class="subtt">'+(l.oos?'Ud af drift':l.occ?'Optaget · kode '+l.code:'Ledig')+'</div>'+opts.join('')+
           '<button class="cancel" data-a="cancel">Annullér</button>');
   $('#overlayRoot').querySelectorAll('.opt,.cancel').forEach(b=>{
@@ -568,7 +628,7 @@ async function handleAction(a,l){
 
 function confirmOpen(door){
   overlay('<h3>Åbn skab '+door+'?</h3><div class="subtt">Døren åbnes fysisk på lockeren.</div>'+
-    '<button class="opt blue" data-a="yes"><span class="em">🔓</span> Ja, åbn døren</button>'+
+    '<button class="opt blue" data-a="yes"><span class="em">'+IC.unlock+'</span> Ja, åbn døren</button>'+
     '<button class="cancel" data-a="no">Annullér</button>', true);
   $('#overlayRoot').querySelector('[data-a="yes"]').addEventListener('click',async()=>{
     closeOverlay(); await cmd({action:'open',door}); toast('Åbner skab '+door+'…');
@@ -596,7 +656,7 @@ function askQty(){
   if(!free.length){ toast('Alle skabe er optaget'); return; }
   const maxQ=Math.min(5, free.length);
   let opts='';
-  for(let n=1;n<=maxQ;n++) opts+='<button class="opt blue" data-n="'+n+'"><span class="em">📦</span> '+n+(n===1?' skab':' skabe')+'</button>';
+  for(let n=1;n<=maxQ;n++) opts+='<button class="opt blue" data-n="'+n+'"><span class="em">'+IC.box+'</span> '+n+(n===1?' skab':' skabe')+'</button>';
   overlay('<h3>Hvor mange skabe?</h3><div class="subtt">Vælg antal skabe til ordren</div>'+opts+
     '<button class="cancel" data-a="cancel">Annullér</button>', true);
   $('#overlayRoot').querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>pickDoors(parseInt(b.dataset.n,10))));
@@ -625,7 +685,7 @@ function pickDoors(need){
         const isFree=!l.occ && !l.oos;
         const sel=chosen.has(num);
         const cls='door '+(sel?'sel':l.oos?'oos':l.occ?'occ':'free');
-        const lbl=sel?'✓ Valgt':(l.oos?'Ud af drift':l.occ?'Optaget':'Ledig');
+        const lbl=sel?'Valgt':(l.oos?'Ud af drift':l.occ?'Optaget':'Ledig');
         cab+='<button class="'+cls+'"'+(isFree?' data-d="'+num+'"':' disabled')+'>'
            + '<span class="dn">'+num+'</span><span class="dlbl">'+lbl+'</span></button>';
         i++;
@@ -635,7 +695,7 @@ function pickDoors(need){
     cab+='</div>';
     overlay('<h3>Vælg '+need+' skab'+(need>1?'e':'')+'</h3><div class="subtt">'+chosen.size+' / '+need+' valgt · optagede skabe kan ikke vælges</div>'+
       cab+
-      '<button class="opt blue" data-a="ok"><span class="em">✓</span> Opret kode</button>'+
+      '<button class="opt blue" data-a="ok"><span class="em">'+IC.check+'</span> Opret kode</button>'+
       '<button class="cancel" data-a="cancel">Annullér</button>', true);
     $('#overlayRoot').querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
       const dn=parseInt(b.dataset.d,10);
@@ -671,9 +731,9 @@ async function showDepositResult(doors, code){
 function renderDepositResult(arr, code, orders){
   const many=arr.length>1, list=arr.join(', ');
   const ordersHtml = orders.length
-    ? '<div class="subtt" style="margin:14px 0 0">📧 Send koden til kunden — vælg ordren:</div>'
+    ? '<div class="subtt" style="margin:14px 0 0">Send koden til kunden — vælg ordren:</div>'
       + orders.map(o =>
-          '<button class="opt" data-ref="'+esc(o.ref)+'"><span class="em">📧</span>'
+          '<button class="opt" data-ref="'+esc(o.ref)+'"><span class="em">'+IC.mail+'</span>'
         + '<span style="min-width:0;line-height:1.3"><b>'+esc(o.name||'—')+'</b>'
         + '<br><small style="opacity:.65">'+orderItemsShort(o)+' · #'+esc(o.ref)+'</small></span></button>'
         ).join('')
@@ -683,17 +743,17 @@ function renderDepositResult(arr, code, orders){
     + '<div class="subtt">Læg pakken i skab'+(many?'e':'')+' '+list+(many?' · samme kode åbner alle':'')+'</div>'
     + '<div class="codebox"><div class="lbl">Kode til kunden</div><div class="big">'+code+'</div></div>'
     + ordersHtml
-    + '<button class="opt blue" data-a="copy"><span class="em">📋</span> Kopiér kode</button>'
+    + '<button class="opt blue" data-a="copy"><span class="em">'+IC.copy+'</span> Kopiér kode</button>'
     + '<button class="cancel" data-a="done">Ingen ordre / færdig</button>', true);
 
   $('#overlayRoot').querySelectorAll('[data-ref]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       const ref=b.dataset.ref, orig=b.innerHTML;
-      b.disabled=true; b.innerHTML='<span class="em">📧</span> Sender…';
+      b.disabled=true; b.innerHTML='<span class="em">'+IC.mail+'</span> Sender…';
       try{
         const r=await fetch('/api/fulfill',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'send',ref:ref,doors:arr})});
         const d=await r.json().catch(()=>({}));
-        if(r.ok && d.ok){ closeOverlay(); toast('Kode sendt til kunden ✓'); refresh(); }
+        if(r.ok && d.ok){ closeOverlay(); toast('Kode sendt til kunden'); refresh(); }
         else { b.disabled=false; b.innerHTML=orig; toast(d.error||'Kunne ikke sende'); }
       }catch(e){ b.disabled=false; b.innerHTML=orig; toast('Kunne ikke sende'); }
     });
@@ -707,7 +767,7 @@ $('#refreshBtn').addEventListener('click', refresh);
 /* open all / clear all */
 $('#openAllBtn').addEventListener('click', ()=>{
   overlay('<h3>Åbn ALLE skabe?</h3><div class="subtt">Alle 22 døre åbnes fysisk på lockeren, én ad gangen.</div>'+
-    '<button class="opt blue" data-a="yes"><span class="em">🔓</span> Ja, åbn alle</button>'+
+    '<button class="opt blue" data-a="yes"><span class="em">'+IC.unlock+'</span> Ja, åbn alle</button>'+
     '<button class="cancel" data-a="no">Annullér</button>', true);
   $('#overlayRoot').querySelector('[data-a="yes"]').addEventListener('click', async()=>{
     closeOverlay(); await cmd({action:'openall'}); toast('Åbner alle skabe…');
@@ -716,7 +776,7 @@ $('#openAllBtn').addEventListener('click', ()=>{
 });
 $('#clearAllBtn').addEventListener('click', ()=>{
   overlay('<h3>Ryd ALLE skabe?</h3><div class="subtt">Alle skabe markeres ledige og koderne fjernes. Kan ikke fortrydes.</div>'+
-    '<button class="opt danger" data-a="yes"><span class="em">🧹</span> Ja, ryd alle</button>'+
+    '<button class="opt danger" data-a="yes"><span class="em">'+IC.clear+'</span> Ja, ryd alle</button>'+
     '<button class="cancel" data-a="no">Annullér</button>', true);
   $('#overlayRoot').querySelector('[data-a="yes"]').addEventListener('click', async()=>{
     closeOverlay(); await cmd({action:'clearall'}); toast('Alle skabe ryddet');
