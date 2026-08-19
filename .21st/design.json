@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "project": {
+    "name": "quartzmolle",
+    "productType": "ecommerce",
+    "stack": ["html", "css", "vanilla-js"]
+  },
+  "sources": {
+    "tokens": ["css/style.css"],
+    "components": ["js/main.js", "js/cart.js", "js/product.js", "js/shop.js"],
+    "assets": ["images/"],
+    "instructions": [".21st/DESIGN.md"]
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "cream": "#faf7f2",
+      "warmWhite": "#f5f0e8",
+      "brandBlue": "#273071",
+      "brandBlueDark": "#1b2252",
+      "brandBlueLight": "#3a4599",
+      "brandBlueSoftBg": "rgba(39, 48, 113, 0.08)",
+      "text": "#1a1611",
+      "dark": "#000000",
+      "mid": "#2a2a2a",
+      "muted": "#756e5e",
+      "textLight": "rgba(255,255,255,0.9)"
+    },
+    "typography": {
+      "fontFamily": "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+      "minInputSize": "16px",
+      "note": "Inputs never go below 16px — smaller sizes make iOS Safari zoom on focus."
+    },
+    "spacing": {
+      "navHeight": "72px"
+    },
+    "radius": {
+      "small": "6px",
+      "medium": "12px",
+      "large": "16px",
+      "pill": "999px",
+      "circle": "50%"
+    },
+    "shadows": {
+      "card": "0 2px 20px rgba(0,0,0,0.07)",
+      "raised": "0 8px 40px rgba(0,0,0,0.15)",
+      "popover": "0 2px 6px rgba(26,22,17,0.08), 0 18px 44px rgba(26,22,17,0.2)"
+    },
+    "motion": {
+      "sheetCurve": "cubic-bezier(0.32, 0.72, 0, 1)",
+      "sheetDuration": "0.4s",
+      "standardCurve": "cubic-bezier(0.23, 1, 0.32, 1)",
+      "pressFeedback": "scale(0.97) over 140ms",
+      "springCurve": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "accordionDuration": "260ms",
+      "note": "Every animation must have a prefers-reduced-motion fallback."
+    },
+    "density": "comfortable"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": [
+      "product-card with quick-add popover (.qa-btn / .qa-pop)",
+      "slide-in cart drawer (.cart-drawer / .cart-panel)",
+      "accordion via grid-template-rows 0fr -> 1fr",
+      "full-screen brand loader before Stripe redirect"
+    ]
+  },
+  "constraints": {
+    "must": [
+      "Plain HTML, CSS and browser JS only — there is no build step and no package.json",
+      "Add styles to css/style.css; it is the single stylesheet and the agreed styling base",
+      "Danish is the source language; new user-facing strings must be registered in js/i18n.js (EN + ES)",
+      "Mobile-first — most visitors and the owner are on iPhone",
+      "Touch targets at least 44px; keyboard focus visible via :focus-visible",
+      "Guard every animation with prefers-reduced-motion"
+    ],
+    "avoid": [
+      "React, JSX, Tailwind, shadcn or any framework output",
+      "npm dependencies, bundlers, CDN scripts or external stylesheets",
+      "New fonts or new colour palettes — the palette above is fixed",
+      "Layout overhauls or redesigns; changes stay polish-level",
+      "Hover-only affordances that stick after a tap on touch devices"
+    ]
+  },
+  "decisions": [
+    "Cream + brand-blue palette is derived from the printed flour label artwork and is not up for redesign",
+    "The cart drawer uses visibility (not display:none) so its slide animation can run",
+    "Closing the cart reloads only on the homepage, where the fixed video stage causes iOS render artifacts"
+  ],
+  "evidence": [
+    "css/style.css :root — colour and nav-height tokens",
+    "css/style.css — radii, shadows and motion curves in use",
+    "js/i18n.js — Danish source strings with EN/ES dictionaries"
+  ],
+  "generatedAt": "2026-08-19T21:52:49.068Z"
+}

@@ -1,1 +1,5 @@
 node_modules/
+
+# Local secrets (e.g. API_KEY_21ST) — never commit
+.env
+.env.*
