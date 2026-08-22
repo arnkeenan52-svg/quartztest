@@ -375,6 +375,16 @@
   }
   .om-partial input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
 
+  .nl-ip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--subtle-fg);margin-right:10px}
+  .nl-ipwrap{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .ipg{border:1px solid #fde68a;background:var(--amber-tint);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px}
+  .ipg-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--amber);margin-bottom:6px}
+  .ipg-head b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700}
+  .ipg-head span{font-weight:600}
+  .ipg-row{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--fg-2);padding:3px 0;flex-wrap:wrap}
+  .ipg-code{font-weight:700;color:var(--primary);font-variant-numeric:tabular-nums}
+  .ipg-date{margin-left:auto;color:var(--muted-fg);font-variant-numeric:tabular-nums}
+
   .ic-sm{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
   .empty,.loading{color:var(--muted-fg);font-size:13.5px;font-weight:500;padding:6px 0}
 
@@ -527,6 +537,7 @@
     <div class="panel">
       <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Nyhedsbrev <span id="nlCount" style="color:var(--muted-fg);font-weight:500;font-size:13px"></span></h2>
       <div id="nlList" class="loading">Henter tilmeldinger…</div>
+      <div class="nl-ipwrap"><div class="om-section-label">IP-tjek · gentagne tilmeldinger fra samme IP</div><div id="nlIpGroups" class="loading">Henter…</div></div>
       <button id="nlCsvBtn" class="dchip" type="button" style="margin-top:10px;display:none">Hent som CSV</button>
     </div>
 
@@ -1264,6 +1275,44 @@
 
 <script>
 // ── NYHEDSBREVS-LISTE ───────────────────────────────────────────────────────
+  // IP-tjek: samler tilmeldinger pr. afsender-IP. Flere tilmeldinger fra samme
+  // IP er det staerkeste tegn paa, at én person har brugt flere adresser.
+  function renderIpGroups(emails) {
+    const box = document.getElementById('nlIpGroups');
+    if (!box) return;
+    const groups = new Map();
+    (emails || []).forEach(e => {
+      const ip = (e.ip || '').trim();
+      if (!ip || ip === 'unknown') return;
+      if (!groups.has(ip)) groups.set(ip, []);
+      groups.get(ip).push(e);
+    });
+    const multi = [...groups.entries()].filter(([, v]) => v.length > 1)
+                                       .sort((a, b) => b[1].length - a[1].length);
+    const withIp = [...groups.values()].reduce((n, v) => n + v.length, 0);
+    if (!withIp) {
+      box.className = 'empty';
+      box.textContent = 'Ingen IP gemt paa disse tilmeldinger endnu — de registreres fremover.';
+      return;
+    }
+    if (!multi.length) {
+      box.className = 'empty';
+      box.textContent = withIp + ' tilmeldinger har IP, og ingen IP gaar igen.';
+      return;
+    }
+    box.className = '';
+    box.innerHTML = multi.map(([ip, list]) => {
+      const codes = list.filter(e => e.code).length;
+      return '<div class="ipg">'
+        + '<div class="ipg-head"><b>' + escapeHtml(ip) + '</b>'
+        + '<span>' + list.length + ' tilmeldinger · ' + codes + ' koder</span></div>'
+        + list.map(e => '<div class="ipg-row">' + escapeHtml(e.email)
+            + (e.code ? '<span class="ipg-code">' + escapeHtml(e.code) + '</span>' : '')
+            + '<span class="ipg-date">' + (e.t ? new Date(e.t).toLocaleDateString('da-DK') : '') + '</span></div>').join('')
+        + '</div>';
+    }).join('');
+  }
+
 async function loadNewsletter() {
   const list = document.getElementById('nlList');
   const cnt = document.getElementById('nlCount');
@@ -1285,11 +1334,14 @@ async function loadNewsletter() {
       + '<span style="font-weight:600">' + escapeHtml(e.email) + '</span>'
       + '<span style="color:var(--muted-fg);font-size:12px;white-space:nowrap">'
       + (e.code ? '<span style="font-weight:700;color:var(--blue);margin-right:10px">' + escapeHtml(e.code) + '</span>' : '')
+      + (e.ip ? '<span class="nl-ip" title="Tilmeldings-IP">' + escapeHtml(e.ip) + '</span>' : '')
       + (e.t ? new Date(e.t).toLocaleDateString('da-DK') : '') + '</span>'
       + '</div>').join('');
+
+    renderIpGroups(d.emails);
     csvBtn.style.display = 'inline-block';
     csvBtn.onclick = () => {
-      const csv = 'email;rabatkode;dato\n' + d.emails.map(e => e.email + ';' + (e.code || '') + ';' + (e.t ? new Date(e.t).toISOString().slice(0, 10) : '')).join('\n');
+      const csv = 'email;rabatkode;dato;ip\n' + d.emails.map(e => e.email + ';' + (e.code || '') + ';' + (e.t ? new Date(e.t).toISOString().slice(0, 10) : '') + ';' + (e.ip || '')).join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
       a.download = 'nyhedsbrev-tilmeldinger.csv';
