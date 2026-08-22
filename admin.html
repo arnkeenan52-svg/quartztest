@@ -163,7 +163,7 @@
   /* ---------- STAT CARDS ---------- */
   .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
   @media(min-width:720px){.stat-grid{grid-template-columns:repeat(3,1fr)}}
-  @media(min-width:1040px){.stat-grid{grid-template-columns:repeat(5,1fr)}}
+  @media(min-width:1180px){.stat-grid{grid-template-columns:repeat(6,1fr)}}
   .stat-card{
     position:relative;background:var(--surface);border:1px solid var(--border);
     border-radius:var(--radius-lg);padding:14px 15px;box-shadow:var(--sh-xs)
@@ -181,6 +181,12 @@
     font-size:26px;font-weight:700;color:var(--fg);line-height:1.15;margin-top:6px;
     letter-spacing:-.02em;font-variant-numeric:tabular-nums
   }
+  .top-thumbs{display:flex;gap:5px;align-items:center;margin-top:7px;min-height:34px}
+  .top-thumbs img{
+    width:34px;height:34px;border-radius:var(--radius-sm);object-fit:cover;
+    background:var(--muted);border:1px solid var(--border);flex:none;display:block
+  }
+  .top-thumbs .tt-empty{font-size:22px;font-weight:700;color:var(--subtle-fg);line-height:34px}
   .stat-card .delta{font-size:12px;font-weight:500;color:var(--muted-fg);margin-top:3px;font-variant-numeric:tabular-nums}
   .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;
     box-shadow:0 0 0 3px rgba(21,128,61,.14)}
@@ -449,6 +455,12 @@
         <div class="label">Omsætning i dag</div>
         <div class="value" id="revenueToday">–</div>
         <div class="delta" id="revenueWeek"></div>
+      </div>
+      <div class="stat-card">
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z"/></svg></div>
+        <div class="label">Mest købte</div>
+        <div class="top-thumbs" id="topThumbs"><span class="tt-empty">–</span></div>
+        <div class="delta" id="topThumbsNote"></div>
       </div>
       <div class="stat-card">
         <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -782,7 +794,7 @@
       productsEl.innerHTML = data.topProducts.map((p, i) => `
         <div class="product-row">
           <div class="rank">${i + 1}</div>
-          ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" />` : '<div class="product-noimg"></div>'}
+          ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" width="30" height="30" loading="lazy" decoding="async" />` : '<div class="product-noimg"></div>'}
           <div class="pcol">
             <div class="product-name">${escapeHtml(p.name)}</div>
             <div class="bar-mini"><i style="width:${Math.round((Number(p.qty) || 0) / pMax * 100)}%"></i></div>
@@ -790,6 +802,20 @@
           <div class="qty">${p.qty}×</div>
         </div>
       `).join('');
+    }
+
+    // Mest købte — thumbnails af de faktiske produktbilleder
+    const ttEl = document.getElementById('topThumbs');
+    const ttNote = document.getElementById('topThumbsNote');
+    if (ttEl) {
+      const tops = (data.topProducts || []).filter(p => p && p.image).slice(0, 3);
+      ttEl.innerHTML = tops.length
+        ? tops.map(p => `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" title="${escapeHtml(p.name)} · ${p.qty}×" width="34" height="34" loading="lazy" decoding="async" />`).join('')
+        : '<span class="tt-empty">–</span>';
+      if (ttNote) {
+        const first = (data.topProducts || [])[0];
+        ttNote.textContent = first ? first.name + ' · ' + first.qty + '×' : 'Ingen data';
+      }
     }
 
     // Locations
@@ -876,15 +902,23 @@
       </div>
     `).join('');
 
-    // Clicking (or Enter/Space on) a row opens the full order detail.
-    ordersEl.querySelectorAll('.order-row').forEach(row => {
-      const id = row.getAttribute('data-id');
-      if (!id) return;
-      row.addEventListener('click', () => openOrderDetail(id));
-      row.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOrderDetail(id); }
+    // En enkelt delegeret lytter paa listen i stedet for to pr. raekke
+    // (op til 100 ordrer = 200 lyttere ved hver gen-rendering).
+    if (!ordersEl.__delegated) {
+      ordersEl.__delegated = true;
+      const openFromEvent = e => {
+        const row = e.target.closest('.order-row');
+        const id = row && row.getAttribute('data-id');
+        if (id) openOrderDetail(id);
+      };
+      ordersEl.addEventListener('click', openFromEvent);
+      ordersEl.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (!e.target.closest('.order-row')) return;
+        e.preventDefault();
+        openFromEvent(e);
       });
-    });
+    }
   }
 
   // ── ORDER DETAIL MODAL ──
@@ -1164,6 +1198,7 @@
     else { searchNote.innerHTML = html; searchNote.style.display = 'block'; }
   }
 
+  let searchTimer = null;
   orderSearch.addEventListener('input', () => {
     // Any typing returns to instant range-filtering; the previous all-time
     // results are cleared until the user presses Enter again.
@@ -1171,7 +1206,9 @@
     setSearchNote('');
     orderQuery = orderSearch.value.trim().toLowerCase();
     orderSearchClear.classList.toggle('show', orderQuery.length > 0);
-    renderOrders();
+    // Listen kan indeholde 100 raekker — vent til der er ro paa tastaturet.
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderOrders, 120);
   });
 
   orderSearch.addEventListener('keydown', e => {
