@@ -11,22 +11,23 @@
 <meta name="apple-mobile-web-app-title" content="Quartz Mølle">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* Design system: samme Harbor Blue-struktur som locker/fufill */
   :root{
-    --bg:#f8fafc; --surface:#fff; --surface-2:#f8fafc;
-    --fg:#0f172a; --fg-2:#334155; --muted:#f1f5f9; --muted-fg:#64748b; --subtle-fg:#94a3b8;
-    --border:#e2e8f0; --border-strong:#cbd5e1;
+    --bg:#faf7f2; --surface:#fffdfa; --surface-2:#f6f1e7;
+    --fg:#1a1611; --fg-2:#4a4238; --muted:#f3ede1; --muted-fg:#7d7264; --subtle-fg:#ab9f8c;
+    --border:#e9e1d1; --border-strong:#d5c9b2;
     --primary:#273071; --primary-hover:#313c8c; --primary-fg:#fff;
-    --primary-tint:#eef1fa; --primary-ring:rgba(39,48,113,.28);
-    --green:#15803d; --green-tint:#f0fdf4; --green-border:#bbf7d0;
-    --red:#dc2626; --red-tint:#fef2f2; --red-border:#fecaca;
-    --amber:#b45309; --amber-tint:#fffbeb; --amber-border:#fde68a;
-    --radius:8px; --radius-lg:10px; --radius-sm:6px;
-    --sh-xs:0 1px 2px rgba(15,23,42,.06);
-    --sh:0 2px 10px rgba(15,23,42,.10);
-    --sh-lg:0 12px 32px rgba(15,23,42,.16);
+    --primary-tint:#eef0f9; --primary-ring:rgba(39,48,113,.22);
+    --green:#2e7d46; --green-tint:#eff7f0; --green-border:#cfe6d2;
+    --red:#c03e2e; --red-tint:#fdf1ef; --red-border:#f0cfc8;
+    --amber:#96690e; --amber-tint:#fdf6e4; --amber-border:#ecdcae;
+    --radius:10px; --radius-lg:14px; --radius-sm:8px;
+    --sh-xs:0 1px 2px rgba(59,45,20,.05);
+    --sh:0 2px 12px rgba(59,45,20,.08);
+    --sh-lg:0 16px 40px rgba(59,45,20,.16);
+    --display:'Fraunces',Georgia,'Times New Roman',serif;
   }
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -50,10 +51,10 @@
   .badge-core{position:relative;z-index:1;width:60px;height:60px;border-radius:50%;background:var(--surface);
     box-shadow:var(--sh-xs),inset 0 0 0 1px var(--border);display:flex;align-items:center;justify-content:center}
   .badge-core img{width:36px;height:36px;object-fit:contain}
-  .login-card h1{font-size:19px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
+  .login-card h1{font-family:var(--display);font-size:24px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
   .login-card p{color:var(--muted-fg);font-size:13.5px;font-weight:500;letter-spacing:-.006em;margin:6px 0 0}
   .login-sep{height:1px;background:var(--border);margin:22px 0}
-  .code-input{width:100%;text-align:center;font-size:26px;font-weight:600;letter-spacing:8px;color:var(--fg);
+  .code-input{width:100%;text-align:center;font-family:var(--display);font-size:28px;font-weight:600;letter-spacing:8px;color:var(--fg);
     padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);outline:none;
     font-variant-numeric:tabular-nums;transition:border-color .15s ease,box-shadow .15s ease}
   .code-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
@@ -66,7 +67,7 @@
   .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;
     background:var(--surface);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0)}
   .top img{width:28px;height:28px;object-fit:contain;border-radius:6px;flex:none}
-  .ttl{font-size:14.5px;font-weight:700;color:var(--fg);letter-spacing:-.01em;line-height:1.2;
+  .ttl{font-family:var(--display);font-size:16px;font-weight:600;color:var(--fg);letter-spacing:0;line-height:1.2;
     min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ttl small{display:block;font-size:11.5px;font-weight:500;color:var(--muted-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .spacer{flex:1}
@@ -92,10 +93,9 @@
     margin-bottom:16px;overflow:hidden}
   .panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;
     border-bottom:1px solid var(--border);background:var(--surface-2)}
-  .panel-h h2{font-size:11px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.06em;
-    display:flex;align-items:center;gap:8px}
+  .panel-h h2{font-family:var(--display);font-size:15.5px;font-weight:600;letter-spacing:0;color:var(--fg);display:flex;align-items:center;gap:8px}
   .panel-h h2 svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-  .panel-meta{font-size:13px;font-weight:500;color:var(--muted-fg);font-variant-numeric:tabular-nums}
+  .panel-meta{font-size:12px;font-weight:600;color:var(--muted-fg);font-variant-numeric:tabular-nums}
   .panel-meta b{color:var(--fg);font-weight:700}
   .panel-b{padding:16px}
   .empty{color:var(--muted-fg);font-weight:500;font-size:13.5px;padding:4px 0}
@@ -118,7 +118,7 @@
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}}
   .b2b-ord:last-child{margin-bottom:0}
   .b2b-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .b2b-no{font-size:14px;font-weight:800;color:var(--primary)}
+  .b2b-no{font-family:var(--display);font-size:16px;font-weight:600;color:var(--primary)}
   .b2b-cust{font-size:13.5px;font-weight:700}
   .b2b-date{font-size:12px;font-weight:600;color:var(--muted-fg);margin-left:auto;white-space:nowrap}
   .b2b-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
@@ -157,7 +157,7 @@
     .dlg{border-radius:16px;transform:translateY(10px) scale(.98)}
     .dlg-back.open .dlg{transform:translateY(0) scale(1)}
   }
-  .dlg h3{font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .dlg h3{font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:0;display:flex;align-items:center;gap:8px}
   .dlg h3 svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
   .dlg h3.ok-h svg{color:var(--green)} .dlg h3.nej-h svg{color:var(--red)}
   .dlg .sub{font-size:13px;font-weight:500;color:var(--muted-fg);margin:4px 0 14px}
