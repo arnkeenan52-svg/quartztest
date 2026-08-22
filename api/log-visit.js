@@ -4,7 +4,7 @@
 // Stores: visitor IDs with timestamps for "active now" + daily counters.
 
 import { kv } from './_kv.js';
-import { randomInt, randomBytes } from 'crypto';
+import { randomInt, randomBytes, createHash } from 'crypto';
 
 // Only allow the site's own origins to post visitor heartbeats (reduces
 // off-site abuse / metric pollution). '*' previously let anyone write.
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   // Bekræftelseslinket i mailen er et alm. GET — vis "bekræft"-siden.
   if (req.method === 'GET') {
-    if ((req.query && req.query.action) === 'nlconfirm') return handleConfirmPage(req, res, req.query);
+    if ((req.query && req.query.action) === 'nlconfirm') return confirmSignup(req, res, cleanToken(req.query.t));
     return res.status(405).end();
   }
   if (req.method !== 'POST') return res.status(405).end();
@@ -39,8 +39,8 @@ export default async function handler(req, res) {
   if (nlBody && nlBody.action === 'newsletter') {
     return handleNewsletter(req, res, nlBody);
   }
-  if (nlBody && nlBody.action === 'nlconfirm') {
-    return handleNewsletterConfirm(req, res, nlBody);
+  if (nlBody && nlBody.action === 'nlchallenge') {
+    return handleNlChallenge(req, res);
   }
 
   // ── KUNDEREJSE: anonym "i kurv" / "gået til checkout" til admin-tragten ──
@@ -113,12 +113,15 @@ function normalizeEmail(email) {
   return local + '@' + domain;
 }
 
-const MAX_SIGNUPS_PER_IP_DAY = 3;    // bekræftelses-mails pr. IP pr. døgn
-const MAX_SIGNUPS_PER_HOUR = 25;     // global nødbremse på bekræftelses-mails
+const MAX_SIGNUPS_PER_IP_DAY = 3;    // tilmeldinger pr. IP pr. døgn
+const MAX_SIGNUPS_PER_HOUR = 25;     // global nødbremse på tilmeldinger
 const MAX_CODES_PER_DAY = 60;        // globalt loft på udstedte koder pr. døgn
                                      // (organisk ~5-20; over dette = angreb → tilmeldt uden kode)
-const PENDING_TTL = 48 * 3600;       // bekræftelseslink gælder 48 timer
-const PENDING_RESEND_TTL = 6 * 3600; // ny bekræftelses-mail tidligst efter 6 timer
+const MAX_CODES_PER_IP = 3;          // koder pr. IP pr. 30 dage
+const IP_WINDOW_SECONDS = 30 * 86400;
+const POW_BITS = 15;                 // usynlig verifikation: ~0,5 sek. regnearbejde i browseren
+const POW_TTL = 900;                 // udfordringen gælder 15 minutter
+const POW_MIN_AGE_MS = 2000;         // et menneske bruger mindst et par sekunder på formularen
 const DAYSEC = 86400;
 const dayStamp = () => new Date().toISOString().slice(0, 10);
 const hourStamp = () => new Date().toISOString().slice(0, 13);
@@ -134,11 +137,63 @@ function escapeHtmlNl(s) {
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ── USYNLIG BOT-VERIFIKATION (proof-of-work) ────────────────────────────────
+// Browseren henter en engangs-udfordring og løser i baggrunden en lille
+// regneopgave (~0,5 sek., usynlig for kunden). Serveren kræver beviset før
+// tilmeldingen accepteres. En bot der bare POST'er direkte til API'et har
+// intet bevis — og en bot der VIL løse opgaven, betaler CPU-tid pr. forsøg,
+// hvilket sammen med IP- og døgn-lofterne gør masse-tilmelding urentabel.
+function leadingZeroBits(buf) {
+  let bits = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const b = buf[i];
+    if (b === 0) { bits += 8; continue; }
+    for (let m = 128; m > 0; m >>= 1) { if (b & m) return bits; bits++; }
+  }
+  return bits;
+}
+
+async function handleNlChallenge(req, res) {
+  try {
+    // Let loft på udstedte udfordringer pr. IP (fair for delte netværk).
+    const ip = clientIp(req);
+    const day = dayStamp();
+    let issued = 0;
+    try {
+      issued = await kv.incr(`newsletter:powip:${ip}:${day}`);
+      await kv.expire(`newsletter:powip:${ip}:${day}`, DAYSEC + 3600);
+    } catch {}
+    if (issued > 30) return res.status(429).json({ ok: false });
+
+    const ch = randomBytes(18).toString('base64url');
+    await kv.set(`newsletter:pow:${ch}`, { t: Date.now() }, { ex: POW_TTL });
+    return res.status(200).json({ ok: true, ch, bits: POW_BITS });
+  } catch (e) {
+    console.error('nlchallenge error:', e && e.message);
+    return res.status(500).json({ ok: false });
+  }
+}
+
+// Verificér beviset: udfordringen skal findes (engangs — atomisk getdel),
+// være mindst POW_MIN_AGE_MS gammel (mennesker taster ikke på 0 sek.) og
+// hashen skal have de krævede foranstillede nul-bits.
+async function verifyPow(ch, nonce) {
+  const c = String(ch || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+  const n = String(nonce || '').slice(0, 20);
+  if (!c || !n) return false;
+  let rec = null;
+  try { rec = await kv.getdel(`newsletter:pow:${c}`); } catch {}
+  if (!rec || !rec.t) return false;
+  if (Date.now() - rec.t < POW_MIN_AGE_MS) return false;
+  const hash = createHash('sha256').update(c + ':' + n).digest();
+  return leadingZeroBits(hash) >= POW_BITS;
+}
+
 async function handleNewsletter(req, res, body) {
   try {
     // Honningkrukke: usynligt felt. Udfyldt = bot. Svar pænt, gør intet.
     if (String(body.website || '').trim()) {
-      return res.status(200).json({ ok: true, pending: true });
+      return res.status(200).json({ ok: true });
     }
 
     const email = String(body.email || '').trim().toLowerCase();
@@ -148,14 +203,21 @@ async function handleNewsletter(req, res, body) {
     const key = normalizeEmail(email);
     const lang = String(body.lang || 'da') === 'en' ? 'en' : 'da';
 
-    // Allerede bekræftet abonnent (normaliseret adresse).
+    // Allerede tilmeldt (normaliseret adresse — punktum/plus-tricks kan ikke
+    // hente en kode nummer to).
     let existing = null;
     try { existing = await kv.hget('newsletter:emails', key); } catch {}
     if (existing) return res.status(200).json({ ok: true, already: true });
 
-    // IP-loft: max 3 tilmeldinger pr. IP pr. døgn. Dato-stemplet nøgle udløber
-    // af sig selv, og expire kaldes hver gang, så en tabt TTL aldrig kan
-    // efterlade et permanent loft.
+    // USYNLIG VERIFIKATION: uden gyldigt engangs-bevis afvises tilmeldingen.
+    // Rigtige kunder mærker intet — deres browser har løst opgaven i
+    // baggrunden. Fejler beviset (fx udløbet), beder vi pænt om et nyt forsøg.
+    const powOk = await verifyPow(body.ch, body.nonce);
+    if (!powOk) {
+      return res.status(400).json({ ok: false, retry: true, error: 'Bekræftelsen udløb — prøv igen.' });
+    }
+
+    // IP-loft: max 3 tilmeldinger pr. IP pr. døgn.
     const ip = clientIp(req);
     const day = dayStamp();
     let sigIp = 0;
@@ -164,57 +226,62 @@ async function handleNewsletter(req, res, body) {
       await kv.expire(`newsletter:sig:${ip}:${day}`, DAYSEC + 3600);
     } catch {}
 
-    // Global nødbremse: organisk 1-5/dag. Over 25/time = distribueret angreb.
+    // Global nødbremse: organisk er 1-5 tilmeldinger om dagen.
     const hour = hourStamp();
     let sigAll = 0;
     try {
       sigAll = await kv.incr(`newsletter:sigg:${hour}`);
       await kv.expire(`newsletter:sigg:${hour}`, 7200);
     } catch {}
-
-    // Throttlet: svar som en normal tilmelding (bots lærer intet), men gem
-    // INTET og send ingen mail. 'stored' udelades, så frontenden ikke
-    // markerer brugeren som tilmeldt — de kan prøve igen senere.
     if (sigIp > MAX_SIGNUPS_PER_IP_DAY || sigAll > MAX_SIGNUPS_PER_HOUR) {
       console.warn('newsletter: signup throttled', { ip, sigIp, sigAll });
-      return res.status(200).json({ ok: true, pending: true });
+      return res.status(200).json({ ok: true });
     }
 
-    // Én bekræftelses-mail ad gangen pr. adresse: atomisk NX-lås. Vinder den
-    // ikke låsen, er der allerede sendt en mail (eller en anden request er i
-    // gang) — så gen-sender vi ikke. Dette lukker både spam-race og resend.
+    // Atomisk NX-lås pr. adresse: to samtidige tilmeldinger af samme adresse
+    // bliver til én.
     let gotLock = null;
-    try { gotLock = await kv.set(`newsletter:pendingkey:${key}`, '1', { nx: true, ex: PENDING_RESEND_TTL }); } catch {}
-    if (gotLock !== 'OK') return res.status(200).json({ ok: true, pending: true, again: true });
+    try { gotLock = await kv.set(`newsletter:siglock:${key}`, '1', { nx: true, ex: 60 }); } catch {}
+    if (gotLock !== 'OK') return res.status(200).json({ ok: true, already: true });
 
-    // Dobbelt opt-in: gem AFVENTENDE tilmelding + send bekræftelseslink.
-    // Koden udstedes først ved bekræftelse.
-    const token = randomBytes(24).toString('base64url');
+    // Kode-lofter: globalt pr. døgn + pr. IP pr. 30 dage. Rammes et loft,
+    // tilmeldes man stadig — bare uden kode. Fail CLOSED ved tæller-fejl.
+    let allowCode = true;
     try {
-      await kv.set(`newsletter:pending:${token}`, { email, key, lang, ip, t: Date.now() }, { ex: PENDING_TTL });
+      const minted = await kv.incr(`newsletter:mintday:${day}`);
+      await kv.expire(`newsletter:mintday:${day}`, DAYSEC + 3600);
+      if (minted > MAX_CODES_PER_DAY) allowCode = false;
+    } catch (e) { allowCode = false; console.error('mint counter failed — failing closed', e && e.message); }
+    if (allowCode) {
+      try {
+        const ipMint = await kv.incr(`newsletter:ipcount:${ip}`);
+        await kv.expire(`newsletter:ipcount:${ip}`, IP_WINDOW_SECONDS);
+        if (ipMint > MAX_CODES_PER_IP) allowCode = false;
+      } catch (e) { allowCode = false; console.error('ip mint counter failed — failing closed', e && e.message); }
+    }
+
+    let code = null;
+    if (allowCode) {
+      try { code = await createUniqueDiscountCode(); } catch (e) { console.error('unique code failed:', (e && e.raw && e.raw.message) || (e && e.message)); }
+    } else {
+      console.warn('newsletter: code cap reached, subscribing without code', { ip });
+    }
+
+    try {
+      await kv.hset('newsletter:emails', { [key]: { t: Date.now(), code, email, ip } });
     } catch (e) {
-      try { await kv.del(`newsletter:pendingkey:${key}`); } catch {}
-      console.error('newsletter pending store failed:', e.message);
+      try { await kv.del(`newsletter:siglock:${key}`); } catch {}
+      console.error('newsletter store failed:', e.message);
       return res.status(500).json({ ok: false, error: 'Kunne ikke gemme tilmeldingen. Prøv igen.' });
     }
+    try { await kv.del(`newsletter:siglock:${key}`); } catch {}
 
-    // Send mailen FØR låsen bliver permanent. Fejler afsendelsen, frigives
-    // både token og lås, så en rigtig kunde kan prøve igen med det samme.
-    try {
-      await sendConfirmEmail(email, token, lang);
-    } catch (e) {
-      try { await kv.del(`newsletter:pending:${token}`, `newsletter:pendingkey:${key}`); } catch {}
-      console.error('confirm email failed:', e.message);
-      return res.status(500).json({ ok: false, error: 'Kunne ikke sende bekræftelsen. Prøv igen om lidt.' });
-    }
+    // Velkomstmail med koden — med det samme, som før.
+    try { await sendWelcomeEmail(email, code, lang); } catch (e) { console.error('welcome email failed:', e.message); }
 
-    // Lad låsen pege på det aktive token (til info) resten af vinduet.
-    try { await kv.set(`newsletter:pendingkey:${key}`, token, { ex: PENDING_RESEND_TTL }); } catch {}
-
-    return res.status(200).json({ ok: true, pending: true, stored: true });
+    return res.status(200).json({ ok: true, stored: true });
   } catch (e) {
     console.error('newsletter error:', e);
-
     return res.status(500).json({ ok: false, error: 'Noget gik galt. Prøv igen.' });
   }
 }
@@ -255,32 +322,12 @@ function sendHtml(res, status, html) {
   return res.status(status).send(html);
 }
 
-// GET-siden bekræfter IKKE i sig selv — mail-scannere (fx Outlook SafeLinks)
-// følger links automatisk, men indsender ikke formularer. Selve bekræftelsen
-// sker først ved trykket på knappen (POST).
-async function handleConfirmPage(req, res, q) {
-  const t = cleanToken(q.t);
-  let pending = null;
-  if (t) { try { pending = await kv.get(`newsletter:pending:${t}`); } catch {} }
-  const lang = pending && pending.lang === 'en' ? 'en' : 'da';
-  const en = lang === 'en';
-  if (!pending) {
-    return sendHtml(res, 410, nlPage(lang, en ? 'Link expired' : 'Linket er udløbet',
-      en ? '<h1>This link has expired</h1><p>The confirmation link is no longer valid. Sign up again at quartzmolle.dk to get a new one.</p><a class="btn" href="' + SITE + '">Back to quartzmolle.dk</a>'
-         : '<h1>Linket er udløbet</h1><p>Bekræftelseslinket gælder ikke længere. Tilmeld dig igen på quartzmolle.dk, så sender vi et nyt.</p><a class="btn" href="' + SITE + '">Tilbage til quartzmolle.dk</a>'));
-  }
-  return sendHtml(res, 200, nlPage(lang, en ? 'Confirm your signup' : 'Bekræft din tilmelding',
-    (en ? '<h1>Confirm your signup</h1><p>Press the button to confirm <strong>' + escapeHtmlNl(pending.email) + '</strong> — then your personal 10% discount code is on its way.</p>'
-        : '<h1>Bekræft din tilmelding</h1><p>Tryk på knappen for at bekræfte <strong>' + escapeHtmlNl(pending.email) + '</strong> — så er din personlige 10%-rabatkode på vej.</p>')
-    + '<form method="POST" action="/api/log-visit">'
-    + '<input type="hidden" name="action" value="nlconfirm">'
-    + '<input type="hidden" name="t" value="' + escapeHtmlNl(t) + '">'
-    + '<button type="submit">' + (en ? 'Confirm signup' : 'Bekræft tilmelding') + '</button></form>'));
-}
-
-async function handleNewsletterConfirm(req, res, body) {
+// Bekræftelseslinket i mailen (GET) fører hertil og bekræfter med det samme
+// — som et normalt nyhedsbrev. Det atomiske getdel-claim gør det idempotent,
+// så en mail-scanner der pre-henter linket ikke kan minte to koder; kunden
+// får uanset hvad koden i velkomstmailen.
+async function confirmSignup(req, res, t) {
   try {
-    const t = cleanToken(body.t);
     // Kig FØRST på tokenet uden at slette (vi skal bruge sprog/adresse til
     // svarsiden og allerede-tilmeldt-tjekket).
     let peek = null;
@@ -361,47 +408,6 @@ async function handleNewsletterConfirm(req, res, body) {
     return sendHtml(res, 500, nlPage('da', 'Noget gik galt',
       '<h1>Noget gik galt</h1><p>Prøv linket igen om et øjeblik.</p>'));
   }
-}
-
-async function sendConfirmEmail(email, token, lang) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return;
-  const en = lang === 'en';
-  const url = `${SITE}/api/log-visit?action=nlconfirm&t=${token}`;
-  const T = en ? {
-    subject: 'Confirm your signup — then your 10% code is on its way 🌾',
-    heading: 'Confirm your signup',
-    text: 'Press the button to confirm your subscription to Quartz Mølle\u2019s newsletter. Your personal 10% discount code arrives right after.',
-    btn: 'Confirm signup',
-    ignore: 'If you did not sign up at quartzmolle.dk, just ignore this email — nothing happens without your confirmation.',
-  } : {
-    subject: 'Bekræft din tilmelding — så er din 10%-kode på vej 🌾',
-    heading: 'Bekræft din tilmelding',
-    text: 'Tryk på knappen for at bekræfte din tilmelding til Quartz Mølles nyhedsbrev. Din personlige 10%-rabatkode kommer straks efter.',
-    btn: 'Bekræft tilmelding',
-    ignore: 'Har du ikke tilmeldt dig på quartzmolle.dk, kan du bare ignorere denne mail — der sker ingenting uden din bekræftelse.',
-  };
-  const html = `
-  <div style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:30px 24px;background:#faf7f2;border-radius:16px;color:#1a1611;">
-    <div style="text-align:center;margin-bottom:18px;">
-      <img src="${SITE}/images/qm-icon-192.png" alt="Quartz Mølle" width="64" height="64" style="border-radius:50%;">
-    </div>
-    <h2 style="color:#273071;text-align:center;margin:0 0 8px;">${T.heading}</h2>
-    <p style="text-align:center;margin:0 0 22px;color:#4a463f;">${T.text}</p>
-    <div style="text-align:center;margin-bottom:26px;">
-      <a href="${url}" style="background:#273071;color:#fff;text-decoration:none;font-weight:600;padding:14px 32px;border-radius:10px;display:inline-block;">${T.btn}</a>
-    </div>
-    <p style="font-size:11.5px;color:#9b9488;text-align:center;line-height:1.6;margin:0;">
-      ${T.ignore}<br>
-      Quartz Mølle · Suså Landevej 101, 4160 Herlufmagle · CVR 42117188
-    </p>
-  </div>`;
-  const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ from: 'Quartz Mølle <order@quartzmolle.dk>', to: [email], subject: T.subject, html }),
-  });
-  if (!r.ok) throw new Error('Resend ' + r.status);
 }
 
 // One shared 10% coupon (created once, id cached in Redis) + a fresh promotion
