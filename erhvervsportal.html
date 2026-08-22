@@ -39,11 +39,20 @@
 
   /* ---------- LOGIN ---------- */
   #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
-  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);
-    padding:32px 28px;width:100%;max-width:360px;text-align:center}
-  .login-card img{width:64px;height:64px;object-fit:contain;margin-bottom:16px}
-  .login-card h1{font-size:18px;font-weight:700;color:var(--fg);letter-spacing:-.01em}
-  .login-card p{color:var(--muted-fg);font-size:13.5px;font-weight:500;margin-top:6px;margin-bottom:22px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh);
+    padding:32px 28px;width:100%;max-width:380px;text-align:center;
+    animation:cardIn .4s cubic-bezier(.32,.72,0,1) both}
+  @keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.985)}}
+  .badge-halo{position:relative;width:88px;height:88px;margin:0 auto 14px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center}
+  .badge-halo::before{content:"";position:absolute;inset:0;border-radius:50%;
+    background:linear-gradient(to bottom,var(--subtle-fg),transparent);opacity:.14}
+  .badge-core{position:relative;z-index:1;width:60px;height:60px;border-radius:50%;background:var(--surface);
+    box-shadow:var(--sh-xs),inset 0 0 0 1px var(--border);display:flex;align-items:center;justify-content:center}
+  .badge-core img{width:36px;height:36px;object-fit:contain}
+  .login-card h1{font-size:19px;font-weight:600;color:var(--fg);letter-spacing:-.01em}
+  .login-card p{color:var(--muted-fg);font-size:13.5px;font-weight:500;letter-spacing:-.006em;margin:6px 0 0}
+  .login-sep{height:1px;background:var(--border);margin:22px 0}
   .code-input{width:100%;text-align:center;font-size:26px;font-weight:600;letter-spacing:8px;color:var(--fg);
     padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);outline:none;
     font-variant-numeric:tabular-nums;transition:border-color .15s ease,box-shadow .15s ease}
@@ -91,6 +100,10 @@
   .panel-b{padding:16px}
   .empty{color:var(--muted-fg);font-weight:500;font-size:13.5px;padding:4px 0}
   .loading{color:var(--muted-fg);font-size:13.5px;padding:4px 0}
+  .skel{display:grid;gap:12px;padding:4px 0}
+  .skel-b{border-radius:8px;background:linear-gradient(90deg,var(--muted) 25%,var(--surface-2) 50%,var(--muted) 75%);
+    background-size:200% 100%;animation:skelWave 1.4s ease infinite}
+  @keyframes skelWave{to{background-position:-200% 0}}
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);
     color:var(--muted-fg);border:1px solid var(--border);background:var(--surface);
     transition:background-color .15s ease,color .15s ease,border-color .15s ease}
@@ -98,13 +111,20 @@
   .icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
   /* ---------- B2B-ORDRER ---------- */
-  .b2b-ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface);box-shadow:var(--sh-xs)}
+  .b2b-ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface);box-shadow:var(--sh-xs);
+    animation:rowIn .35s cubic-bezier(.32,.72,0,1) both;animation-delay:calc(var(--i,0)*35ms);
+    transition:border-color .15s,box-shadow .15s}
+  .b2b-ord:hover{border-color:var(--border-strong);box-shadow:var(--sh)}
+  @keyframes rowIn{from{opacity:0;transform:translateY(5px)}}
   .b2b-ord:last-child{margin-bottom:0}
   .b2b-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .b2b-no{font-size:14px;font-weight:800;color:var(--primary)}
   .b2b-cust{font-size:13.5px;font-weight:700}
   .b2b-date{font-size:12px;font-weight:600;color:var(--muted-fg);margin-left:auto;white-space:nowrap}
-  .b2b-chip{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid}
+  .b2b-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid}
+  .b2b-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+  .b2b-chip.ny::before{animation:pulseDot 1.8s ease infinite}
+  @keyframes pulseDot{50%{opacity:.35}}
   .b2b-chip.ny{color:var(--amber);background:var(--amber-tint);border-color:var(--amber-border)}
   .b2b-chip.godkendt{color:var(--green);background:var(--green-tint);border-color:var(--green-border)}
   .b2b-chip.afvist{color:var(--red);background:var(--red-tint);border-color:var(--red-border)}
@@ -117,6 +137,43 @@
   .b2b-nej{background:var(--surface);color:var(--red);border:1px solid var(--red-border)}
   .b2b-ok:hover{filter:brightness(.95)}
   .b2b-nej:hover{background:var(--red-tint)}
+  .b2b-ok:active,.b2b-nej:active{transform:scale(.97)}
+  .b2b-ok,.b2b-nej{transition:filter .12s ease,background-color .12s ease,transform .12s cubic-bezier(.32,.72,0,1)}
+
+  /* Avatar-initialer paa kundelisten */
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--primary-tint);color:var(--primary);
+    display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex:none;letter-spacing:.02em}
+
+  /* Beslutnings-dialog (erstatter raa prompt/confirm) */
+  .dlg-back{position:fixed;inset:0;z-index:70;background:rgba(15,23,42,.42);display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .2s ease}
+  .dlg-back.open{opacity:1;pointer-events:auto}
+  .dlg{width:100%;max-width:440px;background:var(--surface);border-radius:16px 16px 0 0;box-shadow:var(--sh-lg);
+    padding:20px 18px calc(18px + env(safe-area-inset-bottom,0));
+    transform:translateY(24px);transition:transform .28s cubic-bezier(.32,.72,0,1)}
+  .dlg-back.open .dlg{transform:translateY(0)}
+  @media(min-width:640px){
+    .dlg-back{align-items:center;padding:24px}
+    .dlg{border-radius:16px;transform:translateY(10px) scale(.98)}
+    .dlg-back.open .dlg{transform:translateY(0) scale(1)}
+  }
+  .dlg h3{font-size:16px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .dlg h3 svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .dlg h3.ok-h svg{color:var(--green)} .dlg h3.nej-h svg{color:var(--red)}
+  .dlg .sub{font-size:13px;font-weight:500;color:var(--muted-fg);margin:4px 0 14px}
+  .dlg textarea{width:100%;min-height:76px;resize:vertical;font:inherit;font-size:14px;font-weight:500;color:var(--fg);
+    padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);outline:none;
+    transition:border-color .15s,box-shadow .15s}
+  .dlg textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+  .dlg-act{display:flex;gap:8px;margin-top:14px}
+  .dlg-act button{flex:1;font-size:14.5px;font-weight:700;padding:12px;border-radius:var(--radius);min-height:44px;
+    transition:filter .12s,background-color .12s,transform .12s cubic-bezier(.32,.72,0,1)}
+  .dlg-act button:active{transform:scale(.97)}
+  .dlg-cancel{background:var(--surface);color:var(--fg-2);border:1px solid var(--border)}
+  .dlg-cancel:hover{background:var(--muted)}
+  .dlg-go.ok{background:var(--green);color:#fff}
+  .dlg-go.nej{background:var(--red);color:#fff}
+  .dlg-go:hover{filter:brightness(.95)}
 
   .fold-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:10px;padding:9px 12px;
     border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--fg);font:inherit;
@@ -183,9 +240,10 @@
 <!-- ===== LOGIN ===== -->
 <div id="login">
   <div class="login-card">
-    <img src="/images/logopng.png" alt="Quartz Mølle" onerror="this.style.display='none'">
+    <div class="badge-halo"><div class="badge-core"><img src="/images/logopng.png" alt="" onerror="this.style.display='none'"></div></div>
     <h1>Erhverv</h1>
     <p>Indtast adgangskode</p>
+    <div class="login-sep"></div>
     <input id="codeInput" class="code-input" type="password" inputmode="numeric"
            autocomplete="off" maxlength="10" placeholder="••••">
     <button id="loginBtn" class="login-btn">Lås op</button>
@@ -221,7 +279,10 @@
         </div>
       </div>
       <div class="panel-b">
-        <div id="b2bOrders" class="loading">Henter bestillinger…</div>
+        <div id="b2bOrders"><div class="skel">
+          <div class="skel-b" style="height:96px"></div>
+          <div class="skel-b" style="height:72px"></div>
+        </div></div>
       </div>
     </div>
 
@@ -232,7 +293,10 @@
         <span class="panel-meta" id="custCount"></span>
       </div>
       <div class="panel-b">
-        <div id="b2bCustomers" class="loading">Henter…</div>
+        <div id="b2bCustomers"><div class="skel">
+          <div class="skel-b" style="height:40px"></div>
+          <div class="skel-b" style="height:40px"></div>
+        </div></div>
         <button id="b2bAddToggle" class="toggle-btn" type="button" style="margin-top:12px">+ Tilføj kunde</button>
         <div id="b2bAddForm" class="b2b-form" style="display:none">
           <input id="bcName" placeholder="Firmanavn *" />
@@ -263,6 +327,19 @@
           <div class="hint">Tom pris = "aftalt pris" — varen kan stadig bestilles, og I aftaler prisen som hidtil.
             Priserne låses på ordren i det øjeblik, kunden bestiller.</div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Beslutnings-dialog: godkend/afvis med valgfri besked til kunden -->
+  <div class="dlg-back" id="dlgBack" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <div class="dlg">
+      <h3 id="dlgTitle"></h3>
+      <div class="sub" id="dlgSub"></div>
+      <textarea id="dlgMsg" placeholder=""></textarea>
+      <div class="dlg-act">
+        <button class="dlg-cancel" id="dlgCancel" type="button">Annullér</button>
+        <button class="dlg-go" id="dlgGo" type="button"></button>
       </div>
     </div>
   </div>
@@ -335,14 +412,16 @@
     var done = orders.filter(function (o) { return o.status !== 'ny'; });
     var shown = nye.concat(showAll ? done : done.slice(0, 4));
     el.className = '';
-    el.innerHTML = shown.map(function (o) {
+    var animate = !el.__rendered; el.__rendered = true;
+    el.innerHTML = shown.map(function (o, oi) {
       var lines = (o.lines || []).map(function (l) {
         return '<div><span>' + esc(l.name) + ' · ' + esc(l.label) + '</span><span class="num">' + l.qty + ' stk.'
           + (l.price != null ? ' · ' + (l.price * l.qty).toLocaleString('da-DK') + ' kr.' : '') + '</span></div>';
       }).join('');
       var kg = (o.lines || []).reduce(function (a, l) { return a + (l.kg || 0) * l.qty; }, 0);
       var sum = (o.lines || []).reduce(function (a, l) { return a + (l.price != null ? l.price * l.qty : 0); }, 0);
-      return '<div class="b2b-ord" data-id="' + esc(o.id) + '">'
+      return '<div class="b2b-ord" data-id="' + esc(o.id) + '"'
+        + (animate ? ' style="--i:' + oi + '"' : ' style="animation:none"') + '>'
         + '<div class="b2b-h"><span class="b2b-no num">#' + o.no + '</span>'
         + '<span class="b2b-cust">' + esc(o.customerName) + '</span>'
         + '<span class="b2b-chip ' + esc(o.status) + '">' + (STATUS[o.status] || o.status) + '</span>'
@@ -365,23 +444,55 @@
       : '');
   }
 
-  document.getElementById('b2bOrders').addEventListener('click', async function (e) {
+  // ── Beslutnings-dialog (pæn erstatning for prompt/confirm) ──
+  var dlgState = null; // { id, status }
+  var ICON_OK = '<svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>';
+  var ICON_NEJ = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>';
+  function openDlg(id, no, cust, godkend) {
+    dlgState = { id: id, status: godkend ? 'godkendt' : 'afvist' };
+    var t = document.getElementById('dlgTitle');
+    t.className = godkend ? 'ok-h' : 'nej-h';
+    t.innerHTML = (godkend ? ICON_OK + 'Godkend bestilling' : ICON_NEJ + 'Afvis bestilling') + ' #' + no;
+    document.getElementById('dlgSub').textContent = godkend
+      ? cust + ' får straks en bekræftelse på mail.'
+      : cust + ' får besked på mail om, at bestillingen ikke kan gennemføres.';
+    var msg = document.getElementById('dlgMsg');
+    msg.value = '';
+    msg.placeholder = godkend ? 'Besked til kunden (valgfri) — fx forventet leveringsdag' : 'Hvorfor afvises bestillingen? (valgfri)';
+    var go = document.getElementById('dlgGo');
+    go.className = 'dlg-go ' + (godkend ? 'ok' : 'nej');
+    go.textContent = godkend ? 'Godkend og send' : 'Afvis og send';
+    document.getElementById('dlgBack').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { msg.focus(); }, 260);
+  }
+  function closeDlg() {
+    dlgState = null;
+    document.getElementById('dlgBack').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('dlgCancel').addEventListener('click', closeDlg);
+  document.getElementById('dlgBack').addEventListener('click', function (e) { if (e.target === this) closeDlg(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dlgState) closeDlg(); });
+  document.getElementById('dlgGo').addEventListener('click', async function () {
+    if (!dlgState) return;
+    var btn = this; btn.disabled = true;
+    var r = await b2bApi({ action: 'admsetstatus', id: dlgState.id, status: dlgState.status,
+      msg: (document.getElementById('dlgMsg').value || '').trim() });
+    btn.disabled = false;
+    if (!r.d.ok) { alert(r.d.error || 'Noget gik galt.'); return; }
+    closeDlg();
+    loadOrders();
+  });
+
+  document.getElementById('b2bOrders').addEventListener('click', function (e) {
     if (e.target.closest('[data-fold]')) { showAll = !showAll; loadOrders(); return; }
     var okBtn = e.target.closest('[data-b2b-ok]');
     var nejBtn = e.target.closest('[data-b2b-nej]');
     if (!okBtn && !nejBtn) return;
-    var id = e.target.closest('.b2b-ord').getAttribute('data-id');
-    var msg = '';
-    if (nejBtn) {
-      msg = prompt('Besked til kunden (valgfri) — hvorfor afvises bestillingen?') || '';
-      if (!confirm('Afvis bestillingen? Kunden får besked på mail.')) return;
-    } else {
-      msg = prompt('Besked til kunden (valgfri) — fx forventet leveringsdag:') || '';
-    }
-    var btn = okBtn || nejBtn; btn.disabled = true;
-    var r = await b2bApi({ action: 'admsetstatus', id: id, status: okBtn ? 'godkendt' : 'afvist', msg: msg });
-    if (!r.d.ok) { alert(r.d.error || 'Noget gik galt.'); btn.disabled = false; return; }
-    loadOrders();
+    var card = e.target.closest('.b2b-ord');
+    openDlg(card.getAttribute('data-id'), card.querySelector('.b2b-no').textContent.replace('#', ''),
+      card.querySelector('.b2b-cust').textContent, !!okBtn);
   });
 
   // ── KUNDER ──
@@ -395,7 +506,9 @@
     if (!cs.length) { el.className = 'empty'; el.textContent = 'Ingen kunder endnu — tilføj den første herunder.'; return; }
     el.className = '';
     el.innerHTML = cs.map(function (c) {
+      var initials = String(c.name || '?').split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
       return '<div class="b2b-cust-row" data-email="' + esc(c.email) + '">'
+        + '<span class="avatar" aria-hidden="true">' + esc(initials) + '</span>'
         + '<span>' + esc(c.name) + '</span>'
         + '<span class="em">' + esc(c.email) + (c.cvr ? ' · CVR ' + esc(c.cvr) : '') + '</span>'
         + '<button class="b2b-del" data-del type="button">Fjern</button></div>';

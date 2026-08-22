@@ -29,13 +29,16 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   await page.fill('#emailIn', 'm@s.dk');
   await page.click('#sendCodeBtn');
   await page.waitForSelector('#stepCode:not(.hide)');
-  t('kode-trin vises efter send', await page.locator('#codeIn').isVisible());
+  t('kode-trin vises efter send', await page.locator('#otpWrap').isVisible());
 
-  await page.fill('#codeIn', '999999');
-  await page.waitForTimeout(300);
-  t('forkert kode viser fejl', /Forkert kode/.test(await page.locator('#loginErr').innerText()));
+  const otp0 = page.locator('#otpWrap input').first();
+  await otp0.fill('999999');
+  await page.waitForTimeout(400);
+  t('forkert kode viser fejl + ryster', /Forkert kode/.test(await page.locator('#loginErr').innerText()));
+  t('6 separate kodefelter (21st-mønster)', await page.locator('#otpWrap input').count() === 6);
+  t('gensend-knap med nedtælling', /Send igen \(\d+\)/.test(await page.locator('#resendBtn').innerText()));
 
-  await page.fill('#codeIn', '123456'); // auto-submit ved 6 cifre
+  await otp0.fill('123456'); // fordeles + auto-login ved 6. ciffer
   await page.waitForSelector('#app:not(.hide)', { timeout: 5000 });
   t('logget ind -> portalen vises', await page.locator('#custName').innerText() === 'Megans Surdej');
   t('varer vises med pris og aftalt pris', await page.locator('.prow').count() === 2 && /aftalt pris/.test(await page.locator('#prodList').innerText()));
@@ -87,7 +90,7 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
     if (b.action === 'newsletterlist') return route.fulfill({ json: { ok: true, count: 0, emails: [] } });
     return route.fulfill({ json: { ok: true } });
   });
-  page.on('dialog', d => d.accept(d.type() === 'prompt' ? 'Leverer torsdag' : undefined));
+  page.on('dialog', d => d.accept()); // kun kunde-sletning bruger stadig confirm
 
   await page.goto('http://localhost:8199/erhvervsportal.html');
   await page.waitForSelector('.b2b-ord', { timeout: 10000 });
@@ -100,8 +103,14 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   await page.locator('.b2b-ord').first().screenshot({ path: 'b2badmin.png' });
 
   await page.click('[data-b2b-ok]');
+  await page.waitForSelector('.dlg-back.open', { timeout: 4000 });
+  const dlgTxt = await page.locator('#dlgTitle').innerText();
+  t('godkend åbner pæn dialog (ikke prompt)', /Godkend bestilling #3/.test(dlgTxt));
+  await page.fill('#dlgMsg', 'Leverer torsdag');
+  await page.click('#dlgGo');
   await page.waitForTimeout(400);
   t('admin: godkend sender status+besked', statusCall && statusCall.status === 'godkendt' && statusCall.msg === 'Leverer torsdag');
+  t('dialogen lukker efter send', await page.locator('.dlg-back.open').count() === 0);
   t('admin: ordren skifter til Godkendt', await page.locator('[data-b2b-ok]').count() === 0 && (await page.locator('.b2b-chip.godkendt').count()) === 2);
   await page.close();
 }

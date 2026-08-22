@@ -37,24 +37,51 @@
   :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
   .num{font-variant-numeric:tabular-nums}
 
-  /* ---------- LOGIN ---------- */
+  /* ---------- LOGIN (struktur fra 21st.dev "One Time Password Sign In Card") -- */
   #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);
-    padding:32px 28px;width:100%;max-width:380px;text-align:center}
-  .login-card img{width:64px;height:64px;object-fit:contain;margin-bottom:16px}
-  .login-card h1{font-size:18px;font-weight:700;letter-spacing:-.01em}
-  .login-card p{color:var(--muted-fg);font-size:13.5px;margin:6px 0 22px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh);
+    padding:32px 28px 26px;width:100%;max-width:420px;text-align:center;
+    animation:cardIn .4s cubic-bezier(.32,.72,0,1) both}
+  @keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.985)}}
+  /* ikon-badge: ydre gradient-glorie -> indre cirkel med ring og skygge */
+  .badge-halo{position:relative;width:88px;height:88px;margin:0 auto 14px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center}
+  .badge-halo::before{content:"";position:absolute;inset:0;border-radius:50%;
+    background:linear-gradient(to bottom,var(--subtle-fg),transparent);opacity:.14}
+  .badge-core{position:relative;z-index:1;width:60px;height:60px;border-radius:50%;background:var(--surface);
+    box-shadow:var(--sh-xs),inset 0 0 0 1px var(--border);display:flex;align-items:center;justify-content:center}
+  .badge-core svg{width:26px;height:26px;stroke:var(--muted-fg);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .badge-core img{width:36px;height:36px;object-fit:contain}
+  .login-card h1{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .login-card p{color:var(--muted-fg);font-size:13.5px;letter-spacing:-.006em;margin:6px 0 0;line-height:1.55}
+  .login-sep{height:1px;background:var(--border);margin:22px 0}
   .fld{width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--fg);padding:13px 14px;border:1px solid var(--border);
     border-radius:var(--radius);background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s}
   .fld:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
-  .fld.code{text-align:center;font-size:26px;letter-spacing:8px;font-variant-numeric:tabular-nums}
-  .login-btn{width:100%;margin-top:14px;background:var(--primary);color:var(--primary-fg);font-size:15px;font-weight:600;
-    padding:12px;border-radius:var(--radius);transition:background-color .15s}
+  /* 6 separate kodefelter i stedet for ét langt felt */
+  .otp{display:flex;gap:8px;justify-content:center}
+  .otp input{width:100%;max-width:52px;height:56px;text-align:center;font-family:inherit;font-size:22px;font-weight:700;
+    color:var(--fg);border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);outline:none;
+    font-variant-numeric:tabular-nums;caret-color:var(--primary);
+    transition:border-color .13s ease,box-shadow .13s ease,transform .13s ease}
+  .otp input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring);transform:scale(1.04)}
+  .otp input.filled{border-color:var(--border-strong);background:var(--surface-2)}
+  .otp.shake{animation:otpShake .4s cubic-bezier(.36,.07,.19,.97)}
+  @keyframes otpShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-3px)}40%,60%{transform:translateX(3px)}}
+  .login-btn{width:100%;margin-top:18px;background:var(--primary);color:var(--primary-fg);font-size:15px;font-weight:600;
+    padding:12px;border-radius:var(--radius);transition:background-color .15s,transform .12s cubic-bezier(.32,.72,0,1)}
   .login-btn:hover{background:var(--primary-hover)}
+  .login-btn:active{transform:scale(.98)}
   .login-btn:disabled{opacity:.6;cursor:default}
-  .login-err{color:var(--red);font-size:13.5px;margin-top:14px;min-height:18px}
-  .login-note{color:var(--muted-fg);font-size:12.5px;margin-top:16px}
-  .login-back{margin-top:12px;font-size:13px;font-weight:600;color:var(--muted-fg);text-decoration:underline}
+  .login-err{color:var(--red);font-size:13.5px;font-weight:600;margin-top:14px;min-height:18px}
+  .login-foot{display:flex;align-items:center;justify-content:center;gap:5px;font-size:13px;margin-top:4px;flex-wrap:wrap}
+  .login-foot span{color:var(--muted-fg)}
+  .login-link{font-weight:600;color:var(--fg);text-decoration:underline;text-underline-offset:3px;padding:2px}
+  .login-link:hover{color:var(--primary)}
+  .login-link:disabled{opacity:.5;text-decoration:none;cursor:default}
+  .login-note{color:var(--muted-fg);font-size:12.5px;margin-top:18px;line-height:1.6}
+  .step{animation:stepIn .3s cubic-bezier(.32,.72,0,1) both}
+  @keyframes stepIn{from{opacity:0;transform:translateY(6px)}}
 
   /* ---------- TOP BAR ---------- */
   .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;
@@ -81,7 +108,9 @@
   .pmeta{font-size:12px;font-weight:600;color:var(--muted-fg)}
 
   /* ---------- PRODUKTLISTE ---------- */
-  .prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+  .prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);
+    animation:rowIn .35s cubic-bezier(.32,.72,0,1) both;animation-delay:calc(var(--i,0)*28ms)}
+  @keyframes rowIn{from{opacity:0;transform:translateY(5px)}}
   .prow:last-child{border-bottom:none}
   .prow img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex:none;background:var(--muted)}
   .pinf{flex:1;min-width:0}
@@ -93,6 +122,8 @@
     color:var(--fg-2);transition:background-color .12s;-webkit-user-select:none;user-select:none}
   .qty button:hover{background:var(--muted)}
   .qty button:active{background:var(--primary-tint)}
+  .qty button:active svg,.qty button:active{transform:scale(.92)}
+  .qty button{transition:background-color .12s,transform .1s cubic-bezier(.32,.72,0,1)}
   .qty input{width:44px;height:38px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);
     text-align:center;font:inherit;font-weight:700;font-size:14.5px;outline:none;color:var(--fg);font-variant-numeric:tabular-nums;
     -moz-appearance:textfield;appearance:textfield}
@@ -115,16 +146,24 @@
   .sendbtn{background:var(--primary);color:var(--primary-fg);font-size:14.5px;font-weight:700;padding:12px 22px;
     border-radius:var(--radius);transition:background-color .15s;white-space:nowrap;display:flex;align-items:center;gap:8px}
   .sendbtn:hover{background:var(--primary-hover)}
+  .sendbtn:active{transform:scale(.97)}
+  .sendbtn{transition:background-color .15s,transform .12s cubic-bezier(.32,.72,0,1),opacity .15s}
   .sendbtn:disabled{opacity:.5;cursor:default}
   .sendbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
   /* ---------- MINE BESTILLINGER ---------- */
-  .ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  .ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface);
+    animation:rowIn .35s cubic-bezier(.32,.72,0,1) both;animation-delay:calc(var(--i,0)*35ms);
+    transition:border-color .15s,box-shadow .15s}
+  .ord:hover{border-color:var(--border-strong);box-shadow:var(--sh-xs)}
   .ord:last-child{margin-bottom:0}
   .ord-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .ord-no{font-size:14px;font-weight:800;color:var(--primary)}
   .ord-date{font-size:12px;font-weight:600;color:var(--muted-fg)}
-  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+  .chip.ny::before{animation:pulseDot 1.8s ease infinite}
+  @keyframes pulseDot{50%{opacity:.35}}
   .chip.ny{color:var(--amber);background:var(--amber-tint);border-color:var(--amber-border)}
   .chip.godkendt{color:var(--green);background:var(--green-tint);border-color:var(--green-border)}
   .chip.afvist{color:var(--red);background:var(--red-tint);border-color:var(--red-border)}
@@ -133,12 +172,25 @@
   .ord-msg{margin-top:8px;font-size:12.5px;font-weight:600;color:var(--muted-fg);border-top:1px dashed var(--border);padding-top:8px}
   .empty{color:var(--muted-fg);font-size:13.5px;font-weight:500;padding:6px 0}
   .loading{color:var(--muted-fg);font-size:13.5px;padding:6px 0}
+  /* skeleton-loading i stedet for tekst */
+  .skel{display:grid;gap:12px;padding:4px 0}
+  .skel-row{display:flex;align-items:center;gap:12px}
+  .skel-b{border-radius:8px;background:linear-gradient(90deg,var(--muted) 25%,var(--surface-2) 50%,var(--muted) 75%);
+    background-size:200% 100%;animation:skelWave 1.4s ease infinite}
+  @keyframes skelWave{to{background-position:-200% 0}}
+  .skel-img{width:44px;height:44px;flex:none}
+  .skel-l1{height:13px;width:45%}
+  .skel-l2{height:11px;width:30%;margin-top:6px}
+  .skel-q{width:110px;height:38px;flex:none;margin-left:auto}
 
-  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--fg);
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(16px) scale(.97);z-index:80;background:var(--fg);
     color:#fff;font-size:13.5px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:var(--sh-lg);
-    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    opacity:0;pointer-events:none;transition:opacity .25s cubic-bezier(.32,.72,0,1),transform .25s cubic-bezier(.32,.72,0,1)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.01ms!important;animation-duration:.01ms!important}
+  }
   @media(max-width:520px){
     .wrap{padding:14px 10px 150px}
     .panel-b{padding:12px}
@@ -153,20 +205,35 @@
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login">
   <div class="login-card">
-    <img src="images/logopng.png" alt="Quartz Mølle" />
-    <h1>Erhvervsportal</h1>
-
-    <div id="stepEmail">
-      <p>Log ind med din e-mail — vi sender dig en engangskode.</p>
+    <div id="stepEmail" class="step">
+      <div class="badge-halo"><div class="badge-core"><img src="images/logopng.png" alt="" onerror="this.style.display='none'" /></div></div>
+      <h1>Erhvervsportal</h1>
+      <p>Log ind med din e-mail —<br>vi sender dig en engangskode med det samme.</p>
+      <div class="login-sep"></div>
       <input id="emailIn" class="fld" type="email" placeholder="din@email.dk" autocomplete="email" inputmode="email" />
       <button id="sendCodeBtn" class="login-btn" type="button">Send kode</button>
     </div>
 
-    <div id="stepCode" class="hide">
-      <p>Vi har sendt en 6-cifret kode til <b id="sentTo"></b> — skriv den her:</p>
-      <input id="codeIn" class="fld code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" />
+    <div id="stepCode" class="step hide">
+      <div class="badge-halo"><div class="badge-core"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div></div>
+      <h1>Tjek din indbakke</h1>
+      <p>Vi har sendt en 6-cifret kode til<br><b id="sentTo" style="color:var(--fg)"></b></p>
+      <div class="login-sep"></div>
+      <div class="otp" id="otpWrap">
+        <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" aria-label="Ciffer 1" />
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Ciffer 2" />
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Ciffer 3" />
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Ciffer 4" />
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Ciffer 5" />
+        <input type="text" inputmode="numeric" maxlength="1" aria-label="Ciffer 6" />
+      </div>
       <button id="verifyBtn" class="login-btn" type="button">Log ind</button>
-      <div><button id="backBtn" class="login-back" type="button">Brug en anden e-mail</button></div>
+      <div class="login-foot">
+        <span>Fik du ingen kode?</span>
+        <button id="resendBtn" class="login-link" type="button">Send igen</button>
+        <span>·</span>
+        <button id="backBtn" class="login-link" type="button">Anden e-mail</button>
+      </div>
     </div>
 
     <div class="login-err" id="loginErr"></div>
@@ -190,7 +257,11 @@
         <span class="pmeta">Priser ekskl. moms</span>
       </div>
       <div class="panel-b">
-        <div id="prodList" class="loading">Henter varer…</div>
+        <div id="prodList"><div class="skel">
+          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+        </div></div>
         <div class="ordfields">
           <div>
             <label for="ordNote">Bemærkning (valgfri)</label>
@@ -210,7 +281,10 @@
         <span class="pmeta" id="ordCount"></span>
       </div>
       <div class="panel-b">
-        <div id="myOrders" class="loading">Henter…</div>
+        <div id="myOrders"><div class="skel">
+          <div class="skel-b" style="height:64px"></div>
+          <div class="skel-b" style="height:64px"></div>
+        </div></div>
       </div>
     </div>
   </div>
@@ -269,28 +343,80 @@
       $('sentTo').textContent = email;
       $('stepEmail').classList.add('hide');
       $('stepCode').classList.remove('hide');
-      $('codeIn').focus();
+      otpClear(true);
+      resendWait = 30; tickResend();
     }).catch(function () { b.disabled = false; b.textContent = 'Send kode'; showErr('Netværksfejl — prøv igen.'); });
   });
   $('emailIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('sendCodeBtn').click(); });
   $('backBtn').addEventListener('click', function () {
+    if (resendTimer) clearTimeout(resendTimer);
     $('stepCode').classList.add('hide'); $('stepEmail').classList.remove('hide'); showErr(''); $('emailIn').focus();
   });
+  // ── 6 separate kodefelter: auto-hop, indsæt hele koden, backspace ──
+  var otpEls = Array.prototype.slice.call(document.querySelectorAll('#otpWrap input'));
+  function otpValue() { return otpEls.map(function (i) { return i.value; }).join(''); }
+  function otpClear(focusFirst) {
+    otpEls.forEach(function (i) { i.value = ''; i.classList.remove('filled'); });
+    if (focusFirst) otpEls[0].focus();
+  }
+  function otpFill(str) {
+    var digits = String(str).replace(/\D/g, '').slice(0, 6).split('');
+    otpEls.forEach(function (el, i) { el.value = digits[i] || ''; el.classList.toggle('filled', !!digits[i]); });
+    if (digits.length === 6) { $('verifyBtn').click(); }
+    else if (digits.length) { otpEls[Math.min(digits.length, 5)].focus(); }
+  }
+  otpEls.forEach(function (el, idx) {
+    el.addEventListener('input', function () {
+      var v = this.value.replace(/\D/g, '');
+      if (v.length > 1) { otpFill(otpEls.slice(0, idx).map(function (p) { return p.value; }).join('') + v); return; }
+      this.value = v;
+      this.classList.toggle('filled', !!v);
+      if (v && idx < 5) otpEls[idx + 1].focus();
+      if (otpValue().length === 6) $('verifyBtn').click();
+    });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !this.value && idx > 0) { otpEls[idx - 1].value = ''; otpEls[idx - 1].classList.remove('filled'); otpEls[idx - 1].focus(); e.preventDefault(); }
+      if (e.key === 'ArrowLeft' && idx > 0) { otpEls[idx - 1].focus(); e.preventDefault(); }
+      if (e.key === 'ArrowRight' && idx < 5) { otpEls[idx + 1].focus(); e.preventDefault(); }
+      if (e.key === 'Enter') $('verifyBtn').click();
+    });
+    el.addEventListener('paste', function (e) {
+      e.preventDefault();
+      otpFill((e.clipboardData || window.clipboardData).getData('text'));
+    });
+  });
+
+  var verifying = false;
   $('verifyBtn').addEventListener('click', function () {
-    var code = ($('codeIn').value || '').replace(/\D/g, '');
+    var code = otpValue();
     showErr('');
-    if (code.length !== 6) { showErr('Koden er 6 cifre.'); return; }
+    if (code.length !== 6 || verifying) { if (code.length !== 6) showErr('Skriv alle 6 cifre.'); return; }
+    verifying = true;
     var b = $('verifyBtn'); b.disabled = true; b.textContent = 'Logger ind…';
     api({ action: 'verify', email: pendingEmail, code: code }).then(function (r) {
-      b.disabled = false; b.textContent = 'Log ind';
-      if (!r.d.ok) { showErr(r.d.error || 'Forkert kode.'); $('codeIn').value = ''; $('codeIn').focus(); return; }
+      verifying = false; b.disabled = false; b.textContent = 'Log ind';
+      if (!r.d.ok) {
+        showErr(r.d.error || 'Forkert kode.');
+        var w = $('otpWrap'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake');
+        otpClear(true);
+        return;
+      }
       enterApp();
-    }).catch(function () { b.disabled = false; b.textContent = 'Log ind'; showErr('Netværksfejl — prøv igen.'); });
+    }).catch(function () { verifying = false; b.disabled = false; b.textContent = 'Log ind'; showErr('Netværksfejl — prøv igen.'); });
   });
-  $('codeIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('verifyBtn').click(); });
-  $('codeIn').addEventListener('input', function () {
-    this.value = this.value.replace(/\D/g, '').slice(0, 6);
-    if (this.value.length === 6) $('verifyBtn').click();
+
+  // Gensend med rolig nedtælling, saa man ikke hamrer paa knappen.
+  var resendWait = 0, resendTimer = null;
+  function tickResend() {
+    var b = $('resendBtn');
+    if (resendWait > 0) { b.disabled = true; b.textContent = 'Send igen (' + resendWait + ')'; resendWait--; resendTimer = setTimeout(tickResend, 1000); }
+    else { b.disabled = false; b.textContent = 'Send igen'; }
+  }
+  $('resendBtn').addEventListener('click', function () {
+    if (this.disabled) return;
+    api({ action: 'reqcode', email: pendingEmail });
+    otpClear(true); showErr('');
+    resendWait = 30; tickResend();
   });
 
   $('logoutBtn').addEventListener('click', function () {
@@ -313,9 +439,11 @@
     var el = $('prodList');
     if (!products.length) { el.className = 'empty'; el.textContent = 'Ingen varer tilgængelige.'; return; }
     el.className = '';
-    el.innerHTML = products.map(function (p) {
+    var animate = !el.__rendered; el.__rendered = true;
+    el.innerHTML = products.map(function (p, i) {
       var q = qtys[p.key] || 0;
-      return '<div class="prow' + (q > 0 ? ' has-qty' : '') + '" data-key="' + esc(p.key) + '">'
+      return '<div class="prow' + (q > 0 ? ' has-qty' : '') + '" data-key="' + esc(p.key) + '"'
+        + (animate ? ' style="--i:' + i + '"' : ' style="animation:none"') + '>'
         + '<img src="' + esc(p.image) + '" alt="" loading="lazy" decoding="async" width="44" height="44" onerror="this.style.visibility=\'hidden\'" />'
         + '<div class="pinf"><div class="pnm">' + esc(p.name) + '</div>'
         + '<div class="psub">' + esc(p.label) + (p.price != null ? ' · <b>' + fmtKr(p.price) + '</b>' : ' · aftalt pris') + '</div></div>'
@@ -388,9 +516,9 @@
       $('ordCount').textContent = os.length ? os.length + ' i alt' : '';
       if (!os.length) { el.className = 'empty'; el.textContent = 'Ingen bestillinger endnu — din første kommer til at stå her.'; return; }
       el.className = '';
-      el.innerHTML = os.map(function (o) {
+      el.innerHTML = os.map(function (o, i) {
         var st = o.status || 'ny';
-        return '<div class="ord">'
+        return '<div class="ord" style="--i:' + i + '">'
           + '<div class="ord-h"><span class="ord-no num">#' + o.no + '</span>'
           + '<span class="chip ' + esc(st) + '">' + (STATUS[st] || st) + '</span>'
           + '<span class="ord-date">' + fmtDate(o.t) + (o.wishDate ? ' · ønsket: ' + esc(o.wishDate) : '') + '</span></div>'
