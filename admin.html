@@ -297,11 +297,19 @@
   .trc-hit{fill:transparent}
   .trc-hi{fill:#fff;stroke:var(--primary);stroke-width:2.5;opacity:0;transition:opacity .1s ease}
   .trc.show-cursor .trc-cursor,.trc.show-cursor .trc-hi{opacity:1}
+  .trc-bar{fill:var(--primary);opacity:.82;transition:opacity .12s ease}
+  .trc-bar.now{fill:var(--green);opacity:1}
+  .trc-bar.peak{opacity:1}
+  .trc-barbase{stroke:var(--border);stroke-width:1.5;stroke-linecap:round}
+  .trc.show-cursor .trc-bar{opacity:.45}
+  .trc.show-cursor .trc-bar.hov{opacity:1}
   @media(prefers-reduced-motion:no-preference){
     .trc-line{stroke-dasharray:1600;stroke-dashoffset:1600;animation:trcDraw 1s cubic-bezier(.22,1,.36,1) forwards}
     .trc-area{opacity:0;animation:trcFade .6s ease .35s forwards}
+    .trc-bar{transform-box:fill-box;transform-origin:bottom;animation:trcGrow .55s cubic-bezier(.22,1,.36,1) backwards}
     @keyframes trcDraw{to{stroke-dashoffset:0}}
     @keyframes trcFade{to{opacity:.9}}
+    @keyframes trcGrow{from{transform:scaleY(0)}}
   }
   .trc-tip{
     position:absolute;pointer-events:none;z-index:5;transform:translate(-50%,-120%);
@@ -1221,6 +1229,18 @@
     return p;
   }
 
+  function setTrendTitle(perHour) {
+    const peakEl = document.getElementById('trendPeak');
+    const h2 = peakEl && peakEl.parentNode;
+    if (!h2) return;
+    for (const n of h2.childNodes) {
+      if (n.nodeType === 3 && /Omsætning/.test(n.nodeValue)) {
+        n.nodeValue = perHour ? 'Omsætning pr. time' : 'Omsætning pr. dag';
+        return;
+      }
+    }
+  }
+
   function renderTrend(orders, truncated) {
     const el = document.getElementById('trendChart');
     const peakEl = document.getElementById('trendPeak');
@@ -1249,10 +1269,44 @@
     const today = startOf(Date.now());
     const days = [];
     for (let t = first; t <= today; t += DAY) days.push(t);
+
+    // ÉN dag valgt ("I dag" eller én dato): én prik er kedelig — vis i
+    // stedet omsætningen time for time som søjler.
+    if (days.length === 1) {
+      const hours = new Map();
+      let firstH = 24, lastH = 0;
+      list.forEach(o => {
+        const h = new Date(o.date).getHours();
+        const cur = hours.get(h) || { v: 0, n: 0 };
+        cur.v += Number(o.amount) || 0; cur.n++;
+        hours.set(h, cur);
+        if (h < firstH) firstH = h; if (h > lastH) lastH = h;
+      });
+      const isToday = days[0] === today;
+      const startH = Math.min(firstH, 8);
+      const endH = Math.max(lastH, isToday ? new Date().getHours() : 17);
+      const slots = [];
+      for (let h = startH; h <= endH; h++) slots.push(h);
+      const hmax = Math.max(...slots.map(h => (hours.get(h) || { v: 0 }).v), 1);
+      const peakH = slots.reduce((b, h) => ((hours.get(h) || { v: 0 }).v > (hours.get(b) || { v: 0 }).v ? h : b), slots[0]);
+      el.className = '';
+      setTrendTitle(true);
+      el._trend = { mode: 'hours', slots, hours, hmax, total, count: list.length, peakH, isToday, truncated };
+      drawTrend(el);
+      if (!el._ro && typeof ResizeObserver !== 'undefined') {
+        let raf0 = 0;
+        el._ro = new ResizeObserver(() => { cancelAnimationFrame(raf0); raf0 = requestAnimationFrame(() => drawTrend(el)); });
+        el._ro.observe(el);
+      }
+      if (peakEl) peakEl.textContent = (hours.get(peakH) || { v: 0 }).v > 0
+        ? 'Travlest: kl. ' + peakH + '–' + (peakH + 1) + ' · ' + formatKr(hours.get(peakH).v) : '';
+      return;
+    }
     const max = Math.max(...days.map(t => sums.get(t) || 0), 1);
     const peak = days.reduce((b, t) => (sums.get(t) || 0) > (sums.get(b) || 0) ? t : b, days[0]);
 
     el.className = '';
+    setTrendTitle(false);
     el._trend = { days, sums, max, today, total, peak, truncated };
     drawTrend(el);
     if (!el._ro && typeof ResizeObserver !== 'undefined') {
@@ -1266,8 +1320,101 @@
     }
   }
 
+  // Time-visning for én enkelt dag: søjle pr. time med samme udtryk som
+  // dags-grafen (gridlines, tooltip, opsummering).
+  function drawHours(el) {
+    const st = el._trend;
+    const { slots, hours, hmax, total, count, peakH, isToday } = st;
+    const N = slots.length;
+    const nowH = new Date().getHours();
+    const W = Math.max(240, Math.round(el.clientWidth || el.getBoundingClientRect().width || 600));
+    const H = 200, padL = 46, padR = 12, padT = 12, padB = 26;
+    const iw = W - padL - padR, ih = H - padT - padB;
+    const base = padT + ih;
+    const slotW = iw / N;
+    const barW = Math.min(26, Math.max(6, slotW * 0.62));
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+    let grid = '';
+    for (let g = 0; g <= 2; g++) {
+      const gy = padT + (ih * g) / 2, val = hmax * (1 - g / 2);
+      grid += '<line class="trc-grid" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"/>'
+            + '<text class="trc-ylab" x="' + (padL - 8) + '" y="' + (gy + 3.5) + '">' + trFmtCompact(val) + '</text>';
+    }
+
+    let bars = '', dashes = '';
+    slots.forEach((h, i) => {
+      const rec = hours.get(h);
+      const cx = padL + slotW * i + slotW / 2;
+      if (rec && rec.v > 0) {
+        const bh = Math.max(3, (rec.v / hmax) * ih);
+        const cls = 'trc-bar' + (isToday && h === nowH ? ' now' : '') + (h === peakH ? ' peak' : '');
+        bars += '<rect class="' + cls + '" data-i="' + i + '" x="' + (cx - barW / 2) + '" y="' + (base - bh)
+              + '" width="' + barW + '" height="' + bh + '" rx="3.5" style="animation-delay:' + (i * 28) + 'ms"/>';
+      } else {
+        // tom time: lille markering paa grundlinjen, saa rytmen kan aflaeses
+        dashes += '<line class="trc-barbase" x1="' + (cx - barW / 4) + '" y1="' + base + '" x2="' + (cx + barW / 4) + '" y2="' + base + '"/>';
+      }
+    });
+
+    // x-akse: hele timer med luft imellem (ca. hver 3.-4. time)
+    const step = N > 12 ? 3 : (N > 7 ? 2 : 1);
+    let xlab = '';
+    slots.forEach((h, i) => {
+      if (i % step !== 0 && i !== N - 1) return;
+      const cx = padL + slotW * i + slotW / 2;
+      xlab += '<text class="trc-xlab" x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle">' + h + '</text>';
+    });
+
+    const svg =
+      '<svg class="trc" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Omsætning pr. time">'
+      + grid + dashes + bars + xlab
+      + '<rect class="trc-hit" x="' + padL + '" y="' + padT + '" width="' + Math.max(1, iw) + '" height="' + ih + '"/>'
+      + '</svg>';
+
+    const nOrd = count === 1 ? '1 ordre' : count + ' ordrer';
+    const peakRec = hours.get(peakH);
+    const sum = '<div class="trc-sum"><span>I alt <b>' + formatKr(total) + '</b></span>'
+      + '<span><b>' + nOrd + '</b></span>'
+      + (peakRec && peakRec.v > 0 ? '<span>Travlest <b>kl. ' + peakH + '–' + (peakH + 1) + '</b></span>' : '')
+      + '</div>'
+      + (st.truncated ? '<div class="trc-note">Kun de nyeste ordrer er med — vælg en kortere periode for et fuldt billede.</div>' : '');
+
+    el.innerHTML = svg + '<div class="trc-tip" id="trcTip"></div>' + sum;
+
+    const svgEl = el.querySelector('svg');
+    const tip = el.querySelector('#trcTip');
+    const barEls = svgEl.querySelectorAll('.trc-bar');
+    const move = (clientX) => {
+      const rect = svgEl.getBoundingClientRect();
+      const scale = W / rect.width;
+      const px = (clientX - rect.left) * scale;
+      let idx = Math.floor((px - padL) / slotW);
+      idx = Math.max(0, Math.min(N - 1, idx));
+      const h = slots[idx];
+      const rec = hours.get(h) || { v: 0, n: 0 };
+      svgEl.classList.add('show-cursor');
+      barEls.forEach(b => b.classList.toggle('hov', Number(b.getAttribute('data-i')) === idx));
+      const cx = padL + slotW * idx + slotW / 2;
+      const topY = base - (rec.v > 0 ? Math.max(3, (rec.v / hmax) * ih) : 0);
+      tip.innerHTML = '<b>' + esc(formatKr(rec.v)) + '</b><div class="d">kl. ' + h + '–' + (h + 1)
+        + (rec.n ? ' · ' + (rec.n === 1 ? '1 ordre' : rec.n + ' ordrer') : '') + '</div>';
+      tip.style.left = Math.max(8, Math.min(el.clientWidth - 8, (cx / W) * el.clientWidth)) + 'px';
+      tip.style.top = ((topY / H) * rect.height) + 'px';
+      tip.classList.add('show');
+    };
+    svgEl.addEventListener('pointermove', e => move(e.clientX));
+    svgEl.addEventListener('pointerdown', e => move(e.clientX));
+    svgEl.addEventListener('pointerleave', () => {
+      svgEl.classList.remove('show-cursor');
+      barEls.forEach(b => b.classList.remove('hov'));
+      tip.classList.remove('show');
+    });
+  }
+
   function drawTrend(el) {
     const st = el._trend; if (!st) return;
+    if (st.mode === 'hours') return drawHours(el);
     const { days, sums, max, today, total } = st;
     const N = days.length;
     const W = Math.max(240, Math.round(el.clientWidth || el.getBoundingClientRect().width || 600));
