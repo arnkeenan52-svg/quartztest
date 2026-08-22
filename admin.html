@@ -181,12 +181,6 @@
     font-size:26px;font-weight:700;color:var(--fg);line-height:1.15;margin-top:6px;
     letter-spacing:-.02em;font-variant-numeric:tabular-nums
   }
-  .top-thumbs{display:flex;gap:5px;align-items:center;margin-top:7px;min-height:34px}
-  .top-thumbs img{
-    width:34px;height:34px;border-radius:var(--radius-sm);object-fit:cover;
-    background:var(--muted);border:1px solid var(--border);flex:none;display:block
-  }
-  .top-thumbs .tt-empty{font-size:22px;font-weight:700;color:var(--subtle-fg);line-height:34px}
   .stat-card .delta{font-size:12px;font-weight:500;color:var(--muted-fg);margin-top:3px;font-variant-numeric:tabular-nums}
   .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none;
     box-shadow:0 0 0 3px rgba(21,128,61,.14)}
@@ -467,10 +461,10 @@
         <div class="delta" id="revenueWeek"></div>
       </div>
       <div class="stat-card">
-        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z"/></svg></div>
-        <div class="label">Mest købte</div>
-        <div class="top-thumbs" id="topThumbs"><span class="tt-empty">–</span></div>
-        <div class="delta" id="topThumbsNote"></div>
+        <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></div>
+        <div class="label">Gns. ordre</div>
+        <div class="value" id="avgOrder">–</div>
+        <div class="delta" id="avgOrderNote"></div>
       </div>
       <div class="stat-card">
         <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -815,19 +809,12 @@
       `).join('');
     }
 
-    // Mest købte — thumbnails af de faktiske produktbilleder
-    const ttEl = document.getElementById('topThumbs');
-    const ttNote = document.getElementById('topThumbsNote');
-    if (ttEl) {
-      const tops = (data.topProducts || []).filter(p => p && p.image).slice(0, 3);
-      ttEl.innerHTML = tops.length
-        ? tops.map(p => `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" title="${escapeHtml(p.name)} · ${p.qty}×" width="34" height="34" loading="lazy" decoding="async" />`).join('')
-        : '<span class="tt-empty">–</span>';
-      if (ttNote) {
-        const first = (data.topProducts || [])[0];
-        ttNote.textContent = first ? first.name + ' · ' + first.qty + '×' : 'Ingen data';
-      }
-    }
+    // Gennemsnitlig ordrevaerdi for den valgte periode
+    const nOrders = data.totalOrders || 0;
+    const avgEl = document.getElementById('avgOrder');
+    const avgNote = document.getElementById('avgOrderNote');
+    if (avgEl) avgEl.textContent = nOrders > 0 ? formatKr((data.totalRevenue || 0) / nOrders) : '–';
+    if (avgNote) avgNote.textContent = nOrders > 0 ? 'pr. ordre · ' + label : 'Ingen ordrer i perioden';
 
     // Locations
     const locEl = document.getElementById('locations');
