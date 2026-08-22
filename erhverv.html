@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Erhverv · Quartz Mølle</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="apple-touch-icon" href="/images/appletouchicon.png">
+<meta name="apple-mobile-web-app-title" content="Quartz Mølle">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Design system: samme Harbor Blue-struktur som locker/fufill/admin */
+  :root{
+    --bg:#f8fafc; --surface:#fff; --surface-2:#f8fafc;
+    --fg:#0f172a; --fg-2:#334155; --muted:#f1f5f9; --muted-fg:#64748b; --subtle-fg:#94a3b8;
+    --border:#e2e8f0; --border-strong:#cbd5e1;
+    --primary:#273071; --primary-hover:#313c8c; --primary-fg:#fff;
+    --primary-tint:#eef1fa; --primary-ring:rgba(39,48,113,.28);
+    --green:#15803d; --green-tint:#f0fdf4; --green-border:#bbf7d0;
+    --red:#dc2626; --red-tint:#fef2f2; --red-border:#fecaca;
+    --amber:#b45309; --amber-tint:#fffbeb; --amber-border:#fde68a;
+    --radius:8px; --radius-lg:10px; --radius-sm:6px;
+    --sh-xs:0 1px 2px rgba(15,23,42,.06);
+    --sh:0 2px 10px rgba(15,23,42,.10);
+    --sh-lg:0 12px 32px rgba(15,23,42,.16);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);
+    -webkit-font-smoothing:antialiased;line-height:1.5;font-size:14px;font-weight:500}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .hide{display:none!important}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- LOGIN ---------- */
+  #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);
+    padding:32px 28px;width:100%;max-width:380px;text-align:center}
+  .login-card img{width:64px;height:64px;object-fit:contain;margin-bottom:16px}
+  .login-card h1{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .login-card p{color:var(--muted-fg);font-size:13.5px;margin:6px 0 22px}
+  .fld{width:100%;font-family:inherit;font-size:15px;font-weight:600;color:var(--fg);padding:13px 14px;border:1px solid var(--border);
+    border-radius:var(--radius);background:var(--surface);outline:none;transition:border-color .15s,box-shadow .15s}
+  .fld:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+  .fld.code{text-align:center;font-size:26px;letter-spacing:8px;font-variant-numeric:tabular-nums}
+  .login-btn{width:100%;margin-top:14px;background:var(--primary);color:var(--primary-fg);font-size:15px;font-weight:600;
+    padding:12px;border-radius:var(--radius);transition:background-color .15s}
+  .login-btn:hover{background:var(--primary-hover)}
+  .login-btn:disabled{opacity:.6;cursor:default}
+  .login-err{color:var(--red);font-size:13.5px;margin-top:14px;min-height:18px}
+  .login-note{color:var(--muted-fg);font-size:12.5px;margin-top:16px}
+  .login-back{margin-top:12px;font-size:13px;font-weight:600;color:var(--muted-fg);text-decoration:underline}
+
+  /* ---------- TOP BAR ---------- */
+  .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;
+    background:var(--surface);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0)}
+  .top img{width:28px;height:28px;object-fit:contain;border-radius:6px;flex:none}
+  .ttl{font-size:14.5px;font-weight:700;letter-spacing:-.01em;line-height:1.2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ttl small{display:block;font-size:11.5px;font-weight:500;color:var(--muted-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .spacer{flex:1}
+  .logout{font-size:13px;font-weight:600;color:var(--fg-2);padding:7px 11px;border-radius:var(--radius-sm);white-space:nowrap;
+    border:1px solid var(--border);background:var(--surface);transition:background-color .15s,border-color .15s}
+  .logout:hover{background:var(--muted);border-color:var(--border-strong)}
+
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 140px}
+
+  /* ---------- PANELS ---------- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--sh-xs);
+    margin-bottom:16px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;
+    border-bottom:1px solid var(--border);background:var(--surface-2)}
+  .panel-h h2{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg);
+    display:flex;align-items:center;gap:8px}
+  .panel-h h2 svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .panel-b{padding:14px 16px}
+  .pmeta{font-size:12px;font-weight:600;color:var(--muted-fg)}
+
+  /* ---------- PRODUKTLISTE ---------- */
+  .prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+  .prow:last-child{border-bottom:none}
+  .prow img{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex:none;background:var(--muted)}
+  .pinf{flex:1;min-width:0}
+  .pnm{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+  .psub{font-size:12.5px;font-weight:600;color:var(--muted-fg)}
+  .psub b{color:var(--primary);font-weight:700}
+  .qty{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;flex:none;background:var(--surface)}
+  .qty button{width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;
+    color:var(--fg-2);transition:background-color .12s;-webkit-user-select:none;user-select:none}
+  .qty button:hover{background:var(--muted)}
+  .qty button:active{background:var(--primary-tint)}
+  .qty input{width:44px;height:38px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);
+    text-align:center;font:inherit;font-weight:700;font-size:14.5px;outline:none;color:var(--fg);font-variant-numeric:tabular-nums;
+    -moz-appearance:textfield;appearance:textfield}
+  .qty input::-webkit-inner-spin-button,.qty input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .prow.has-qty{background:linear-gradient(to right,transparent,var(--primary-tint) 400%)}
+  .prow.has-qty .pnm{color:var(--primary)}
+
+  .ordfields{display:grid;gap:10px;margin-top:14px}
+  .ordfields label{font-size:12px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.06em}
+  .ordfields textarea{min-height:64px;resize:vertical}
+  .ordfields input[type=date]{max-width:200px}
+
+  /* ---------- BUNDBAR ---------- */
+  .sumbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);
+    box-shadow:0 -6px 24px rgba(15,23,42,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0))}
+  .sumbar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:14px}
+  .sumtxt{flex:1;min-width:0}
+  .sumtxt .a{font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+  .sumtxt .b{font-size:12px;font-weight:600;color:var(--muted-fg)}
+  .sendbtn{background:var(--primary);color:var(--primary-fg);font-size:14.5px;font-weight:700;padding:12px 22px;
+    border-radius:var(--radius);transition:background-color .15s;white-space:nowrap;display:flex;align-items:center;gap:8px}
+  .sendbtn:hover{background:var(--primary-hover)}
+  .sendbtn:disabled{opacity:.5;cursor:default}
+  .sendbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- MINE BESTILLINGER ---------- */
+  .ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  .ord:last-child{margin-bottom:0}
+  .ord-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ord-no{font-size:14px;font-weight:800;color:var(--primary)}
+  .ord-date{font-size:12px;font-weight:600;color:var(--muted-fg)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid}
+  .chip.ny{color:var(--amber);background:var(--amber-tint);border-color:var(--amber-border)}
+  .chip.godkendt{color:var(--green);background:var(--green-tint);border-color:var(--green-border)}
+  .chip.afvist{color:var(--red);background:var(--red-tint);border-color:var(--red-border)}
+  .ord-lines{margin-top:8px;font-size:13px;font-weight:600;color:var(--fg-2)}
+  .ord-lines div{padding:3px 0;display:flex;justify-content:space-between;gap:10px}
+  .ord-msg{margin-top:8px;font-size:12.5px;font-weight:600;color:var(--muted-fg);border-top:1px dashed var(--border);padding-top:8px}
+  .empty{color:var(--muted-fg);font-size:13.5px;font-weight:500;padding:6px 0}
+  .loading{color:var(--muted-fg);font-size:13.5px;padding:6px 0}
+
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);z-index:80;background:var(--fg);
+    color:#fff;font-size:13.5px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:var(--sh-lg);
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:520px){
+    .wrap{padding:14px 10px 150px}
+    .panel-b{padding:12px}
+    .prow img{width:40px;height:40px}
+    .qty button{width:34px;height:34px}
+    .qty input{width:38px;height:34px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="login">
+  <div class="login-card">
+    <img src="images/logopng.png" alt="Quartz Mølle" />
+    <h1>Erhvervsportal</h1>
+
+    <div id="stepEmail">
+      <p>Log ind med din e-mail — vi sender dig en engangskode.</p>
+      <input id="emailIn" class="fld" type="email" placeholder="din@email.dk" autocomplete="email" inputmode="email" />
+      <button id="sendCodeBtn" class="login-btn" type="button">Send kode</button>
+    </div>
+
+    <div id="stepCode" class="hide">
+      <p>Vi har sendt en 6-cifret kode til <b id="sentTo"></b> — skriv den her:</p>
+      <input id="codeIn" class="fld code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" />
+      <button id="verifyBtn" class="login-btn" type="button">Log ind</button>
+      <div><button id="backBtn" class="login-back" type="button">Brug en anden e-mail</button></div>
+    </div>
+
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-note">Kun for forhandlere og bagerier med kundeaftale.<br>Ny kunde? Skriv til <a href="mailto:hello@quartzmolle.dk" style="color:var(--primary);font-weight:700">hello@quartzmolle.dk</a></div>
+  </div>
+</div>
+
+<!-- ══════════ PORTAL ══════════ -->
+<div id="app" class="hide">
+  <div class="top">
+    <img src="images/logopng.png" alt="" />
+    <div class="ttl">Erhverv<small id="custName">…</small></div>
+    <div class="spacer"></div>
+    <button class="logout" id="logoutBtn" type="button">Log ud</button>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="panel-h">
+        <h2><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Bestil varer</h2>
+        <span class="pmeta">Priser ekskl. moms</span>
+      </div>
+      <div class="panel-b">
+        <div id="prodList" class="loading">Henter varer…</div>
+        <div class="ordfields">
+          <div>
+            <label for="ordNote">Bemærkning (valgfri)</label>
+            <textarea id="ordNote" class="fld" placeholder="Fx leveringsønsker eller besked til møllen"></textarea>
+          </div>
+          <div>
+            <label for="ordDate">Ønsket leveringsdato (valgfri)</label><br>
+            <input id="ordDate" class="fld" type="date" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">
+        <h2><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Mine bestillinger</h2>
+        <span class="pmeta" id="ordCount"></span>
+      </div>
+      <div class="panel-b">
+        <div id="myOrders" class="loading">Henter…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sumbar">
+    <div class="sumbar-in">
+      <div class="sumtxt">
+        <div class="a num" id="sumMain">Ingen varer valgt</div>
+        <div class="b num" id="sumSub"></div>
+      </div>
+      <button class="sendbtn" id="sendOrderBtn" type="button" disabled>
+        <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>Send bestilling
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '/api/b2b';
+  var products = [];
+  var qtys = {}; // key -> antal
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function api(payload) {
+    return fetch(API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin', body: JSON.stringify(payload),
+    }).then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); });
+  }
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, 2600);
+  }
+  function fmtKr(n) { return n.toLocaleString('da-DK') + ' kr.'; }
+  function fmtDate(t) { return new Date(t).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }); }
+
+  // ── LOGIN ──
+  var pendingEmail = '';
+  function showErr(m) { $('loginErr').textContent = m || ''; }
+  $('sendCodeBtn').addEventListener('click', function () {
+    var email = ($('emailIn').value || '').trim().toLowerCase();
+    showErr('');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showErr('Skriv en gyldig e-mailadresse.'); return; }
+    var b = $('sendCodeBtn'); b.disabled = true; b.textContent = 'Sender…';
+    api({ action: 'reqcode', email: email }).then(function (r) {
+      b.disabled = false; b.textContent = 'Send kode';
+      if (!r.d.ok) { showErr(r.d.error || 'Noget gik galt.'); return; }
+      pendingEmail = email;
+      $('sentTo').textContent = email;
+      $('stepEmail').classList.add('hide');
+      $('stepCode').classList.remove('hide');
+      $('codeIn').focus();
+    }).catch(function () { b.disabled = false; b.textContent = 'Send kode'; showErr('Netværksfejl — prøv igen.'); });
+  });
+  $('emailIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('sendCodeBtn').click(); });
+  $('backBtn').addEventListener('click', function () {
+    $('stepCode').classList.add('hide'); $('stepEmail').classList.remove('hide'); showErr(''); $('emailIn').focus();
+  });
+  $('verifyBtn').addEventListener('click', function () {
+    var code = ($('codeIn').value || '').replace(/\D/g, '');
+    showErr('');
+    if (code.length !== 6) { showErr('Koden er 6 cifre.'); return; }
+    var b = $('verifyBtn'); b.disabled = true; b.textContent = 'Logger ind…';
+    api({ action: 'verify', email: pendingEmail, code: code }).then(function (r) {
+      b.disabled = false; b.textContent = 'Log ind';
+      if (!r.d.ok) { showErr(r.d.error || 'Forkert kode.'); $('codeIn').value = ''; $('codeIn').focus(); return; }
+      enterApp();
+    }).catch(function () { b.disabled = false; b.textContent = 'Log ind'; showErr('Netværksfejl — prøv igen.'); });
+  });
+  $('codeIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('verifyBtn').click(); });
+  $('codeIn').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    if (this.value.length === 6) $('verifyBtn').click();
+  });
+
+  $('logoutBtn').addEventListener('click', function () {
+    api({ action: 'logout' }).then(function () { location.reload(); });
+  });
+
+  // ── PORTAL ──
+  function enterApp() {
+    api({ action: 'me' }).then(function (r) {
+      if (r.status === 401 || !r.d.ok) { $('login').classList.remove('hide'); $('app').classList.add('hide'); return; }
+      $('login').classList.add('hide'); $('app').classList.remove('hide');
+      $('custName').textContent = r.d.customer.name;
+      products = r.d.products || [];
+      renderProducts();
+      loadMyOrders();
+    }).catch(function () {});
+  }
+
+  function renderProducts() {
+    var el = $('prodList');
+    if (!products.length) { el.className = 'empty'; el.textContent = 'Ingen varer tilgængelige.'; return; }
+    el.className = '';
+    el.innerHTML = products.map(function (p) {
+      var q = qtys[p.key] || 0;
+      return '<div class="prow' + (q > 0 ? ' has-qty' : '') + '" data-key="' + esc(p.key) + '">'
+        + '<img src="' + esc(p.image) + '" alt="" loading="lazy" decoding="async" width="44" height="44" onerror="this.style.visibility=\'hidden\'" />'
+        + '<div class="pinf"><div class="pnm">' + esc(p.name) + '</div>'
+        + '<div class="psub">' + esc(p.label) + (p.price != null ? ' · <b>' + fmtKr(p.price) + '</b>' : ' · aftalt pris') + '</div></div>'
+        + '<div class="qty">'
+        + '<button type="button" data-minus aria-label="Færre">−</button>'
+        + '<input type="number" min="0" max="500" inputmode="numeric" value="' + q + '" aria-label="Antal ' + esc(p.name) + ' ' + esc(p.label) + '" />'
+        + '<button type="button" data-plus aria-label="Flere">+</button>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  // Én delegeret lytter til alle steppere.
+  $('prodList').addEventListener('click', function (e) {
+    var row = e.target.closest('.prow'); if (!row) return;
+    var key = row.getAttribute('data-key');
+    var input = row.querySelector('input');
+    var v = Math.floor(Number(input.value)) || 0;
+    if (e.target.closest('[data-plus]')) v = Math.min(500, v + 1);
+    else if (e.target.closest('[data-minus]')) v = Math.max(0, v - 1);
+    else return;
+    input.value = v; setQty(key, v, row);
+  });
+  $('prodList').addEventListener('input', function (e) {
+    var row = e.target.closest('.prow'); if (!row || e.target.tagName !== 'INPUT') return;
+    var v = Math.max(0, Math.min(500, Math.floor(Number(e.target.value)) || 0));
+    setQty(row.getAttribute('data-key'), v, row);
+  });
+  function setQty(key, v, row) {
+    if (v > 0) qtys[key] = v; else delete qtys[key];
+    row.classList.toggle('has-qty', v > 0);
+    updateSum();
+  }
+
+  function updateSum() {
+    var items = 0, kg = 0, sum = 0, open = false;
+    products.forEach(function (p) {
+      var q = qtys[p.key] || 0; if (!q) return;
+      items += q; kg += p.kg * q;
+      if (p.price != null) sum += p.price * q; else open = true;
+    });
+    var main = $('sumMain'), sub = $('sumSub'), btn = $('sendOrderBtn');
+    if (!items) { main.textContent = 'Ingen varer valgt'; sub.textContent = ''; btn.disabled = true; return; }
+    main.textContent = items + ' stk. · ca. ' + kg.toLocaleString('da-DK') + ' kg';
+    sub.textContent = sum > 0 ? fmtKr(sum) + ' ekskl. moms' + (open ? ' + varer til aftalt pris' : '') : (open ? 'Pris efter aftale' : '');
+    btn.disabled = false;
+  }
+
+  $('sendOrderBtn').addEventListener('click', function () {
+    var lines = Object.keys(qtys).map(function (k) { return { key: k, qty: qtys[k] }; });
+    if (!lines.length) return;
+    var b = $('sendOrderBtn'); b.disabled = true;
+    api({ action: 'order', lines: lines, note: ($('ordNote').value || '').trim(), wishDate: $('ordDate').value || '' })
+      .then(function (r) {
+        b.disabled = false;
+        if (!r.d.ok) { toast(r.d.error || 'Noget gik galt — prøv igen.'); return; }
+        qtys = {}; $('ordNote').value = ''; $('ordDate').value = '';
+        renderProducts(); updateSum();
+        toast('Bestilling #' + r.d.no + ' er sendt — du får en mail, når den er bekræftet.');
+        loadMyOrders();
+      })
+      .catch(function () { b.disabled = false; toast('Netværksfejl — prøv igen.'); });
+  });
+
+  var STATUS = { ny: 'Afventer bekræftelse', godkendt: 'Bekræftet', afvist: 'Afvist' };
+  function loadMyOrders() {
+    api({ action: 'myorders' }).then(function (r) {
+      var el = $('myOrders');
+      if (!r.d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente bestillinger.'; return; }
+      var os = r.d.orders || [];
+      $('ordCount').textContent = os.length ? os.length + ' i alt' : '';
+      if (!os.length) { el.className = 'empty'; el.textContent = 'Ingen bestillinger endnu — din første kommer til at stå her.'; return; }
+      el.className = '';
+      el.innerHTML = os.map(function (o) {
+        var st = o.status || 'ny';
+        return '<div class="ord">'
+          + '<div class="ord-h"><span class="ord-no num">#' + o.no + '</span>'
+          + '<span class="chip ' + esc(st) + '">' + (STATUS[st] || st) + '</span>'
+          + '<span class="ord-date">' + fmtDate(o.t) + (o.wishDate ? ' · ønsket: ' + esc(o.wishDate) : '') + '</span></div>'
+          + '<div class="ord-lines">' + o.lines.map(function (l) {
+              return '<div><span>' + esc(l.name) + ' · ' + esc(l.label) + '</span><span class="num">' + l.qty + ' stk.'
+                + (l.price != null ? ' · ' + fmtKr(l.price * l.qty) : '') + '</span></div>';
+            }).join('') + '</div>'
+          + (o.statusMsg ? '<div class="ord-msg">Besked fra møllen: ' + esc(o.statusMsg) + '</div>' : '')
+          + '</div>';
+      }).join('');
+    }).catch(function () {});
+  }
+
+  // Ved sideload: har vi allerede en session, hopper vi direkte ind.
+  enterApp();
+})();
+</script>
+</body>
+</html>
