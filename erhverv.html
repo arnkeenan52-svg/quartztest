@@ -94,7 +94,8 @@
     border:1px solid var(--border);background:var(--surface);transition:background-color .15s,border-color .15s}
   .logout:hover{background:var(--muted);border-color:var(--border-strong)}
 
-  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 140px}
+  .wrap{max-width:1060px;margin:0 auto;padding:20px 16px 140px}
+  @media(min-width:900px){.wrap{padding-bottom:56px}}
 
   /* ---------- PANELS ---------- */
   .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--sh-xs);
@@ -107,7 +108,41 @@
   .panel-b{padding:14px 16px}
   .pmeta{font-size:12px;font-weight:600;color:var(--muted-fg)}
 
-  /* ---------- PRODUKTLISTE ---------- */
+  /* ---------- LAYOUT: to kolonner på desktop (Interactive Checkout-mønster) -- */
+  .cols{display:grid;gap:16px;align-items:start}
+  @media(min-width:900px){
+    .cols{grid-template-columns:1fr 340px}
+    .side{position:sticky;top:76px}
+  }
+  /* Mobil: opsummeringen ligger MELLEM varerne og ordrehistorikken */
+  @media(max-width:899px){
+    .cols{display:flex;flex-direction:column}
+    .main{display:contents}
+    .p-products{order:1}
+    .side{order:2}
+    .p-orders{order:3}
+  }
+  .hello{margin:2px 2px 16px}
+  .hello h1{font-size:20px;font-weight:700;letter-spacing:-.015em}
+  .hello p{font-size:13.5px;font-weight:500;color:var(--muted-fg);margin-top:2px}
+
+  /* ---------- PRODUKTKORT ---------- */
+  .pgrid{display:grid;gap:10px}
+  @media(min-width:640px){.pgrid{grid-template-columns:1fr 1fr}}
+  .pcard{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);padding:12px;
+    animation:rowIn .35s cubic-bezier(.32,.72,0,1) both;animation-delay:calc(var(--i,0)*24ms);
+    transition:border-color .15s,box-shadow .15s}
+  .pcard:hover{border-color:var(--border-strong);box-shadow:var(--sh-xs)}
+  .pcard.active{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary),var(--sh-xs)}
+  .pcard-h{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+  .pcard-h img{width:46px;height:46px;object-fit:cover;border-radius:10px;border:1px solid var(--border);background:var(--muted);flex:none}
+  .pnm{font-size:14.5px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .ptag{display:inline-flex;font-size:11px;font-weight:700;color:var(--muted-fg);background:var(--muted);
+    border-radius:999px;padding:2px 8px;margin-top:4px;letter-spacing:.02em}
+  .vrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px dashed var(--border)}
+  .vlab{font-size:13px;font-weight:700;min-width:52px}
+  .vprice{font-size:12.5px;font-weight:600;color:var(--muted-fg);flex:1}
+  .vprice b{color:var(--primary);font-weight:700}
   .prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);
     animation:rowIn .35s cubic-bezier(.32,.72,0,1) both;animation-delay:calc(var(--i,0)*28ms)}
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}}
@@ -133,10 +168,50 @@
 
   .ordfields{display:grid;gap:10px;margin-top:14px}
   .ordfields label{font-size:12px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.06em}
-  .ordfields textarea{min-height:64px;resize:vertical}
-  .ordfields input[type=date]{max-width:200px}
+  .ordfields textarea{min-height:60px;resize:vertical}
+  .ordfields input[type=date]{width:100%}
+
+  /* ---------- BESTILLINGS-OPSUMMERING (sticky sidekort) ---------- */
+  .sum-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 8px;text-align:center}
+  .sum-empty .ring{width:52px;height:52px;border-radius:50%;border:1.5px dashed var(--border-strong);
+    display:flex;align-items:center;justify-content:center;color:var(--subtle-fg)}
+  .sum-empty .ring svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .sum-empty p{font-size:13px;font-weight:600;color:var(--muted-fg)}
+  .sline{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:13px;font-weight:600;
+    animation:rowIn .25s cubic-bezier(.32,.72,0,1) both}
+  .sline .nm{flex:1;min-width:0}
+  .sline .nm small{display:block;font-size:11.5px;font-weight:600;color:var(--muted-fg)}
+  .sline .val{white-space:nowrap;font-weight:700}
+  .stots{margin-top:10px;display:grid;gap:5px}
+  .stot{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--muted-fg)}
+  .stot.total{font-size:14.5px;font-weight:800;color:var(--fg);border-top:1px solid var(--border);padding-top:9px;margin-top:5px}
+  .stot .num{font-weight:inherit}
+
+  /* ---------- ORDRE-TIDSLINJE (Order Status Tracker-mønster) ---------- */
+  .tl{display:flex;align-items:center;gap:0;margin-top:11px}
+  .tl-step{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--muted-fg)}
+  .tl-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;flex:none}
+  .tl-dot svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .tl-step.done{color:var(--green)}
+  .tl-step.done .tl-dot{background:var(--green);border-color:var(--green);color:#fff}
+  .tl-step.fail{color:var(--red)}
+  .tl-step.fail .tl-dot{background:var(--red);border-color:var(--red);color:#fff}
+  .tl-step.wait .tl-dot{border-color:var(--amber);color:var(--amber)}
+  .tl-step.wait .tl-dot::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);animation:pulseDot 1.8s ease infinite}
+  .tl-line{flex:1;max-width:56px;height:1.5px;background:var(--border-strong);margin:0 8px}
+  .tl-line.done{background:var(--green)}
+
+  /* ---------- EMPTY STATE (serafimcloud-mønster) ---------- */
+  .estate{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 12px;text-align:center}
+  .estate .ring{width:60px;height:60px;border-radius:50%;border:1.5px dashed var(--border-strong);
+    display:flex;align-items:center;justify-content:center;color:var(--subtle-fg)}
+  .estate .ring svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .estate h3{font-size:14px;font-weight:700}
+  .estate p{font-size:12.5px;font-weight:500;color:var(--muted-fg);max-width:260px}
 
   /* ---------- BUNDBAR ---------- */
+  @media(min-width:900px){.sumbar{display:none}}
   .sumbar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);
     box-shadow:0 -6px 24px rgba(15,23,42,.08);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0))}
   .sumbar-in{max-width:760px;margin:0 auto;display:flex;align-items:center;gap:14px}
@@ -251,41 +326,70 @@
   </div>
 
   <div class="wrap">
-    <div class="panel">
-      <div class="panel-h">
-        <h2><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Bestil varer</h2>
-        <span class="pmeta">Priser ekskl. moms</span>
-      </div>
-      <div class="panel-b">
-        <div id="prodList"><div class="skel">
-          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
-          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
-          <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
-        </div></div>
-        <div class="ordfields">
-          <div>
-            <label for="ordNote">Bemærkning (valgfri)</label>
-            <textarea id="ordNote" class="fld" placeholder="Fx leveringsønsker eller besked til møllen"></textarea>
+    <div class="hello">
+      <h1 id="helloName">Goddag</h1>
+      <p>Bestil med jeres aftalte priser — vi bekræfter pr. mail, og I kan altid følge status herunder.</p>
+    </div>
+
+    <div class="cols">
+      <div class="main">
+        <div class="panel p-products">
+          <div class="panel-h">
+            <h2><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Vores mel</h2>
+            <span class="pmeta">Priser ekskl. moms</span>
           </div>
-          <div>
-            <label for="ordDate">Ønsket leveringsdato (valgfri)</label><br>
-            <input id="ordDate" class="fld" type="date" />
+          <div class="panel-b">
+            <div id="prodList"><div class="skel">
+              <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+              <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+              <div class="skel-row"><div class="skel-b skel-img"></div><div style="flex:1"><div class="skel-b skel-l1"></div><div class="skel-b skel-l2"></div></div><div class="skel-b skel-q"></div></div>
+            </div></div>
+          </div>
+        </div>
+
+        <div class="panel p-orders">
+          <div class="panel-h">
+            <h2><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Mine bestillinger</h2>
+            <span class="pmeta" id="ordCount"></span>
+          </div>
+          <div class="panel-b">
+            <div id="myOrders"><div class="skel">
+              <div class="skel-b" style="height:64px"></div>
+              <div class="skel-b" style="height:64px"></div>
+            </div></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="panel">
-      <div class="panel-h">
-        <h2><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Mine bestillinger</h2>
-        <span class="pmeta" id="ordCount"></span>
-      </div>
-      <div class="panel-b">
-        <div id="myOrders"><div class="skel">
-          <div class="skel-b" style="height:64px"></div>
-          <div class="skel-b" style="height:64px"></div>
-        </div></div>
-      </div>
+      <aside class="side">
+        <div class="panel">
+          <div class="panel-h">
+            <h2><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>Din bestilling</h2>
+            <span class="pmeta" id="sumCount"></span>
+          </div>
+          <div class="panel-b">
+            <div id="sumLines"></div>
+            <div class="stots" id="sumTots" style="display:none">
+              <div class="stot"><span>Antal</span><span class="num" id="stAntal"></span></div>
+              <div class="stot"><span>Vægt (ca.)</span><span class="num" id="stKg"></span></div>
+              <div class="stot total"><span>Subtotal ekskl. moms</span><span class="num" id="stSum"></span></div>
+            </div>
+            <div class="ordfields">
+              <div>
+                <label for="ordNote">Bemærkning (valgfri)</label>
+                <textarea id="ordNote" class="fld" placeholder="Fx leveringsønsker eller besked til møllen"></textarea>
+              </div>
+              <div>
+                <label for="ordDate">Ønsket leveringsdato (valgfri)</label>
+                <input id="ordDate" class="fld" type="date" />
+              </div>
+            </div>
+            <button class="sendbtn" data-send id="sendOrderBtn" type="button" disabled style="width:100%;justify-content:center;margin-top:14px">
+              <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>Send bestilling
+            </button>
+          </div>
+        </div>
+      </aside>
     </div>
   </div>
 
@@ -295,7 +399,7 @@
         <div class="a num" id="sumMain">Ingen varer valgt</div>
         <div class="b num" id="sumSub"></div>
       </div>
-      <button class="sendbtn" id="sendOrderBtn" type="button" disabled>
+      <button class="sendbtn" data-send id="sendOrderBtnBar" type="button" disabled>
         <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>Send bestilling
       </button>
     </div>
@@ -429,8 +533,10 @@
       if (r.status === 401 || !r.d.ok) { $('login').classList.remove('hide'); $('app').classList.add('hide'); return; }
       $('login').classList.add('hide'); $('app').classList.remove('hide');
       $('custName').textContent = r.d.customer.name;
+      $('helloName').textContent = 'Goddag, ' + r.d.customer.name;
       products = r.d.products || [];
       renderProducts();
+      updateSum();
       loadMyOrders();
     }).catch(function () {});
   }
@@ -440,24 +546,40 @@
     if (!products.length) { el.className = 'empty'; el.textContent = 'Ingen varer tilgængelige.'; return; }
     el.className = '';
     var animate = !el.__rendered; el.__rendered = true;
-    el.innerHTML = products.map(function (p, i) {
-      var q = qtys[p.key] || 0;
-      return '<div class="prow' + (q > 0 ? ' has-qty' : '') + '" data-key="' + esc(p.key) + '"'
+    // Gruppér varianterne pr. produkt (ét kort pr. mel — 21st "Product Card")
+    var groups = [], byId = {};
+    products.forEach(function (p) {
+      if (!byId[p.id]) { byId[p.id] = { id: p.id, name: p.name, image: p.image, variants: [] }; groups.push(byId[p.id]); }
+      byId[p.id].variants.push(p);
+    });
+    el.innerHTML = '<div class="pgrid">' + groups.map(function (g, i) {
+      var parts = g.name.split(' · ');
+      var hasQty = g.variants.some(function (v) { return (qtys[v.key] || 0) > 0; });
+      return '<div class="pcard' + (hasQty ? ' active' : '') + '"'
         + (animate ? ' style="--i:' + i + '"' : ' style="animation:none"') + '>'
-        + '<img src="' + esc(p.image) + '" alt="" loading="lazy" decoding="async" width="44" height="44" onerror="this.style.visibility=\'hidden\'" />'
-        + '<div class="pinf"><div class="pnm">' + esc(p.name) + '</div>'
-        + '<div class="psub">' + esc(p.label) + (p.price != null ? ' · <b>' + fmtKr(p.price) + '</b>' : ' · aftalt pris') + '</div></div>'
-        + '<div class="qty">'
-        + '<button type="button" data-minus aria-label="Færre">−</button>'
-        + '<input type="number" min="0" max="500" inputmode="numeric" value="' + q + '" aria-label="Antal ' + esc(p.name) + ' ' + esc(p.label) + '" />'
-        + '<button type="button" data-plus aria-label="Flere">+</button>'
-        + '</div></div>';
-    }).join('');
+        + '<div class="pcard-h">'
+        + '<img src="' + esc(g.image) + '" alt="" loading="lazy" decoding="async" width="46" height="46" onerror="this.style.visibility=\'hidden\'" />'
+        + '<div><div class="pnm">' + esc(parts[0]) + '</div>'
+        + (parts[1] ? '<span class="ptag">' + esc(parts[1]) + '</span>' : '') + '</div>'
+        + '</div>'
+        + g.variants.map(function (v) {
+            var q = qtys[v.key] || 0;
+            return '<div class="vrow" data-key="' + esc(v.key) + '">'
+              + '<span class="vlab">' + esc(v.label) + '</span>'
+              + '<span class="vprice">' + (v.price != null ? '<b>' + fmtKr(v.price) + '</b>' : 'aftalt pris') + '</span>'
+              + '<div class="qty">'
+              + '<button type="button" data-minus aria-label="Færre">−</button>'
+              + '<input type="number" min="0" max="500" inputmode="numeric" value="' + q + '" aria-label="Antal ' + esc(g.name) + ' ' + esc(v.label) + '" />'
+              + '<button type="button" data-plus aria-label="Flere">+</button>'
+              + '</div></div>';
+          }).join('')
+        + '</div>';
+    }).join('') + '</div>';
   }
 
   // Én delegeret lytter til alle steppere.
   $('prodList').addEventListener('click', function (e) {
-    var row = e.target.closest('.prow'); if (!row) return;
+    var row = e.target.closest('.vrow'); if (!row) return;
     var key = row.getAttribute('data-key');
     var input = row.querySelector('input');
     var v = Math.floor(Number(input.value)) || 0;
@@ -467,65 +589,121 @@
     input.value = v; setQty(key, v, row);
   });
   $('prodList').addEventListener('input', function (e) {
-    var row = e.target.closest('.prow'); if (!row || e.target.tagName !== 'INPUT') return;
+    var row = e.target.closest('.vrow'); if (!row || e.target.tagName !== 'INPUT') return;
     var v = Math.max(0, Math.min(500, Math.floor(Number(e.target.value)) || 0));
     setQty(row.getAttribute('data-key'), v, row);
   });
   function setQty(key, v, row) {
     if (v > 0) qtys[key] = v; else delete qtys[key];
-    row.classList.toggle('has-qty', v > 0);
+    var card = row.closest('.pcard');
+    if (card) {
+      var any = Array.prototype.some.call(card.querySelectorAll('.vrow'), function (r) {
+        return (qtys[r.getAttribute('data-key')] || 0) > 0;
+      });
+      card.classList.toggle('active', any);
+    }
     updateSum();
   }
 
+  var SUM_EMPTY = '<div class="sum-empty"><div class="ring">'
+    + '<svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>'
+    + '</div><p>Ingen varer valgt endnu.<br>Vælg antal på varerne til venstre.</p></div>';
+
+  function sendBtns() { return document.querySelectorAll('[data-send]'); }
+
   function updateSum() {
-    var items = 0, kg = 0, sum = 0, open = false;
+    var items = 0, kg = 0, sum = 0, open = false, lines = [];
     products.forEach(function (p) {
       var q = qtys[p.key] || 0; if (!q) return;
       items += q; kg += p.kg * q;
       if (p.price != null) sum += p.price * q; else open = true;
+      lines.push({ name: p.name, label: p.label, qty: q, val: p.price != null ? p.price * q : null });
     });
-    var main = $('sumMain'), sub = $('sumSub'), btn = $('sendOrderBtn');
-    if (!items) { main.textContent = 'Ingen varer valgt'; sub.textContent = ''; btn.disabled = true; return; }
-    main.textContent = items + ' stk. · ca. ' + kg.toLocaleString('da-DK') + ' kg';
-    sub.textContent = sum > 0 ? fmtKr(sum) + ' ekskl. moms' + (open ? ' + varer til aftalt pris' : '') : (open ? 'Pris efter aftale' : '');
-    btn.disabled = false;
+
+    // Sidekortet: linjer + totaler
+    var lineEl = $('sumLines'), tots = $('sumTots');
+    if (!lines.length) {
+      lineEl.innerHTML = SUM_EMPTY;
+      tots.style.display = 'none';
+    } else {
+      lineEl.innerHTML = lines.map(function (l) {
+        return '<div class="sline"><span class="nm">' + esc(l.name) + '<small>' + esc(l.label) + ' × ' + l.qty + '</small></span>'
+          + '<span class="val num">' + (l.val != null ? fmtKr(l.val) : 'aftalt') + '</span></div>';
+      }).join('');
+      tots.style.display = 'grid';
+      $('stAntal').textContent = items + ' stk.';
+      $('stKg').textContent = kg.toLocaleString('da-DK') + ' kg';
+      $('stSum').textContent = sum > 0 ? fmtKr(sum) + (open ? ' +' : '') : 'Efter aftale';
+    }
+    $('sumCount').textContent = items ? items + ' stk.' : '';
+
+    // Mobil-bundbaren
+    var main = $('sumMain'), sub = $('sumSub');
+    if (!items) { main.textContent = 'Ingen varer valgt'; sub.textContent = ''; }
+    else {
+      main.textContent = items + ' stk. · ca. ' + kg.toLocaleString('da-DK') + ' kg';
+      sub.textContent = sum > 0 ? fmtKr(sum) + ' ekskl. moms' + (open ? ' + varer til aftalt pris' : '') : (open ? 'Pris efter aftale' : '');
+    }
+    sendBtns().forEach(function (b) { b.disabled = !items; });
   }
 
-  $('sendOrderBtn').addEventListener('click', function () {
+  function sendOrder() {
     var lines = Object.keys(qtys).map(function (k) { return { key: k, qty: qtys[k] }; });
     if (!lines.length) return;
-    var b = $('sendOrderBtn'); b.disabled = true;
+    sendBtns().forEach(function (b) { b.disabled = true; });
     api({ action: 'order', lines: lines, note: ($('ordNote').value || '').trim(), wishDate: $('ordDate').value || '' })
       .then(function (r) {
-        b.disabled = false;
-        if (!r.d.ok) { toast(r.d.error || 'Noget gik galt — prøv igen.'); return; }
+        if (!r.d.ok) { sendBtns().forEach(function (b) { b.disabled = false; }); toast(r.d.error || 'Noget gik galt — prøv igen.'); return; }
         qtys = {}; $('ordNote').value = ''; $('ordDate').value = '';
         renderProducts(); updateSum();
         toast('Bestilling #' + r.d.no + ' er sendt — du får en mail, når den er bekræftet.');
         loadMyOrders();
       })
-      .catch(function () { b.disabled = false; toast('Netværksfejl — prøv igen.'); });
-  });
+      .catch(function () { sendBtns().forEach(function (b) { b.disabled = false; }); toast('Netværksfejl — prøv igen.'); });
+  }
+  sendBtns().forEach(function (b) { b.addEventListener('click', sendOrder); });
 
-  var STATUS = { ny: 'Afventer bekræftelse', godkendt: 'Bekræftet', afvist: 'Afvist' };
+  var CHECK = '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  function timeline(st) {
+    if (st === 'godkendt') {
+      return '<div class="tl"><div class="tl-step done"><span class="tl-dot">' + CHECK + '</span>Modtaget</div>'
+        + '<div class="tl-line done"></div>'
+        + '<div class="tl-step done"><span class="tl-dot">' + CHECK + '</span>Bekræftet</div></div>';
+    }
+    if (st === 'afvist') {
+      return '<div class="tl"><div class="tl-step done"><span class="tl-dot">' + CHECK + '</span>Modtaget</div>'
+        + '<div class="tl-line"></div>'
+        + '<div class="tl-step fail"><span class="tl-dot">' + CROSS + '</span>Afvist</div></div>';
+    }
+    return '<div class="tl"><div class="tl-step done"><span class="tl-dot">' + CHECK + '</span>Modtaget</div>'
+      + '<div class="tl-line"></div>'
+      + '<div class="tl-step wait"><span class="tl-dot"></span>Afventer bekræftelse</div></div>';
+  }
+
   function loadMyOrders() {
     api({ action: 'myorders' }).then(function (r) {
       var el = $('myOrders');
       if (!r.d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente bestillinger.'; return; }
       var os = r.d.orders || [];
       $('ordCount').textContent = os.length ? os.length + ' i alt' : '';
-      if (!os.length) { el.className = 'empty'; el.textContent = 'Ingen bestillinger endnu — din første kommer til at stå her.'; return; }
+      if (!os.length) {
+        el.className = '';
+        el.innerHTML = '<div class="estate"><div class="ring">'
+          + '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'
+          + '</div><h3>Ingen bestillinger endnu</h3><p>Jeres første bestilling kommer til at stå her med status og historik.</p></div>';
+        return;
+      }
       el.className = '';
       el.innerHTML = os.map(function (o, i) {
-        var st = o.status || 'ny';
         return '<div class="ord" style="--i:' + i + '">'
           + '<div class="ord-h"><span class="ord-no num">#' + o.no + '</span>'
-          + '<span class="chip ' + esc(st) + '">' + (STATUS[st] || st) + '</span>'
           + '<span class="ord-date">' + fmtDate(o.t) + (o.wishDate ? ' · ønsket: ' + esc(o.wishDate) : '') + '</span></div>'
           + '<div class="ord-lines">' + o.lines.map(function (l) {
               return '<div><span>' + esc(l.name) + ' · ' + esc(l.label) + '</span><span class="num">' + l.qty + ' stk.'
                 + (l.price != null ? ' · ' + fmtKr(l.price * l.qty) : '') + '</span></div>';
             }).join('') + '</div>'
+          + timeline(o.status || 'ny')
           + (o.statusMsg ? '<div class="ord-msg">Besked fra møllen: ' + esc(o.statusMsg) + '</div>' : '')
           + '</div>';
       }).join('');

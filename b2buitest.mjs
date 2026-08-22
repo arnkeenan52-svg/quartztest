@@ -41,14 +41,19 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   await otp0.fill('123456'); // fordeles + auto-login ved 6. ciffer
   await page.waitForSelector('#app:not(.hide)', { timeout: 5000 });
   t('logget ind -> portalen vises', await page.locator('#custName').innerText() === 'Megans Surdej');
-  t('varer vises med pris og aftalt pris', await page.locator('.prow').count() === 2 && /aftalt pris/.test(await page.locator('#prodList').innerText()));
+  t('produktkort vises med pris og aftalt pris', await page.locator('.pcard').count() === 2 && /aftalt pris/.test(await page.locator('#prodList').innerText()));
+  t('velkomst med kundenavn', /Megans Surdej/.test(await page.locator('#helloName').innerText()));
+  t('opsummering viser tom-tilstand', /Ingen varer valgt/.test(await page.locator('#sumLines').innerText()));
 
   // stepper + sum
-  const row = page.locator('.prow').first();
+  const row = page.locator('.vrow').first();
   await row.locator('[data-plus]').click();
   await row.locator('[data-plus]').click();
   await page.waitForTimeout(100);
   t('stepper tæller op', await row.locator('input').inputValue() === '2');
+  t('produktkort markeres aktivt', await page.locator('.pcard.active').count() === 1);
+  t('opsummeringslinje viser varen', /Rug/.test(await page.locator('#sumLines').innerText()) && /× 2/.test(await page.locator('#sumLines').innerText()));
+  t('subtotal beregnes', /360/.test(await page.locator('#stSum').innerText()));
   t('sum-bar viser stk/kg/kr', /2 stk\. · ca\. 22 kg/.test(await page.locator('#sumMain').innerText()) && /360 kr\./.test(await page.locator('#sumSub').innerText()));
   t('send-knap aktiv', !(await page.locator('#sendOrderBtn').isDisabled()));
 
@@ -59,7 +64,7 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   t('kurv nulstillet efter send', /Ingen varer valgt/.test(await page.locator('#sumMain').innerText()));
   t('toast bekræfter', /Bestilling #7/.test(await page.locator('#toast').innerText()));
   await page.waitForTimeout(200);
-  t('mine bestillinger viser ordren med status', /#7/.test(await page.locator('#myOrders').innerText()) && /Afventer bekræftelse/.test(await page.locator('#myOrders').innerText()));
+  t('mine bestillinger viser ordren med tidslinje', /#7/.test(await page.locator('#myOrders').innerText()) && /Modtaget/.test(await page.locator('#myOrders').innerText()) && /Afventer bekræftelse/.test(await page.locator('#myOrders').innerText()));
 
   await page.screenshot({ path: 'erhverv.png', fullPage: false });
   await page.close();
