@@ -55,7 +55,11 @@ ok('admin med falsk cookie -> 401', r.statusCode === 401);
 
 // 3) admin opretter kunde
 r = await call({ action: 'admaddcustomer', name: 'Megans Surdej', email: 'megan@surdej.dk', cvr: '46218175', phone: '+45 4272 2746' }, { cookie: adminCookie });
-ok('kunde oprettet', r.jsonBody?.ok === true);
+ok('kunde oprettet + invitation sendt', r.jsonBody?.ok === true && r.jsonBody?.invited === true && mails.length === 1 && /Velkommen/.test(mails[0].subject));
+ok('invitationen linker til /erhverv', /quartzmolle\.dk\/erhverv/.test(mails[0].html));
+r = await call({ action: 'admaddcustomer', name: 'Megans Surdej', email: 'megan@surdej.dk', contact: 'Megan' }, { cookie: adminCookie });
+ok('opdatering af kunde sender IKKE ny invitation', r.jsonBody?.invited === false && mails.length === 1);
+mails.length = 0;
 r = await call({ action: 'admcustomers' }, { cookie: adminCookie });
 ok('kundeliste viser kunden', r.jsonBody?.customers?.length === 1 && r.jsonBody.customers[0].name === 'Megans Surdej');
 

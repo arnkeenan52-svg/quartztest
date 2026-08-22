@@ -89,12 +89,13 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   });
   page.on('dialog', d => d.accept(d.type() === 'prompt' ? 'Leverer torsdag' : undefined));
 
-  await page.goto('http://localhost:8199/admin.html');
+  await page.goto('http://localhost:8199/erhvervsportal.html');
   await page.waitForSelector('.b2b-ord', { timeout: 10000 });
   t('admin: B2B-ordrer vises', await page.locator('.b2b-ord').count() === 2);
   t('admin: badge viser 1 ny', /1 ny/i.test(await page.locator('#b2bBadge').innerText()));
   t('admin: ny ordre har Godkend/Afvis', await page.locator('[data-b2b-ok]').count() === 1);
   t('admin: kundeliste vises', /Megans Surdej/.test(await page.locator('#b2bCustomers').innerText()));
+  t('subnav har alle tre faner', await page.locator('.subnav-item').count() === 3 && /Erhverv/.test(await page.locator('.subnav-item.is-active').innerText()));
 
   await page.locator('.b2b-ord').first().screenshot({ path: 'b2badmin.png' });
 
@@ -102,6 +103,23 @@ const T = []; const t = (n, c) => T.push(`${c ? 'PASS' : 'FAIL'}  ${n}`);
   await page.waitForTimeout(400);
   t('admin: godkend sender status+besked', statusCall && statusCall.status === 'godkendt' && statusCall.msg === 'Leverer torsdag');
   t('admin: ordren skifter til Godkendt', await page.locator('[data-b2b-ok]').count() === 0 && (await page.locator('.b2b-chip.godkendt').count()) === 2);
+  await page.close();
+}
+
+// ── FANER + ADMIN UDEN B2B-PANEL ──
+{
+  const page = await browser.newPage();
+  await page.route('**/api/**', r => r.fulfill({ json: { ok: true, lockers: [], orders: [], history: [] } }));
+  await page.goto('http://localhost:8199/locker.html');
+  await page.waitForTimeout(600);
+  t('locker: Erhverv-fane findes', await page.locator('.subnav-item[href="/erhvervsportal"]').count() === 1);
+  await page.goto('http://localhost:8199/fufill.html');
+  await page.waitForTimeout(600);
+  t('fufill: Erhverv-fane findes', await page.locator('.subnav-item[href="/erhvervsportal"]').count() === 1);
+  await page.route('**/api/admin-stats*', r => r.fulfill({ json: { ok: true, orders: [], topProducts: [], locations: [], alerts: [] } }));
+  await page.goto('http://localhost:8199/admin.html');
+  await page.waitForTimeout(1200);
+  t('admin: B2B-panelet er flyttet ud', await page.locator('#b2bOrders').count() === 0);
   await page.close();
 }
 

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Erhverv · Quartz Mølle</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="apple-touch-icon" href="/images/appletouchicon.png">
+<meta name="apple-mobile-web-app-title" content="Quartz Mølle">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Design system: samme Harbor Blue-struktur som locker/fufill */
+  :root{
+    --bg:#f8fafc; --surface:#fff; --surface-2:#f8fafc;
+    --fg:#0f172a; --fg-2:#334155; --muted:#f1f5f9; --muted-fg:#64748b; --subtle-fg:#94a3b8;
+    --border:#e2e8f0; --border-strong:#cbd5e1;
+    --primary:#273071; --primary-hover:#313c8c; --primary-fg:#fff;
+    --primary-tint:#eef1fa; --primary-ring:rgba(39,48,113,.28);
+    --green:#15803d; --green-tint:#f0fdf4; --green-border:#bbf7d0;
+    --red:#dc2626; --red-tint:#fef2f2; --red-border:#fecaca;
+    --amber:#b45309; --amber-tint:#fffbeb; --amber-border:#fde68a;
+    --radius:8px; --radius-lg:10px; --radius-sm:6px;
+    --sh-xs:0 1px 2px rgba(15,23,42,.06);
+    --sh:0 2px 10px rgba(15,23,42,.10);
+    --sh-lg:0 12px 32px rgba(15,23,42,.16);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--fg);
+    -webkit-font-smoothing:antialiased;line-height:1.5;font-size:14px;font-weight:500}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .hide{display:none!important}
+  :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- LOGIN ---------- */
+  #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh);
+    padding:32px 28px;width:100%;max-width:360px;text-align:center}
+  .login-card img{width:64px;height:64px;object-fit:contain;margin-bottom:16px}
+  .login-card h1{font-size:18px;font-weight:700;color:var(--fg);letter-spacing:-.01em}
+  .login-card p{color:var(--muted-fg);font-size:13.5px;font-weight:500;margin-top:6px;margin-bottom:22px}
+  .code-input{width:100%;text-align:center;font-size:26px;font-weight:600;letter-spacing:8px;color:var(--fg);
+    padding:14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);outline:none;
+    font-variant-numeric:tabular-nums;transition:border-color .15s ease,box-shadow .15s ease}
+  .code-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+  .login-btn{width:100%;margin-top:14px;background:var(--primary);color:var(--primary-fg);font-size:15px;font-weight:600;
+    padding:12px;border-radius:var(--radius);transition:background-color .15s ease}
+  .login-btn:hover{background:var(--primary-hover)}
+  .login-err{color:var(--red);font-size:13.5px;font-weight:500;margin-top:14px;min-height:18px}
+
+  /* ---------- TOP BAR ---------- */
+  .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:0 16px;height:56px;
+    background:var(--surface);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0)}
+  .top img{width:28px;height:28px;object-fit:contain;border-radius:6px;flex:none}
+  .ttl{font-size:14.5px;font-weight:700;color:var(--fg);letter-spacing:-.01em;line-height:1.2;
+    min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ttl small{display:block;font-size:11.5px;font-weight:500;color:var(--muted-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .spacer{flex:1}
+  .logout{font-size:13px;font-weight:600;color:var(--fg-2);padding:7px 11px;border-radius:var(--radius-sm);white-space:nowrap;flex:none;
+    border:1px solid var(--border);background:var(--surface);transition:background-color .15s ease,border-color .15s ease}
+  .logout:hover{background:var(--muted);border-color:var(--border-strong)}
+
+  /* ---------- SECTION NAV ---------- */
+  .subnav{display:flex;gap:2px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);
+    overflow-x:auto;scrollbar-width:none;position:sticky;top:56px;z-index:39}
+  .subnav::-webkit-scrollbar{display:none}
+  .subnav-item{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:11px 10px;font-size:13px;font-weight:600;
+    color:var(--muted-fg);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+    transition:color .15s ease,border-color .15s ease}
+  .subnav-item svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .subnav-item:hover{color:var(--fg)}
+  .subnav-item.is-active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 56px}
+
+  /* ---------- PANELS ---------- */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--sh-xs);
+    margin-bottom:16px;overflow:hidden}
+  .panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;
+    border-bottom:1px solid var(--border);background:var(--surface-2)}
+  .panel-h h2{font-size:11px;font-weight:700;color:var(--muted-fg);text-transform:uppercase;letter-spacing:.06em;
+    display:flex;align-items:center;gap:8px}
+  .panel-h h2 svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .panel-meta{font-size:13px;font-weight:500;color:var(--muted-fg);font-variant-numeric:tabular-nums}
+  .panel-meta b{color:var(--fg);font-weight:700}
+  .panel-b{padding:16px}
+  .empty{color:var(--muted-fg);font-weight:500;font-size:13.5px;padding:4px 0}
+  .loading{color:var(--muted-fg);font-size:13.5px;padding:4px 0}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);
+    color:var(--muted-fg);border:1px solid var(--border);background:var(--surface);
+    transition:background-color .15s ease,color .15s ease,border-color .15s ease}
+  .icon-btn:hover{background:var(--muted);color:var(--fg);border-color:var(--border-strong)}
+  .icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ---------- B2B-ORDRER ---------- */
+  .b2b-ord{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--surface);box-shadow:var(--sh-xs)}
+  .b2b-ord:last-child{margin-bottom:0}
+  .b2b-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .b2b-no{font-size:14px;font-weight:800;color:var(--primary)}
+  .b2b-cust{font-size:13.5px;font-weight:700}
+  .b2b-date{font-size:12px;font-weight:600;color:var(--muted-fg);margin-left:auto;white-space:nowrap}
+  .b2b-chip{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid}
+  .b2b-chip.ny{color:var(--amber);background:var(--amber-tint);border-color:var(--amber-border)}
+  .b2b-chip.godkendt{color:var(--green);background:var(--green-tint);border-color:var(--green-border)}
+  .b2b-chip.afvist{color:var(--red);background:var(--red-tint);border-color:var(--red-border)}
+  .b2b-lines{margin-top:8px;font-size:13px;font-weight:600;color:var(--fg-2)}
+  .b2b-lines div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+  .b2b-note{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--muted-fg)}
+  .b2b-actions{display:flex;gap:8px;margin-top:11px}
+  .b2b-ok,.b2b-nej{font-size:13.5px;font-weight:700;padding:9px 18px;border-radius:var(--radius-sm);transition:filter .12s ease;min-height:38px}
+  .b2b-ok{background:var(--green);color:#fff;box-shadow:var(--sh-xs)}
+  .b2b-nej{background:var(--surface);color:var(--red);border:1px solid var(--red-border)}
+  .b2b-ok:hover{filter:brightness(.95)}
+  .b2b-nej:hover{background:var(--red-tint)}
+
+  .fold-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:10px;padding:9px 12px;
+    border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--fg);font:inherit;
+    font-size:13px;font-weight:600;transition:background-color .12s ease,border-color .12s ease}
+  .fold-btn:hover{background:var(--muted);border-color:var(--primary)}
+  .fold-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease}
+  .fold-btn.open svg{transform:rotate(180deg)}
+
+  /* ---------- KUNDER ---------- */
+  .b2b-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .b2b-form input{font:inherit;font-size:13.5px;font-weight:600;padding:10px 12px;border:1px solid var(--border);
+    border-radius:var(--radius-sm);outline:none;background:var(--surface);color:var(--fg);min-height:40px;
+    transition:border-color .15s ease,box-shadow .15s ease}
+  .b2b-form input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+  .b2b-form .full{grid-column:1/-1}
+  .b2b-addbtn{grid-column:1/-1;background:var(--primary);color:var(--primary-fg);font-size:14px;font-weight:600;
+    padding:10px;border-radius:var(--radius-sm);min-height:40px;transition:background-color .15s ease}
+  .b2b-addbtn:hover{background:var(--primary-hover)}
+  .b2b-cust-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--border);
+    font-size:13.5px;font-weight:600;flex-wrap:wrap}
+  .b2b-cust-row:last-child{border-bottom:none}
+  .b2b-cust-row .em{color:var(--muted-fg);font-weight:500}
+  .b2b-del{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--red);padding:6px 11px;border:1px solid var(--red-border);
+    border-radius:var(--radius-sm);background:var(--surface);transition:background-color .15s ease}
+  .b2b-del:hover{background:var(--red-tint)}
+  .toggle-btn{font-size:13.5px;font-weight:600;color:var(--fg-2);padding:9px 14px;border-radius:var(--radius-sm);
+    border:1px solid var(--border);background:var(--surface);min-height:38px;box-shadow:var(--sh-xs);
+    transition:background-color .15s ease,border-color .15s ease}
+  .toggle-btn:hover{background:var(--muted);border-color:var(--border-strong)}
+  .hint{font-size:12.5px;font-weight:500;color:var(--muted-fg);margin-top:10px;line-height:1.55}
+  .hint b{color:var(--fg)}
+
+  /* ---------- PRISER ---------- */
+  .b2b-prices{display:grid;grid-template-columns:1fr 100px;gap:6px 12px;align-items:center;margin:10px 0 12px}
+  .b2b-prices .lbl{font-size:13px;font-weight:600}
+  .b2b-prices input{font:inherit;font-size:13.5px;font-weight:700;padding:8px 10px;border:1px solid var(--border);
+    border-radius:var(--radius-sm);outline:none;text-align:right;font-variant-numeric:tabular-nums;min-height:38px;
+    transition:border-color .15s ease}
+  .b2b-prices input:focus{border-color:var(--primary)}
+  .save-btn{background:var(--green);color:#fff;font-size:14px;font-weight:600;padding:10px 18px;border-radius:var(--radius-sm);
+    min-height:40px;box-shadow:var(--sh-xs);transition:filter .12s ease}
+  .save-btn:hover{filter:brightness(.95)}
+
+  @media (max-width:430px){
+    .wrap{padding:16px 12px 48px}
+    .panel-b{padding:12px}
+    .panel-h{padding:11px 12px}
+    .top{gap:8px;padding:0 12px}
+    .top img{width:26px;height:26px}
+    .ttl{font-size:13.5px}
+    .ttl small{font-size:11px}
+    .logout{font-size:12px;padding:6px 9px}
+    .subnav{padding:0 8px}
+    .subnav-item{padding:10px 8px;font-size:12.5px}
+    .b2b-form{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.01ms!important;animation-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="login">
+  <div class="login-card">
+    <img src="/images/logopng.png" alt="Quartz Mølle" onerror="this.style.display='none'">
+    <h1>Erhverv</h1>
+    <p>Indtast adgangskode</p>
+    <input id="codeInput" class="code-input" type="password" inputmode="numeric"
+           autocomplete="off" maxlength="10" placeholder="••••">
+    <button id="loginBtn" class="login-btn">Lås op</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="app" class="hide">
+  <div class="top">
+    <img src="/images/logopng.png" alt="" onerror="this.style.display='none'">
+    <div class="ttl">Erhverv<small>B2B-bestillinger · Quartz Mølle</small></div>
+    <div class="spacer"></div>
+    <button class="logout" id="logoutBtn">Log ud</button>
+  </div>
+
+  <nav class="subnav" aria-label="Sektioner">
+    <a class="subnav-item" href="/locker"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Skabe</a>
+    <a class="subnav-item" href="/fufill"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Ordrer</a>
+    <a class="subnav-item is-active" href="/erhvervsportal" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>Erhverv</a>
+  </nav>
+
+  <div class="wrap">
+    <!-- Bestillinger -->
+    <div class="panel">
+      <div class="panel-h">
+        <h2><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Bestillinger</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="panel-meta" id="b2bBadge"></span>
+          <button class="icon-btn" id="refreshBtn" aria-label="Opdatér" title="Opdatér">
+            <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="panel-b">
+        <div id="b2bOrders" class="loading">Henter bestillinger…</div>
+      </div>
+    </div>
+
+    <!-- Kunder -->
+    <div class="panel">
+      <div class="panel-h">
+        <h2><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Kunder</h2>
+        <span class="panel-meta" id="custCount"></span>
+      </div>
+      <div class="panel-b">
+        <div id="b2bCustomers" class="loading">Henter…</div>
+        <button id="b2bAddToggle" class="toggle-btn" type="button" style="margin-top:12px">+ Tilføj kunde</button>
+        <div id="b2bAddForm" class="b2b-form" style="display:none">
+          <input id="bcName" placeholder="Firmanavn *" />
+          <input id="bcEmail" type="email" placeholder="E-mail (login) *" />
+          <input id="bcContact" placeholder="Kontaktperson" />
+          <input id="bcPhone" placeholder="Telefon" />
+          <input id="bcCvr" placeholder="CVR" inputmode="numeric" />
+          <input id="bcAddress" class="full" placeholder="Adresse" />
+          <button id="b2bAddBtn" class="b2b-addbtn" type="button">Opret kunde og send invitation</button>
+        </div>
+        <div class="hint">Når du opretter en kunde, får de automatisk en <b>invitationsmail</b> med et link til
+          <b>quartzmolle.dk/erhverv</b>. Der logger de ind med deres e-mail og en engangskode, der sendes automatisk
+          — der er ingen adgangskoder at holde styr på.</div>
+      </div>
+    </div>
+
+    <!-- Priser -->
+    <div class="panel">
+      <div class="panel-h">
+        <h2><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>B2B-priser</h2>
+        <span class="panel-meta">ekskl. moms</span>
+      </div>
+      <div class="panel-b">
+        <button id="b2bPriceToggle" class="toggle-btn" type="button">Vis prisliste</button>
+        <div id="b2bPriceWrap" style="display:none">
+          <div id="b2bPrices" class="b2b-prices"></div>
+          <button id="b2bPriceSave" class="save-btn" type="button">Gem priser</button>
+          <div class="hint">Tom pris = "aftalt pris" — varen kan stadig bestilles, og I aftaler prisen som hidtil.
+            Priserne låses på ordren i det øjeblik, kunden bestiller.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var loginEl = document.getElementById('login');
+  var appEl = document.getElementById('app');
+  var codeInput = document.getElementById('codeInput');
+  var loginErr = document.getElementById('loginErr');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtDate(t) {
+    return new Date(t).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' }) + ' ' +
+      new Date(t).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+  }
+  async function b2bApi(payload) {
+    var r = await fetch('/api/b2b', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin', body: JSON.stringify(payload),
+    });
+    var d = await r.json().catch(function () { return {}; });
+    return { status: r.status, d: d };
+  }
+
+  // ── LOGIN (samme kode og cookie som Skabe/Ordrer) ──
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('refreshBtn').addEventListener('click', function () { loadOrders(); });
+
+  async function doLogin() {
+    loginErr.textContent = '';
+    var code = codeInput.value.trim();
+    if (!code) { loginErr.textContent = 'Indtast kode'; return; }
+    try {
+      var r = await fetch('/api/locker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'login', code: code }) });
+      var d = await r.json().catch(function () { return {}; });
+      if (r.ok && d.ok) { codeInput.value = ''; showApp(); loadAll(); }
+      else { loginErr.textContent = d.error || 'Forkert kode'; }
+    } catch (e) { loginErr.textContent = 'Netværksfejl'; }
+  }
+  async function logout() {
+    try { await fetch('/api/locker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }); } catch (e) {}
+    appEl.classList.add('hide'); loginEl.classList.remove('hide');
+  }
+  function showApp() { loginEl.classList.add('hide'); appEl.classList.remove('hide'); }
+  function showLogin() { appEl.classList.add('hide'); loginEl.classList.remove('hide'); }
+
+  // ── BESTILLINGER ──
+  var STATUS = { ny: 'Ny', godkendt: 'Godkendt', afvist: 'Afvist' };
+  var showAll = false;
+
+  async function loadOrders() {
+    var el = document.getElementById('b2bOrders');
+    var r = await b2bApi({ action: 'admlist' });
+    if (r.status === 401) { showLogin(); return; }
+    if (!r.d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente bestillinger.'; return; }
+    var orders = r.d.orders || [];
+    var nye = orders.filter(function (o) { return o.status === 'ny'; });
+    var badge = document.getElementById('b2bBadge');
+    badge.innerHTML = nye.length ? '<b>' + nye.length + '</b> ny' + (nye.length === 1 ? '' : 'e') : (orders.length ? orders.length + ' i alt' : '');
+    if (!orders.length) { el.className = 'empty'; el.textContent = 'Ingen bestillinger endnu. Kunderne bestiller på quartzmolle.dk/erhverv'; return; }
+    var done = orders.filter(function (o) { return o.status !== 'ny'; });
+    var shown = nye.concat(showAll ? done : done.slice(0, 4));
+    el.className = '';
+    el.innerHTML = shown.map(function (o) {
+      var lines = (o.lines || []).map(function (l) {
+        return '<div><span>' + esc(l.name) + ' · ' + esc(l.label) + '</span><span class="num">' + l.qty + ' stk.'
+          + (l.price != null ? ' · ' + (l.price * l.qty).toLocaleString('da-DK') + ' kr.' : '') + '</span></div>';
+      }).join('');
+      var kg = (o.lines || []).reduce(function (a, l) { return a + (l.kg || 0) * l.qty; }, 0);
+      var sum = (o.lines || []).reduce(function (a, l) { return a + (l.price != null ? l.price * l.qty : 0); }, 0);
+      return '<div class="b2b-ord" data-id="' + esc(o.id) + '">'
+        + '<div class="b2b-h"><span class="b2b-no num">#' + o.no + '</span>'
+        + '<span class="b2b-cust">' + esc(o.customerName) + '</span>'
+        + '<span class="b2b-chip ' + esc(o.status) + '">' + (STATUS[o.status] || o.status) + '</span>'
+        + '<span class="b2b-date">' + fmtDate(o.t) + '</span></div>'
+        + '<div class="b2b-lines">' + lines + '</div>'
+        + '<div class="b2b-note num">Ca. ' + kg.toLocaleString('da-DK') + ' kg'
+        + (sum > 0 ? ' · ' + sum.toLocaleString('da-DK') + ' kr. ekskl. moms' : '')
+        + (o.wishDate ? ' · Ønsket levering: ' + esc(o.wishDate) : '') + '</div>'
+        + (o.note ? '<div class="b2b-note">Bemærkning: ' + esc(o.note) + '</div>' : '')
+        + (o.status === 'ny'
+          ? '<div class="b2b-actions"><button class="b2b-ok" data-b2b-ok type="button">Godkend</button>'
+            + '<button class="b2b-nej" data-b2b-nej type="button">Afvis</button></div>'
+          : '')
+        + '</div>';
+    }).join('')
+    + (done.length > 4
+      ? '<button type="button" class="fold-btn' + (showAll ? ' open' : '') + '" data-fold>'
+        + (showAll ? 'Vis færre' : 'Vis alle ' + orders.length + ' bestillinger')
+        + '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>'
+      : '');
+  }
+
+  document.getElementById('b2bOrders').addEventListener('click', async function (e) {
+    if (e.target.closest('[data-fold]')) { showAll = !showAll; loadOrders(); return; }
+    var okBtn = e.target.closest('[data-b2b-ok]');
+    var nejBtn = e.target.closest('[data-b2b-nej]');
+    if (!okBtn && !nejBtn) return;
+    var id = e.target.closest('.b2b-ord').getAttribute('data-id');
+    var msg = '';
+    if (nejBtn) {
+      msg = prompt('Besked til kunden (valgfri) — hvorfor afvises bestillingen?') || '';
+      if (!confirm('Afvis bestillingen? Kunden får besked på mail.')) return;
+    } else {
+      msg = prompt('Besked til kunden (valgfri) — fx forventet leveringsdag:') || '';
+    }
+    var btn = okBtn || nejBtn; btn.disabled = true;
+    var r = await b2bApi({ action: 'admsetstatus', id: id, status: okBtn ? 'godkendt' : 'afvist', msg: msg });
+    if (!r.d.ok) { alert(r.d.error || 'Noget gik galt.'); btn.disabled = false; return; }
+    loadOrders();
+  });
+
+  // ── KUNDER ──
+  async function loadCustomers() {
+    var el = document.getElementById('b2bCustomers');
+    var r = await b2bApi({ action: 'admcustomers' });
+    if (r.status === 401) { showLogin(); return; }
+    if (!r.d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente kunder.'; return; }
+    var cs = r.d.customers || [];
+    document.getElementById('custCount').textContent = cs.length ? cs.length + ' i alt' : '';
+    if (!cs.length) { el.className = 'empty'; el.textContent = 'Ingen kunder endnu — tilføj den første herunder.'; return; }
+    el.className = '';
+    el.innerHTML = cs.map(function (c) {
+      return '<div class="b2b-cust-row" data-email="' + esc(c.email) + '">'
+        + '<span>' + esc(c.name) + '</span>'
+        + '<span class="em">' + esc(c.email) + (c.cvr ? ' · CVR ' + esc(c.cvr) : '') + '</span>'
+        + '<button class="b2b-del" data-del type="button">Fjern</button></div>';
+    }).join('');
+  }
+
+  document.getElementById('b2bCustomers').addEventListener('click', async function (e) {
+    var del = e.target.closest('[data-del]');
+    if (!del) return;
+    var email = e.target.closest('.b2b-cust-row').getAttribute('data-email');
+    if (!confirm('Fjern ' + email + '? Kunden kan ikke længere logge ind på portalen.')) return;
+    var r = await b2bApi({ action: 'admdelcustomer', email: email });
+    if (!r.d.ok) { alert(r.d.error || 'Noget gik galt.'); return; }
+    loadCustomers();
+  });
+
+  document.getElementById('b2bAddToggle').addEventListener('click', function () {
+    var f = document.getElementById('b2bAddForm');
+    f.style.display = f.style.display === 'none' ? 'grid' : 'none';
+  });
+  document.getElementById('b2bAddBtn').addEventListener('click', async function () {
+    function g(id) { return (document.getElementById(id).value || '').trim(); }
+    var payload = { action: 'admaddcustomer', name: g('bcName'), email: g('bcEmail'),
+      contact: g('bcContact'), phone: g('bcPhone'), cvr: g('bcCvr'), address: g('bcAddress') };
+    if (!payload.name || !payload.email) { alert('Firmanavn og e-mail er påkrævet.'); return; }
+    var btn = document.getElementById('b2bAddBtn'); btn.disabled = true; btn.textContent = 'Opretter…';
+    var r = await b2bApi(payload);
+    btn.disabled = false; btn.textContent = 'Opret kunde og send invitation';
+    if (!r.d.ok) { alert(r.d.error || 'Noget gik galt.'); return; }
+    ['bcName', 'bcEmail', 'bcContact', 'bcPhone', 'bcCvr', 'bcAddress'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('b2bAddForm').style.display = 'none';
+    loadCustomers();
+  });
+
+  // ── PRISER ──
+  document.getElementById('b2bPriceToggle').addEventListener('click', async function () {
+    var w = document.getElementById('b2bPriceWrap');
+    var show = w.style.display === 'none';
+    w.style.display = show ? 'block' : 'none';
+    this.textContent = show ? 'Skjul prisliste' : 'Vis prisliste';
+    if (!show) return;
+    var r = await b2bApi({ action: 'admprices' });
+    if (!r.d.ok) return;
+    document.getElementById('b2bPrices').innerHTML = (r.d.products || []).map(function (p) {
+      return '<span class="lbl">' + esc(p.name) + ' · ' + esc(p.label) + '</span>'
+        + '<input type="number" min="0" step="0.5" inputmode="decimal" data-price-key="' + esc(p.key) + '"'
+        + ' value="' + (p.price != null ? p.price : '') + '" placeholder="aftalt" />';
+    }).join('');
+  });
+  document.getElementById('b2bPriceSave').addEventListener('click', async function () {
+    var prices = {};
+    document.querySelectorAll('#b2bPrices [data-price-key]').forEach(function (inp) {
+      prices[inp.getAttribute('data-price-key')] = inp.value === '' ? null : Number(inp.value);
+    });
+    var btn = this; btn.textContent = 'Gemmer…';
+    var r = await b2bApi({ action: 'admsetprices', prices: prices });
+    btn.textContent = r.d.ok ? 'Gemt ✓' : 'Kunne ikke gemme';
+    setTimeout(function () { btn.textContent = 'Gem priser'; }, 1800);
+  });
+
+  function loadAll() { loadOrders(); loadCustomers(); }
+
+  // Ved sideload: har vi allerede en admin-session, hopper vi direkte ind.
+  (async function () {
+    var r = await b2bApi({ action: 'admlist' });
+    if (r.status === 401) { showLogin(); return; }
+    showApp(); loadAll();
+  })();
+})();
+</script>
+</body>
+</html>

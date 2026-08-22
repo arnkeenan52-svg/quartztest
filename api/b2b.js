@@ -174,7 +174,7 @@ async function sendB2bPush(order) {
     const payload = JSON.stringify({
       title: `Ny B2B-bestilling · #${order.no}`,
       body: `${order.customerName} · ${order.lines.reduce((a, l) => a + l.qty, 0)} stk.`,
-      url: '/admin', tag: 'b2b-' + order.id,
+      url: '/erhvervsportal', tag: 'b2b-' + order.id,
     });
     await Promise.all(Object.entries(subs).map(async ([k, sub]) => {
       try { await webpush.sendNotification(sub, payload); }
@@ -303,7 +303,7 @@ export default async function handler(req, res) {
           `<h2 style="font-size:17px;margin:0 0 6px">Ny bestilling #${no}</h2>
            <div style="font-size:14px;margin-bottom:4px"><b>${esc(order.customerName)}</b> · ${esc(s.email)}${order.cvr ? ' · CVR ' + esc(order.cvr) : ''}</div>
            ${orderLinesHtml(order)}
-           <p style="font-size:13px;margin:16px 0 0">Godkend eller afvis bestillingen i <a href="${SITE}/admin" style="color:#273071;font-weight:700">admin-panelet</a>.</p>`), s.email);
+           <p style="font-size:13px;margin:16px 0 0">Godkend eller afvis bestillingen på <a href="${SITE}/erhvervsportal" style="color:#273071;font-weight:700">erhvervsportalen</a>.</p>`), s.email);
       } catch (e) { console.error('b2b owner mail failed:', e && e.message); }
       try {
         await sendMail(s.email, `Vi har modtaget din bestilling #${no}`, mailShell(
@@ -385,8 +385,22 @@ export default async function handler(req, res) {
         address: String(body.address || '').trim().slice(0, 160),
         t: Date.now(),
       };
+      let existed = null;
+      try { existed = await kv.hget('b2b:customers', email); } catch {}
       await kv.hset('b2b:customers', { [email]: cust });
-      return res.status(200).json({ ok: true });
+      // Ny kunde: send automatisk invitation — de logger selv ind med deres
+      // e-mail + engangskode, så der er ingen adgangskoder at administrere.
+      if (!existed) {
+        try {
+          await sendMail(email, 'Velkommen til Quartz Mølles erhvervsportal', mailShell(
+            `<h2 style="font-size:17px;margin:0 0 6px">Velkommen, ${esc(cust.name)}</h2>
+             <p style="font-size:14px;margin:0 0 10px">I kan nu bestille mel direkte hos Quartz Mølle på vores erhvervsportal — med jeres aftalte priser og fuld ordrehistorik.</p>
+             <p style="font-size:14px;margin:0 0 16px"><b>Sådan gør I:</b> Åbn portalen, skriv denne e-mailadresse (${esc(email)}), og I får straks en engangskode på mail. Ingen adgangskoder — koden sendes automatisk, hver gang I skal logge ind.</p>
+             <div style="text-align:center;margin:18px 0"><a href="${SITE}/erhverv" style="display:inline-block;background:#273071;color:#fff;font-weight:700;font-size:15px;padding:13px 26px;border-radius:10px;text-decoration:none">Åbn erhvervsportalen</a></div>
+             <p style="font-size:12.5px;color:#6b6256;margin:14px 0 0">Spørgsmål? Svar på denne mail, så vender vi tilbage.</p>`), OWNER_EMAIL);
+        } catch (e) { console.error('b2b invite mail failed:', e && e.message); }
+      }
+      return res.status(200).json({ ok: true, invited: !existed });
     }
 
     if (action === 'admdelcustomer') {

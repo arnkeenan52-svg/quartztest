@@ -35,9 +35,9 @@ t('7 dage: linjegraf tegnes', await page.locator('#trendChart .trc-line').count(
 
 // Skift til "I dag" -> søjler pr. time
 await page.click('#btnToday');
-await page.waitForSelector('#trendChart .trc-bar', { timeout: 10000 });
-t('I dag: søjler i stedet for én prik', await page.locator('#trendChart .trc-bar').count() === 4);
-t('I dag: ingen linje/prik', await page.locator('#trendChart .trc-line').count() === 0);
+await page.waitForFunction(() => document.querySelector('#trendChart svg')?.getAttribute('aria-label') === 'Omsætning pr. time', { timeout: 10000 });
+t('I dag: SAMME kurve-stil (linje + areal)', await page.locator('#trendChart .trc-line').count() === 1 && await page.locator('#trendChart .trc-area').count() === 1);
+t('I dag: punkt pr. time med data', await page.locator('#trendChart .trc-dot').count() >= 8);
 t('aria-label siger pr. time', await page.locator('#trendChart svg').getAttribute('aria-label') === 'Omsætning pr. time');
 t('opsummering: I alt + ordrer + travlest', /I alt.*1\.351.*5 ordrer.*Travlest.*kl\. 12–13/s.test(await page.locator('#trendChart .trc-sum').innerText().then(x => x.replace(/ /g, '.'))) || /1351|1\.351/.test(await page.locator('#trendChart .trc-sum').innerText()));
 t('header viser travleste time', /Travlest: kl\. 12–13/.test(await page.locator('#trendPeak').innerText()));
@@ -58,8 +58,8 @@ t('paneltitel tilbage til pr. dag', /pr\. dag/i.test(await page.locator('#trendC
 
 // Skaermbillede af time-visningen
 await page.click('#btnToday');
-await page.waitForSelector('#trendChart .trc-bar');
-await page.waitForTimeout(900);
+await page.waitForFunction(() => document.querySelector('#trendChart svg')?.getAttribute('aria-label') === 'Omsætning pr. time');
+await page.waitForTimeout(1100);
 await page.locator('#trendChart').locator('xpath=ancestor::div[contains(@class,"panel")]').screenshot({ path: 'hourchart.png' });
 
 console.log(T.join('\n'));

@@ -265,39 +265,6 @@
   }
   .dtag.pickup{background:var(--primary-tint);color:var(--primary);border-color:#d5dcf2}
 
-  /* ── Erhverv (B2B) ── */
-  .b2b-ord{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:10px;background:var(--surface)}
-  .b2b-ord:last-child{margin-bottom:0}
-  .b2b-h{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .b2b-no{font-size:14px;font-weight:800;color:var(--primary)}
-  .b2b-cust{font-size:13.5px;font-weight:700}
-  .b2b-date{font-size:12px;font-weight:600;color:var(--muted-fg);margin-left:auto;white-space:nowrap}
-  .b2b-chip{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid}
-  .b2b-chip.ny{color:var(--amber,#b45309);background:#fffbeb;border-color:#fde68a}
-  .b2b-chip.godkendt{color:var(--green);background:var(--green-tint,#f0fdf4);border-color:#bbf7d0}
-  .b2b-chip.afvist{color:var(--red,#dc2626);background:#fef2f2;border-color:#fecaca}
-  .b2b-lines{margin-top:7px;font-size:13px;font-weight:600;color:var(--fg-2,#334155)}
-  .b2b-lines div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
-  .b2b-note{margin-top:6px;font-size:12.5px;font-weight:600;color:var(--muted-fg)}
-  .b2b-actions{display:flex;gap:8px;margin-top:10px}
-  .b2b-ok,.b2b-nej{font-size:13px;font-weight:700;padding:8px 16px;border-radius:7px;transition:filter .12s ease}
-  .b2b-ok{background:var(--green);color:#fff}
-  .b2b-nej{background:#fff;color:var(--red,#dc2626);border:1px solid #fecaca}
-  .b2b-ok:hover,.b2b-nej:hover{filter:brightness(.95)}
-  .b2b-sub{margin-top:16px;border-top:1px solid var(--border);padding-top:12px}
-  .b2b-sublbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-fg);margin-bottom:8px}
-  .b2b-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-  .b2b-form input{font:inherit;font-size:13.5px;font-weight:600;padding:9px 11px;border:1px solid var(--border);border-radius:7px;outline:none;background:var(--surface);color:var(--fg)}
-  .b2b-form input:focus{border-color:var(--primary)}
-  .b2b-form .full{grid-column:1/-1}
-  .b2b-cust-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;flex-wrap:wrap}
-  .b2b-cust-row .em{color:var(--muted-fg);font-weight:500}
-  .b2b-del{margin-left:auto;font-size:12px;font-weight:700;color:var(--red,#dc2626);padding:4px 9px;border:1px solid #fecaca;border-radius:6px;background:#fff}
-  .b2b-prices{display:grid;grid-template-columns:1fr 90px;gap:6px 10px;align-items:center;margin-bottom:10px}
-  .b2b-prices .lbl{font-size:13px;font-weight:600}
-  .b2b-prices input{font:inherit;font-size:13.5px;font-weight:700;padding:7px 9px;border:1px solid var(--border);border-radius:7px;outline:none;text-align:right;font-variant-numeric:tabular-nums}
-  .b2b-prices input:focus{border-color:var(--primary)}
-  @media(max-width:520px){.b2b-form{grid-template-columns:1fr}}
 
   /* ---------- PRODUCT / LOCATION ROWS ---------- */
   .product-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
@@ -331,19 +298,11 @@
   .trc-hit{fill:transparent}
   .trc-hi{fill:#fff;stroke:var(--primary);stroke-width:2.5;opacity:0;transition:opacity .1s ease}
   .trc.show-cursor .trc-cursor,.trc.show-cursor .trc-hi{opacity:1}
-  .trc-bar{fill:var(--primary);opacity:.82;transition:opacity .12s ease}
-  .trc-bar.now{fill:var(--green);opacity:1}
-  .trc-bar.peak{opacity:1}
-  .trc-barbase{stroke:var(--border);stroke-width:1.5;stroke-linecap:round}
-  .trc.show-cursor .trc-bar{opacity:.45}
-  .trc.show-cursor .trc-bar.hov{opacity:1}
   @media(prefers-reduced-motion:no-preference){
     .trc-line{stroke-dasharray:1600;stroke-dashoffset:1600;animation:trcDraw 1s cubic-bezier(.22,1,.36,1) forwards}
     .trc-area{opacity:0;animation:trcFade .6s ease .35s forwards}
-    .trc-bar{transform-box:fill-box;transform-origin:bottom;animation:trcGrow .55s cubic-bezier(.22,1,.36,1) backwards}
     @keyframes trcDraw{to{stroke-dashoffset:0}}
     @keyframes trcFade{to{opacity:.9}}
-    @keyframes trcGrow{from{transform:scaleY(0)}}
   }
   .trc-tip{
     position:absolute;pointer-events:none;z-index:5;transform:translate(-50%,-120%);
@@ -583,36 +542,6 @@
       <div id="alertsBox" class="loading">Henter status…</div>
     </div>
 
-    <!-- Erhverv (B2B): bestillinger fra erhvervsportalen /erhverv -->
-    <div class="panel">
-      <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>Erhverv <span id="b2bBadge" style="color:var(--muted-fg);font-weight:500;font-size:13px"></span></h2>
-      <div id="b2bOrders" class="loading">Henter bestillinger…</div>
-
-      <div class="b2b-sub">
-        <div class="b2b-sublbl">Kunder</div>
-        <div id="b2bCustomers" class="loading">Henter…</div>
-        <button id="b2bAddToggle" class="dchip" type="button" style="margin-top:10px">+ Tilføj kunde</button>
-        <div id="b2bAddForm" class="b2b-form" style="display:none;margin-top:10px">
-          <input id="bcName" placeholder="Firmanavn *" />
-          <input id="bcEmail" type="email" placeholder="E-mail (login) *" />
-          <input id="bcContact" placeholder="Kontaktperson" />
-          <input id="bcPhone" placeholder="Telefon" />
-          <input id="bcCvr" placeholder="CVR" inputmode="numeric" />
-          <input id="bcAddress" class="full" placeholder="Adresse" />
-          <button id="b2bAddBtn" class="dchip on full" type="button" style="justify-content:center">Opret kunde</button>
-        </div>
-      </div>
-
-      <div class="b2b-sub">
-        <div class="b2b-sublbl">B2B-priser (ekskl. moms — tom = aftalt pris)</div>
-        <button id="b2bPriceToggle" class="dchip" type="button">Vis prisliste</button>
-        <div id="b2bPriceWrap" style="display:none;margin-top:10px">
-          <div id="b2bPrices" class="b2b-prices"></div>
-          <button id="b2bPriceSave" class="dchip on" type="button">Gem priser</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Recent orders -->
     <div class="panel">
       <h2><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Ordrer</h2>
@@ -718,7 +647,6 @@
     // ordrer og statistik faar netvaerket foerst.
     const idle = window.requestIdleCallback || (fn => setTimeout(fn, 400));
     if (typeof loadNewsletter === 'function') idle(() => loadNewsletter());
-    if (typeof loadB2b === 'function') idle(() => loadB2b());
     // Refresh active users every 15 sec
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(refreshLiveStats, 15000);
@@ -1335,36 +1263,38 @@
     const days = [];
     for (let t = first; t <= today; t += DAY) days.push(t);
 
-    // ÉN dag valgt ("I dag" eller én dato): én prik er kedelig — vis i
-    // stedet omsætningen time for time som søjler.
+    // ÉN dag valgt ("I dag" eller én dato): samme kurve som altid — bare
+    // med et punkt pr. time i stedet for pr. dag.
     if (days.length === 1) {
-      const hours = new Map();
+      const HOUR = 3600000;
+      const day0 = days[0];
+      const hsums = new Map();
       let firstH = 24, lastH = 0;
       list.forEach(o => {
         const h = new Date(o.date).getHours();
-        const cur = hours.get(h) || { v: 0, n: 0 };
-        cur.v += Number(o.amount) || 0; cur.n++;
-        hours.set(h, cur);
+        hsums.set(h, (hsums.get(h) || 0) + (Number(o.amount) || 0));
         if (h < firstH) firstH = h; if (h > lastH) lastH = h;
       });
-      const isToday = days[0] === today;
+      const isToday = day0 === today;
+      const nowH = new Date().getHours();
       const startH = Math.min(firstH, 8);
-      const endH = Math.max(lastH, isToday ? new Date().getHours() : 17);
-      const slots = [];
-      for (let h = startH; h <= endH; h++) slots.push(h);
-      const hmax = Math.max(...slots.map(h => (hours.get(h) || { v: 0 }).v), 1);
-      const peakH = slots.reduce((b, h) => ((hours.get(h) || { v: 0 }).v > (hours.get(b) || { v: 0 }).v ? h : b), slots[0]);
+      const endH = Math.max(lastH, isToday ? nowH : 17);
+      const hxs = [], hmap = new Map();
+      for (let h = startH; h <= endH; h++) { const t = day0 + h * HOUR; hxs.push(t); hmap.set(t, hsums.get(h) || 0); }
+      const hmax = Math.max(...hxs.map(t => hmap.get(t) || 0), 1);
+      const hpeak = hxs.reduce((b, t) => (hmap.get(t) || 0) > (hmap.get(b) || 0) ? t : b, hxs[0]);
       el.className = '';
       setTrendTitle(true);
-      el._trend = { mode: 'hours', slots, hours, hmax, total, count: list.length, peakH, isToday, truncated };
+      el._trend = { days: hxs, sums: hmap, max: hmax, today: isToday ? day0 + nowH * HOUR : -1,
+        total, peak: hpeak, truncated, hourly: true, count: list.length };
       drawTrend(el);
       if (!el._ro && typeof ResizeObserver !== 'undefined') {
         let raf0 = 0;
         el._ro = new ResizeObserver(() => { cancelAnimationFrame(raf0); raf0 = requestAnimationFrame(() => drawTrend(el)); });
         el._ro.observe(el);
       }
-      if (peakEl) peakEl.textContent = (hours.get(peakH) || { v: 0 }).v > 0
-        ? 'Travlest: kl. ' + peakH + '–' + (peakH + 1) + ' · ' + formatKr(hours.get(peakH).v) : '';
+      if (peakEl) peakEl.textContent = (hmap.get(hpeak) || 0) > 0
+        ? 'Travlest: kl. ' + new Date(hpeak).getHours() + '–' + (new Date(hpeak).getHours() + 1) + ' · ' + formatKr(hmap.get(hpeak)) : '';
       return;
     }
     const max = Math.max(...days.map(t => sums.get(t) || 0), 1);
@@ -1385,102 +1315,10 @@
     }
   }
 
-  // Time-visning for én enkelt dag: søjle pr. time med samme udtryk som
-  // dags-grafen (gridlines, tooltip, opsummering).
-  function drawHours(el) {
-    const st = el._trend;
-    const { slots, hours, hmax, total, count, peakH, isToday } = st;
-    const N = slots.length;
-    const nowH = new Date().getHours();
-    const W = Math.max(240, Math.round(el.clientWidth || el.getBoundingClientRect().width || 600));
-    const H = 200, padL = 46, padR = 12, padT = 12, padB = 26;
-    const iw = W - padL - padR, ih = H - padT - padB;
-    const base = padT + ih;
-    const slotW = iw / N;
-    const barW = Math.min(26, Math.max(6, slotW * 0.62));
-    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-
-    let grid = '';
-    for (let g = 0; g <= 2; g++) {
-      const gy = padT + (ih * g) / 2, val = hmax * (1 - g / 2);
-      grid += '<line class="trc-grid" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"/>'
-            + '<text class="trc-ylab" x="' + (padL - 8) + '" y="' + (gy + 3.5) + '">' + trFmtCompact(val) + '</text>';
-    }
-
-    let bars = '', dashes = '';
-    slots.forEach((h, i) => {
-      const rec = hours.get(h);
-      const cx = padL + slotW * i + slotW / 2;
-      if (rec && rec.v > 0) {
-        const bh = Math.max(3, (rec.v / hmax) * ih);
-        const cls = 'trc-bar' + (isToday && h === nowH ? ' now' : '') + (h === peakH ? ' peak' : '');
-        bars += '<rect class="' + cls + '" data-i="' + i + '" x="' + (cx - barW / 2) + '" y="' + (base - bh)
-              + '" width="' + barW + '" height="' + bh + '" rx="3.5" style="animation-delay:' + (i * 28) + 'ms"/>';
-      } else {
-        // tom time: lille markering paa grundlinjen, saa rytmen kan aflaeses
-        dashes += '<line class="trc-barbase" x1="' + (cx - barW / 4) + '" y1="' + base + '" x2="' + (cx + barW / 4) + '" y2="' + base + '"/>';
-      }
-    });
-
-    // x-akse: hele timer med luft imellem (ca. hver 3.-4. time)
-    const step = N > 12 ? 3 : (N > 7 ? 2 : 1);
-    let xlab = '';
-    slots.forEach((h, i) => {
-      if (i % step !== 0 && i !== N - 1) return;
-      const cx = padL + slotW * i + slotW / 2;
-      xlab += '<text class="trc-xlab" x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle">' + h + '</text>';
-    });
-
-    const svg =
-      '<svg class="trc" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Omsætning pr. time">'
-      + grid + dashes + bars + xlab
-      + '<rect class="trc-hit" x="' + padL + '" y="' + padT + '" width="' + Math.max(1, iw) + '" height="' + ih + '"/>'
-      + '</svg>';
-
-    const nOrd = count === 1 ? '1 ordre' : count + ' ordrer';
-    const peakRec = hours.get(peakH);
-    const sum = '<div class="trc-sum"><span>I alt <b>' + formatKr(total) + '</b></span>'
-      + '<span><b>' + nOrd + '</b></span>'
-      + (peakRec && peakRec.v > 0 ? '<span>Travlest <b>kl. ' + peakH + '–' + (peakH + 1) + '</b></span>' : '')
-      + '</div>'
-      + (st.truncated ? '<div class="trc-note">Kun de nyeste ordrer er med — vælg en kortere periode for et fuldt billede.</div>' : '');
-
-    el.innerHTML = svg + '<div class="trc-tip" id="trcTip"></div>' + sum;
-
-    const svgEl = el.querySelector('svg');
-    const tip = el.querySelector('#trcTip');
-    const barEls = svgEl.querySelectorAll('.trc-bar');
-    const move = (clientX) => {
-      const rect = svgEl.getBoundingClientRect();
-      const scale = W / rect.width;
-      const px = (clientX - rect.left) * scale;
-      let idx = Math.floor((px - padL) / slotW);
-      idx = Math.max(0, Math.min(N - 1, idx));
-      const h = slots[idx];
-      const rec = hours.get(h) || { v: 0, n: 0 };
-      svgEl.classList.add('show-cursor');
-      barEls.forEach(b => b.classList.toggle('hov', Number(b.getAttribute('data-i')) === idx));
-      const cx = padL + slotW * idx + slotW / 2;
-      const topY = base - (rec.v > 0 ? Math.max(3, (rec.v / hmax) * ih) : 0);
-      tip.innerHTML = '<b>' + esc(formatKr(rec.v)) + '</b><div class="d">kl. ' + h + '–' + (h + 1)
-        + (rec.n ? ' · ' + (rec.n === 1 ? '1 ordre' : rec.n + ' ordrer') : '') + '</div>';
-      tip.style.left = Math.max(8, Math.min(el.clientWidth - 8, (cx / W) * el.clientWidth)) + 'px';
-      tip.style.top = ((topY / H) * rect.height) + 'px';
-      tip.classList.add('show');
-    };
-    svgEl.addEventListener('pointermove', e => move(e.clientX));
-    svgEl.addEventListener('pointerdown', e => move(e.clientX));
-    svgEl.addEventListener('pointerleave', () => {
-      svgEl.classList.remove('show-cursor');
-      barEls.forEach(b => b.classList.remove('hov'));
-      tip.classList.remove('show');
-    });
-  }
-
   function drawTrend(el) {
     const st = el._trend; if (!st) return;
-    if (st.mode === 'hours') return drawHours(el);
     const { days, sums, max, today, total } = st;
+    const hourly = !!st.hourly;
     const N = days.length;
     const W = Math.max(240, Math.round(el.clientWidth || el.getBoundingClientRect().width || 600));
     const H = 200, padL = 46, padR = 12, padT = 12, padB = 26;
@@ -1494,7 +1332,9 @@
       ? linePath + ' L ' + pts[pts.length - 1].x + ' ' + base + ' L ' + pts[0].x + ' ' + base + ' Z'
       : '';
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    const fmtDay = t => new Date(t).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+    const fmtDay = t => hourly
+      ? 'kl. ' + new Date(t).getHours()
+      : new Date(t).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
 
     // gridlines + y-akse-labels ved 0, 50%, 100%
     let grid = '';
@@ -1512,7 +1352,7 @@
     });
     // faste punkt-prikker (kun ved få dage, ellers for tæt)
     let dots = '';
-    if (N <= 14) pts.forEach(p => {
+    if (N <= 14 || hourly) pts.forEach(p => {
       dots += '<circle class="trc-dot' + (p.t === today ? ' today' : '') + '" cx="' + p.x + '" cy="' + p.y + '" r="' + (p.t === today ? 3.5 : 2.5) + '"/>';
     }); else {
       const tp = pts.find(p => p.t === today);
@@ -1521,7 +1361,7 @@
 
     const gid = 'trcGrad';
     const svg =
-      '<svg class="trc" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Omsætning pr. dag">'
+      '<svg class="trc" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + (hourly ? 'Omsætning pr. time' : 'Omsætning pr. dag') + '">'
       + '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">'
       +   '<stop offset="0%" stop-color="var(--primary)" stop-opacity="0.20"/>'
       +   '<stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>'
@@ -1536,11 +1376,13 @@
       + '<rect class="trc-hit" x="' + padL + '" y="' + padT + '" width="' + Math.max(1, iw) + '" height="' + ih + '"/>'
       + '</svg>';
 
-    const days1 = fmtDay(days[0]), daysN = fmtDay(days[N - 1]);
     const avg = total / N;
     const sum = '<div class="trc-sum"><span>I alt <b>' + formatKr(total) + '</b></span>'
-      + '<span>Gns. <b>' + formatKr(avg) + '</b>/dag</span>'
-      + '<span><b>' + N + '</b> dage</span></div>'
+      + (hourly
+        ? '<span><b>' + (st.count === 1 ? '1 ordre' : st.count + ' ordrer') + '</b></span>'
+          + '<span>Travlest <b>' + fmtDay(st.peak) + '–' + (new Date(st.peak).getHours() + 1) + '</b></span>'
+        : '<span>Gns. <b>' + formatKr(avg) + '</b>/dag</span>'
+          + '<span><b>' + N + '</b> dage</span>') + '</div>'
       + (st.truncated ? '<div class="trc-note">Kun de nyeste ordrer er med — vælg en kortere periode for et fuldt billede.</div>' : '');
 
     el.innerHTML = svg + '<div class="trc-tip" id="trcTip"></div>' + sum;
@@ -1560,7 +1402,10 @@
       svgEl.classList.add('show-cursor');
       cursor.setAttribute('x1', p.x); cursor.setAttribute('x2', p.x);
       hi.setAttribute('cx', p.x); hi.setAttribute('cy', p.y);
-      tip.innerHTML = '<b>' + esc(formatKr(p.v)) + '</b><div class="d">' + esc(fmtDay(p.t)) + (p.t === today ? ' · i dag' : '') + '</div>';
+      tip.innerHTML = '<b>' + esc(formatKr(p.v)) + '</b><div class="d">'
+        + (hourly ? 'kl. ' + new Date(p.t).getHours() + '–' + (new Date(p.t).getHours() + 1) + (p.t === today ? ' · nu' : '')
+                  : esc(fmtDay(p.t)) + (p.t === today ? ' · i dag' : ''))
+        + '</div>';
       const leftPct = (p.x / W) * 100;
       tip.style.left = Math.max(8, Math.min(el.clientWidth - 8, (leftPct / 100) * el.clientWidth)) + 'px';
       tip.style.top = ((p.y / H) * (svgEl.getBoundingClientRect().height)) + 'px';
@@ -1721,168 +1566,6 @@
         + '</div>';
     }).join('');
   }
-
-// ── ERHVERV (B2B) ───────────────────────────────────────────────────────────
-async function b2bApi(payload) {
-  const r = await fetch('/api/b2b', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin', body: JSON.stringify(payload),
-  });
-  const d = await r.json().catch(() => ({}));
-  return { status: r.status, d };
-}
-
-const B2B_STATUS = { ny: 'Ny', godkendt: 'Godkendt', afvist: 'Afvist' };
-let b2bShowAll = false;
-
-async function loadB2bOrders() {
-  const el = document.getElementById('b2bOrders');
-  const badge = document.getElementById('b2bBadge');
-  if (!el) return;
-  const { status, d } = await b2bApi({ action: 'admlist' });
-  if (status === 401) return; // ikke logget ind endnu
-  if (!d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente B2B-bestillinger.'; return; }
-  const orders = d.orders || [];
-  const nye = orders.filter(o => o.status === 'ny');
-  if (badge) badge.textContent = nye.length ? '· ' + nye.length + ' ny' + (nye.length === 1 ? '' : 'e') : (orders.length ? '· ' + orders.length + ' i alt' : '');
-  if (!orders.length) { el.className = 'empty'; el.textContent = 'Ingen B2B-bestillinger endnu. Kunderne bestiller på quartzmolle.dk/erhverv'; return; }
-  // Nye altid øverst og altid vist; gamle bag folden.
-  const done = orders.filter(o => o.status !== 'ny');
-  const shown = nye.concat(b2bShowAll ? done : done.slice(0, 3));
-  el.className = '';
-  el.innerHTML = shown.map(o => {
-    const lines = (o.lines || []).map(l =>
-      '<div><span>' + escapeHtml(l.name) + ' · ' + escapeHtml(l.label) + '</span><span class="num">' + l.qty + ' stk.'
-      + (l.price != null ? ' · ' + (l.price * l.qty).toLocaleString('da-DK') + ' kr.' : '') + '</span></div>').join('');
-    const kg = (o.lines || []).reduce((a, l) => a + (l.kg || 0) * l.qty, 0);
-    const sum = (o.lines || []).reduce((a, l) => a + (l.price != null ? l.price * l.qty : 0), 0);
-    return '<div class="b2b-ord" data-id="' + escapeHtml(o.id) + '">'
-      + '<div class="b2b-h"><span class="b2b-no num">#' + o.no + '</span>'
-      + '<span class="b2b-cust">' + escapeHtml(o.customerName) + '</span>'
-      + '<span class="b2b-chip ' + escapeHtml(o.status) + '">' + (B2B_STATUS[o.status] || o.status) + '</span>'
-      + '<span class="b2b-date">' + formatDate(o.t) + '</span></div>'
-      + '<div class="b2b-lines">' + lines + '</div>'
-      + '<div class="b2b-note num">Ca. ' + kg.toLocaleString('da-DK') + ' kg'
-      + (sum > 0 ? ' · ' + sum.toLocaleString('da-DK') + ' kr. ekskl. moms' : '')
-      + (o.wishDate ? ' · Ønsket levering: ' + escapeHtml(o.wishDate) : '') + '</div>'
-      + (o.note ? '<div class="b2b-note">Bemærkning: ' + escapeHtml(o.note) + '</div>' : '')
-      + (o.status === 'ny'
-        ? '<div class="b2b-actions"><button class="b2b-ok" data-b2b-ok type="button">Godkend</button>'
-          + '<button class="b2b-nej" data-b2b-nej type="button">Afvis</button></div>'
-        : '')
-      + '</div>';
-  }).join('')
-  + (done.length > 3
-    ? '<button type="button" class="fold-btn' + (b2bShowAll ? ' open' : '') + '" data-b2b-fold>'
-      + (b2bShowAll ? 'Vis færre' : 'Vis alle ' + orders.length + ' bestillinger')
-      + '<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>'
-    : '');
-
-  if (!el.__delegated) {
-    el.__delegated = true;
-    el.addEventListener('click', async e => {
-      if (e.target.closest('[data-b2b-fold]')) { b2bShowAll = !b2bShowAll; loadB2bOrders(); return; }
-      const okBtn = e.target.closest('[data-b2b-ok]');
-      const nejBtn = e.target.closest('[data-b2b-nej]');
-      if (!okBtn && !nejBtn) return;
-      const id = e.target.closest('.b2b-ord').getAttribute('data-id');
-      let msg = '';
-      if (nejBtn) {
-        msg = prompt('Besked til kunden (valgfri) — hvorfor afvises bestillingen?') || '';
-        if (!confirm('Afvis bestillingen? Kunden får besked på mail.')) return;
-      } else {
-        msg = prompt('Besked til kunden (valgfri) — fx forventet leveringsdag:') || '';
-      }
-      const btn = okBtn || nejBtn; btn.disabled = true;
-      const { d } = await b2bApi({ action: 'admsetstatus', id, status: okBtn ? 'godkendt' : 'afvist', msg });
-      if (!d.ok) { alert(d.error || 'Noget gik galt.'); btn.disabled = false; return; }
-      loadB2bOrders();
-    });
-  }
-}
-
-async function loadB2bCustomers() {
-  const el = document.getElementById('b2bCustomers');
-  if (!el) return;
-  const { status, d } = await b2bApi({ action: 'admcustomers' });
-  if (status === 401) return;
-  if (!d.ok) { el.className = 'empty'; el.textContent = 'Kunne ikke hente kunder.'; return; }
-  const cs = d.customers || [];
-  if (!cs.length) { el.className = 'empty'; el.textContent = 'Ingen kunder endnu — tilføj den første herunder.'; return; }
-  el.className = '';
-  el.innerHTML = cs.map(c =>
-    '<div class="b2b-cust-row" data-email="' + escapeHtml(c.email) + '">'
-    + '<span>' + escapeHtml(c.name) + '</span>'
-    + '<span class="em">' + escapeHtml(c.email) + (c.cvr ? ' · CVR ' + escapeHtml(c.cvr) : '') + '</span>'
-    + '<button class="b2b-del" data-b2b-del type="button">Fjern</button></div>').join('');
-  if (!el.__delegated) {
-    el.__delegated = true;
-    el.addEventListener('click', async e => {
-      const del = e.target.closest('[data-b2b-del]');
-      if (!del) return;
-      const row = e.target.closest('.b2b-cust-row');
-      const email = row.getAttribute('data-email');
-      if (!confirm('Fjern ' + email + '? Kunden kan ikke længere logge ind på portalen.')) return;
-      const { d } = await b2bApi({ action: 'admdelcustomer', email });
-      if (!d.ok) { alert(d.error || 'Noget gik galt.'); return; }
-      loadB2bCustomers();
-    });
-  }
-}
-
-function initB2bUi() {
-  const t = document.getElementById('b2bAddToggle');
-  if (!t || t.__init) return;
-  t.__init = true;
-  t.addEventListener('click', () => {
-    const f = document.getElementById('b2bAddForm');
-    f.style.display = f.style.display === 'none' ? 'grid' : 'none';
-  });
-  document.getElementById('b2bAddBtn').addEventListener('click', async () => {
-    const g = id => (document.getElementById(id).value || '').trim();
-    const payload = { action: 'admaddcustomer', name: g('bcName'), email: g('bcEmail'),
-      contact: g('bcContact'), phone: g('bcPhone'), cvr: g('bcCvr'), address: g('bcAddress') };
-    if (!payload.name || !payload.email) { alert('Firmanavn og e-mail er påkrævet.'); return; }
-    const { d } = await b2bApi(payload);
-    if (!d.ok) { alert(d.error || 'Noget gik galt.'); return; }
-    ['bcName', 'bcEmail', 'bcContact', 'bcPhone', 'bcCvr', 'bcAddress'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('b2bAddForm').style.display = 'none';
-    loadB2bCustomers();
-  });
-
-  const pt = document.getElementById('b2bPriceToggle');
-  pt.addEventListener('click', async () => {
-    const w = document.getElementById('b2bPriceWrap');
-    const show = w.style.display === 'none';
-    w.style.display = show ? 'block' : 'none';
-    pt.textContent = show ? 'Skjul prisliste' : 'Vis prisliste';
-    if (!show) return;
-    const { d } = await b2bApi({ action: 'admprices' });
-    if (!d.ok) return;
-    document.getElementById('b2bPrices').innerHTML = (d.products || []).map(p =>
-      '<span class="lbl">' + escapeHtml(p.name) + ' · ' + escapeHtml(p.label) + '</span>'
-      + '<input type="number" min="0" step="0.5" inputmode="decimal" data-price-key="' + escapeHtml(p.key) + '"'
-      + ' value="' + (p.price != null ? p.price : '') + '" placeholder="aftalt" />').join('');
-  });
-  document.getElementById('b2bPriceSave').addEventListener('click', async () => {
-    const prices = {};
-    document.querySelectorAll('#b2bPrices [data-price-key]').forEach(inp => {
-      prices[inp.getAttribute('data-price-key')] = inp.value === '' ? null : Number(inp.value);
-    });
-    const btn = document.getElementById('b2bPriceSave');
-    btn.textContent = 'Gemmer…';
-    const { d } = await b2bApi({ action: 'admsetprices', prices });
-    btn.textContent = d.ok ? 'Gemt ✓' : 'Kunne ikke gemme';
-    setTimeout(() => { btn.textContent = 'Gem priser'; }, 1800);
-  });
-}
-
-async function loadB2b() {
-  initB2bUi();
-  loadB2bOrders();
-  loadB2bCustomers();
-}
-// (kaldes fra showDashboard efter login)
 
 async function loadNewsletter() {
   const list = document.getElementById('nlList');
