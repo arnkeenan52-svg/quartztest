@@ -326,6 +326,8 @@
       </button>
       <div class="nl-formwrap">
         <form id="nlForm" class="newsletter-form" novalidate>
+          <input type="text" id="nlWebsite" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+                 style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none" />
           <input type="email" id="nlEmail" placeholder="Din e-mailadresse" autocomplete="email" required />
           <button type="submit" id="nlBtn">Tilmeld</button>
         </form>
@@ -520,13 +522,15 @@
         tab: '10% OFF', ph: 'Your email address', btn: 'Sign up', busy: 'Signing up…',
         invalid: 'Please enter a valid email address.',
         already: 'You are already subscribed — check your inbox for the code.',
-        thanks: 'Thanks! Check your inbox — your 10% discount code is on its way.',
+        thanks: 'Almost there! Check your inbox and confirm your signup — then your 10% code arrives.',
+        again: 'We already sent you a confirmation email — check your inbox (and spam folder).',
         fail: 'Something went wrong. Please try again.', net: 'Network error — please try again.'
       } : {
         tab: '10% RABAT', ph: 'Din e-mailadresse', btn: 'Tilmeld', busy: 'Tilmelder…',
         invalid: 'Skriv en gyldig e-mailadresse.',
         already: 'Du er allerede tilmeldt — tjek din indbakke for koden.',
-        thanks: 'Tak! Tjek din indbakke — din 10%-rabatkode er på vej.',
+        thanks: 'Næsten i mål! Tjek din indbakke og bekræft din tilmelding — så kommer din 10%-kode.',
+        again: 'Vi har allerede sendt dig en bekræftelses-mail — tjek din indbakke (og spam-mappen).',
         fail: 'Noget gik galt. Prøv igen.', net: 'Netværksfejl — prøv igen.'
       };
       if (nlEn) {
@@ -566,14 +570,21 @@
         try {
           var r = await fetch('/api/log-visit', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'newsletter', email: email, lang: nlEn ? 'en' : 'da' }),
+            body: JSON.stringify({ action: 'newsletter', email: email, lang: nlEn ? 'en' : 'da',
+              website: (document.getElementById('nlWebsite') || {}).value || '' }),
           });
           var d = await r.json().catch(function () { return {}; });
           if (r.ok && d.ok) {
-            msg.textContent = d.already ? NLT.already : NLT.thanks;
+            msg.textContent = d.already ? NLT.already : (d.again ? NLT.again : NLT.thanks);
             input.value = '';
-            try { localStorage.setItem('qm_nl_sub', '1'); localStorage.setItem('qm_nl_seen', '1'); } catch (err) {}
-            tab.classList.add('hidden');
+            // Marker KUN som tilmeldt/skjul fanen, når serveren faktisk gemte
+            // tilmeldingen (d.stored) eller kunden allerede er tilmeldt
+            // (d.already). Et throttlet svar giver hverken — så beholder brugeren
+            // sin mulighed for at prøve igen senere.
+            if (d.stored || d.already) {
+              try { localStorage.setItem('qm_nl_sub', '1'); localStorage.setItem('qm_nl_seen', '1'); } catch (err) {}
+              tab.classList.add('hidden');
+            }
             setTimeout(closeNl, 2600);
           } else {
             msg.classList.add('err'); msg.textContent = d.error || NLT.fail;

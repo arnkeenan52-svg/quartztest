@@ -1328,7 +1328,17 @@ async function loadNewsletter() {
     renderIpGroups(d.emails);
     csvBtn.style.display = 'inline-block';
     csvBtn.onclick = () => {
-      const csv = 'email;rabatkode;dato;ip\n' + d.emails.map(e => e.email + ';' + (e.code || '') + ';' + (e.t ? new Date(e.t).toISOString().slice(0, 10) : '') + ';' + (e.ip || '')).join('\n');
+      // Sikr mod CSV-formel-injektion: et felt der starter med = + - @ (eller
+      // tab/CR) kan udføre en formel i Excel/Sheets. Præfiks med ' og pak i
+      // anførselstegn.
+      const csvCell = (v) => {
+        let x = String(v == null ? '' : v);
+        if (/^[=+\-@\t\r]/.test(x)) x = "'" + x;
+        return '"' + x.replace(/"/g, '""') + '"';
+      };
+      const csv = 'email;rabatkode;dato;ip\n' + d.emails.map(e =>
+        [csvCell(e.email), csvCell(e.code || ''), csvCell(e.t ? new Date(e.t).toISOString().slice(0, 10) : ''), csvCell(e.ip || '')].join(';')
+      ).join('\n');
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
       a.download = 'nyhedsbrev-tilmeldinger.csv';
