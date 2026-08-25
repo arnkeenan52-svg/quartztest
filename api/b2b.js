@@ -22,7 +22,7 @@
 // Indtil da godkender far ordren her og fakturerer som hidtil.
 
 import { kv } from './_kv.js';
-import { createHmac, timingSafeEqual, randomInt, randomBytes } from 'crypto';
+import { createHmac, createHash, timingSafeEqual, randomInt, randomBytes } from 'crypto';
 import { CATALOG, weightKgFromLabel } from './_catalog.js';
 
 const SECRET = process.env.LOCKER_SESSION_SECRET || '';
@@ -212,7 +212,8 @@ export default async function handler(req, res) {
       } catch {}
       if (nMail > 5 || nIp > 20) return res.status(200).json({ ok: true });
       const code = String(randomInt(100000, 1000000));
-      await kv.set(`b2b:code:${email}`, { code, tries: 0 }, { ex: CODE_TTL });
+      await kv.set(`b2b:code:${email}`, { code }, { ex: CODE_TTL });
+      try { await kv.del(`b2b:tries:${email}`); } catch {}
       try {
         await sendMail(email, `Din login-kode: ${code}`, mailShell(
           `<p style="font-size:15px;margin:0 0 14px">Her er din engangskode til erhvervsportalen:</p>
@@ -225,24 +226,48 @@ export default async function handler(req, res) {
     if (action === 'verify') {
       const email = normEmail(body.email);
       const code = String(body.code || '').replace(/\D/g, '').slice(0, 6);
-      if (!validEmail(email) || code.length !== 6) return res.status(400).json({ ok: false, error: 'Ugyldig kode.' });
+      // ÉN fælles fejlbesked til ALLE afvisninger. Forskellige beskeder ("koden
+      // er udløbet" vs "forkert kode") roebede, om en given mailadresse
+      // overhovedet er kunde hos os.
+      const DENY = { ok: false, error: 'Forkert eller udløbet kode.' };
+      if (!validEmail(email) || code.length !== 6) return res.status(400).json(DENY);
+
+      // Loft pr. IP: verify havde ingen begraensning overhovedet - kun en
+      // taeller inde i selve koden, som kunne omgaas (se nedenfor).
+      const vip = clientIp(req);
+      const vday = dayStamp();
+      let vTries = 0;
+      try {
+        vTries = await kv.incr(`b2b:vip:${vip}:${vday}`);
+        if (vTries === 1) await kv.expire(`b2b:vip:${vip}:${vday}`, DAYSEC);
+      } catch { vTries = 999; }          // taelleren utilgaengelig -> fejl LUKKET
+      if (vTries > 50) return res.status(429).json(DENY);
+
       let rec = null;
       try { rec = await kv.get(`b2b:code:${email}`); } catch {}
-      if (!rec) return res.status(400).json({ ok: false, error: 'Koden er udløbet — bed om en ny.' });
-      if ((rec.tries || 0) >= 5) {
-        try { await kv.del(`b2b:code:${email}`); } catch {}
-        return res.status(400).json({ ok: false, error: 'For mange forsøg — bed om en ny kode.' });
+      if (!rec) return res.status(400).json(DENY);
+
+      // ATOMISK forsoegstaeller i sin EGEN noegle. Foer laa "tries" inde i selve
+      // kode-posten og blev skrevet tilbage med kv.set - to problemer: samtidige
+      // gaet laeste alle den samme vaerdi (kapløb), og hver skrivning gav koden
+      // en frisk 10-minutters levetid, saa et angreb kunne holde den i live for evigt.
+      let tries = 0;
+      try {
+        tries = await kv.incr(`b2b:tries:${email}`);
+        if (tries === 1) await kv.expire(`b2b:tries:${email}`, CODE_TTL);
+      } catch { tries = 99; }
+      if (tries > 5) {
+        try { await kv.del(`b2b:code:${email}`, `b2b:tries:${email}`); } catch {}
+        return res.status(400).json(DENY);
       }
+
       const okCode = (() => {
-        const a = Buffer.from(String(rec.code)), b = Buffer.from(code);
-        if (a.length !== b.length) return false;
+        const a = createHash('sha256').update(String(rec.code)).digest();
+        const b = createHash('sha256').update(code).digest();
         try { return timingSafeEqual(a, b); } catch { return false; }
       })();
-      if (!okCode) {
-        try { await kv.set(`b2b:code:${email}`, { code: rec.code, tries: (rec.tries || 0) + 1 }, { ex: CODE_TTL }); } catch {}
-        return res.status(400).json({ ok: false, error: 'Forkert kode — prøv igen.' });
-      }
-      try { await kv.del(`b2b:code:${email}`); } catch {}
+      if (!okCode) return res.status(400).json(DENY);
+      try { await kv.del(`b2b:code:${email}`, `b2b:tries:${email}`); } catch {}
       const tok = randomBytes(24).toString('base64url');
       await kv.set(`b2b:sess:${tok}`, { email, t: Date.now() }, { ex: SESS_DAYS * DAYSEC });
       res.setHeader('Set-Cookie', sessCookie(tok, SESS_DAYS * DAYSEC));

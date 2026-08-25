@@ -12,8 +12,12 @@ const REMIND_AFTER_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 export default async function handler(req, res) {
   // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>" when the env var
   // is set. If it is configured, require it.
+  // Fejl LUKKET: er hemmeligheden ikke sat, kan ingen koere jobbet. Tidligere
+  // stod der `if (secret && ...)`, saa en manglende env-variabel aabnede
+  // endpointet for hele internettet - og et fremmed kald kunne markere dagens
+  // koersel som gennemfoert, saa den rigtige paamindelse aldrig blev sendt.
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

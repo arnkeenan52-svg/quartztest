@@ -117,9 +117,14 @@ ok('honningkrukke: intet gemt', !(await kv.hget('newsletter:emails', 'bot@exampl
 r = await call({ body: { action: 'newsletter', email: 'ikke-en-mail' } });
 ok('ugyldig e-mail -> 400', r.statusCode === 400 && r.jsonBody?.ok === false);
 
-// 9) allerede tilmeldt -> already (uden nyt bevis, ingen ny mail)
+// 9) allerede tilmeldt -> already (KRÆVER nu et gyldigt bevis: tjekket ligger
+//    efter verifikationen, saa endpointet ikke kan bruges til at slaa fremmede
+//    mailadresser op og se, om de er kunder)
 r = await call({ body: { action: 'newsletter', email: 'kunde1@example.dk' } });
-ok('allerede tilmeldt -> already', r.jsonBody?.already === true && sentEmails.length === 1);
+ok('allerede tilmeldt UDEN bevis -> afvist som alt andet', r.statusCode === 400 && r.jsonBody?.retry === true && sentEmails.length === 1);
+pow = await freshPow();
+r = await call({ body: { action: 'newsletter', email: 'kunde1@example.dk', ...pow } });
+ok('allerede tilmeldt MED bevis -> already', r.jsonBody?.already === true && sentEmails.length === 1);
 
 // 10) gmail-punktum-trick -> already (normaliseret adresse)
 pow = await freshPow();
