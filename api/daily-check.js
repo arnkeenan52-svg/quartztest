@@ -60,12 +60,41 @@ export default async function handler(req, res) {
   }
 
   // ── 2) Reminder to customers who haven't collected after 3 days ──
+  //
+  // VIGTIGT (efter en hændelse hvor ~50 kunder fik en påmindelse på én gang):
+  // Ordrer bliver IKKE automatisk fjernet fra pickup:orders, når de hentes. Det
+  // betyder, at "ordren står stadig på listen" ALENE er et ubrugeligt signal —
+  // hver eneste historiske ordre så uafhentet ud. Derfor tre spærrer nu:
+  //
+  //   a) Skabet skal STADIG indeholde ordrens kode. Er koden væk fra skabet,
+  //      er varen hentet. Det er det samme signal, fulfillment-siden bruger.
+  //   b) Vi minder kun om ordrer mellem 3 og 14 dage gamle. Er der gået mere
+  //      end 14 dage, er sagen for gammel til en automatisk mail.
+  //   c) Højst 5 påmindelser pr. kørsel. Skulle noget alligevel gå galt, rammer
+  //      det 5 kunder — ikke hele kundekartoteket.
+  const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+  const MAX_REMINDERS_PER_RUN = 5;
+
+  // Koder der lige nu ligger i et skab. Er ordrens kode ikke iblandt, er den hentet.
+  let liveCodes = new Set();
+  try {
+    const st = await kv.get('locker:state');
+    for (const l of ((st && st.lockers) || [])) {
+      if (l && l.occ && l.code) liveCodes.add(String(l.code));
+    }
+  } catch { liveCodes = null; }   // kan skabet ikke laeses, sender vi INTET (fejl lukket)
+
   const activeRefs = new Set(orders.filter(o => o && o.ref).map(o => o.ref));
   for (const [ref, rec] of Object.entries(fulfilled)) {
     if (!rec || !rec.email || !rec.sentAt) continue;
     if (rec.reminded) continue;                   // only one reminder per order
     if (!activeRefs.has(ref)) continue;           // order deleted = collected
     if (now - rec.sentAt < REMIND_AFTER_MS) continue;
+    if (now - rec.sentAt > MAX_AGE_MS) continue;                    // (b) for gammel
+    if (result.reminders >= MAX_REMINDERS_PER_RUN) break;           // (c) loft pr. kørsel
+    if (!liveCodes) break;                                          // skab ulaeseligt
+    const recCodes = (Array.isArray(rec.slots) ? rec.slots : []).map(x => String(x && x.code)).filter(Boolean);
+    if (!recCodes.length || !recCodes.some(c => liveCodes.has(c))) continue;  // (a) hentet
 
     const slots = Array.isArray(rec.slots) ? rec.slots : [];
     const doors = (rec.doors || slots.map(s => s.door)).join(', ');
