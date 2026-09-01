@@ -54,12 +54,13 @@ t('vid1 (hero) = three.mp4', /\/three\.mp4$/.test(srcs[0]||''));
 t('vid2 (story) = DJI_20250503120750_0017_D%20(1).mp4', /\/DJI_20250503120750_0017_D%20\(1\)\.mp4$/.test(srcs[1]||''));
 
 // 2) filter-strategi: INGEN backdrop-filter på overlayet, blur på selve videoen
-const ov = await page.$eval('#vs1 .video-overlay', el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage }; });
-t('hero-overlay har ingen backdrop-filter', !ov.bf || ov.bf==='none', ov.bf);
-t('hero-overlay er gradient', /gradient/.test(ov.bg));
-const ov2 = await page.$eval('#vs2 .video-overlay', el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage }; });
-t('story-overlay har ingen backdrop-filter', !ov2.bf || ov2.bf==='none', ov2.bf);
-t('story-overlay er retnings-gradient', /90deg/.test(ov2.bg));
+const ov = await page.$$eval('#vs1 .video-overlay', els => els.map(el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage, size: s.backgroundSize, pos: s.backgroundPosition }; }));
+t('hero-overlay har ingen backdrop-filter', ov.every(o => !o.bf || o.bf==='none'), ov.map(o=>o.bf).join(' | '));
+t('hero-overlay er gradient', ov.every(o => /gradient/.test(o.bg)));
+t('hero-halvdele: gradient strakt over 150vh, b forskudt -75vh', ov.length===2 && ov.every(o => o.size.split(', ').every(s => s===`100% ${H*1.5}px`)) && ov[0].pos.split(', ').every(p => p==='0px 0px') && ov[1].pos.split(', ').every(p => p===`0px ${-H*0.75}px`), ov.map(o=>o.size+' @ '+o.pos).join(' | '));
+const ov2 = await page.$$eval('#vs2 .video-overlay', els => els.map(el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage }; }));
+t('story-overlay har ingen backdrop-filter', ov2.every(o => !o.bf || o.bf==='none'), ov2.map(o=>o.bf).join(' | '));
+t('story-overlay er retnings-gradient (begge halvdele)', ov2.length===2 && ov2.every(o => /90deg/.test(o.bg)));
 const vf = await page.$$eval('#videoStage video', els => els.map(e => getComputedStyle(e).filter));
 t('begge videoer har blur(2px)-filter', vf.length===2 && vf.every(f => /blur\(2px\)/.test(f)), vf.join(' | '));
 t('cart-backdrop beholder sin blur (uændret)', await page.$eval('.cart-backdrop', el => /blur/.test(getComputedStyle(el).backdropFilter||'')).catch(()=>true));
@@ -69,12 +70,26 @@ const vh = await page.evaluate(()=>window.innerHeight);
 const stageH = await page.evaluate(()=>document.getElementById('videoStage').offsetHeight);
 const cssPin = await page.evaluate(()=>CSS.supports('animation-timeline: scroll()'));
 t('Chromium kører CSS scroll-pin (samme mekanisme som iOS 17+)', cssPin);
+// 3a) overlayet er delt i to halvdele (iOS tiler malede lag > 1280px) — hver
+//     halvdel skal være under 1024px selv på den højeste iPhone (956pt), og
+//     de skal mødes uden hul og uden overlap
+const halves = await page.evaluate(()=>['#vs1','#vs2'].map(s=>{
+  const els=[...document.querySelectorAll(s+' .video-overlay')].map(e=>{const r=e.getBoundingClientRect(); return {cls:e.className, top:r.top, bottom:r.bottom, h:r.height};});
+  return els;
+}));
+for (const [i,els] of halves.entries()) {
+  t(`vs${i+1}: to overlay-halvdele (.ov-a + .ov-b)`, els.length===2 && /ov-a/.test(els[0].cls) && /ov-b/.test(els[1].cls), els.map(e=>e.cls).join(' , '));
+  if (els.length===2) {
+    t(`vs${i+1}: halvdele mødes præcist (a.bund = b.top)`, Math.abs(els[0].bottom-els[1].top) < 0.6, `${els[0].bottom.toFixed(1)} vs ${els[1].top.toFixed(1)}`);
+    t(`vs${i+1}: hver halvdel ≤ 1024px ved 956pt-skærm (75lvh)`, els.every(e => e.h/vh <= 0.751 && e.h/vh >= 0.749), els.map(e=>(e.h/vh).toFixed(3)+'vh').join(' '));
+  }
+}
 for (const frac of [0, 0.25, 0.5, 0.9, 1.2, 1.6, 2.2]) {
   const y = Math.round(vh*frac);
   await page.evaluate(y=>window.scrollTo(0,y), y); await page.waitForTimeout(250);
   const r = await page.evaluate(()=>{
-    const o1=document.querySelector('#vs1 .video-overlay').getBoundingClientRect();
-    const o2=document.querySelector('#vs2 .video-overlay').getBoundingClientRect();
+    const u = s => { const rs=[...document.querySelectorAll(s+' .video-overlay')].map(e=>e.getBoundingClientRect()); return { top: Math.min(...rs.map(r=>r.top)), bottom: Math.max(...rs.map(r=>r.bottom)) }; };
+    const o1=u('#vs1'), o2=u('#vs2');
     return { top1:o1.top, bot1:o1.bottom, top2:o2.top, bot2:o2.bottom, sy:window.scrollY };
   });
   const inStage = r.sy < stageH - vh;
@@ -89,7 +104,7 @@ await page.addStyleTag({ content: `
   .hero-content, .scroll-hint, .text-block, header, nav, .site-header, .nav, .topbar { visibility:hidden !important; }
 ` });
 async function shot(name, activeSel, hiddenSel, scrollY){
-  await page.evaluate(([a,h])=>{ document.querySelector(a).style.opacity='1'; document.querySelector(h).style.opacity='0'; }, [activeSel, hiddenSel]);
+  await page.evaluate(([a,h])=>{ document.querySelectorAll(a).forEach(e=>e.style.opacity='1'); document.querySelectorAll(h).forEach(e=>e.style.opacity='0'); }, [activeSel, hiddenSel]);
   await page.evaluate(y=>window.scrollTo(0,y), scrollY); await page.waitForTimeout(350);
   const buf = await page.screenshot({ path: name });
   return decodePng(buf);

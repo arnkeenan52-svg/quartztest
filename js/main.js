@@ -156,12 +156,14 @@ function initVideoFade() {
       sections.forEach((s, i) => {
         s.classList.toggle('is-active', i === idx);
         const vid = s.querySelector('.video-bg');
-        const ov = s.querySelector('.video-overlay');
+        // Overlayet er delt i to halvdele på forsiden (se index.html) — begge
+        // skal følges ad, derfor querySelectorAll.
+        const ovs = s.querySelectorAll('.video-overlay');
         // Earlier videos stay visible UNDER the active one (later sections sit
         // on top in stacking order). If the incoming video hasn't finished
         // loading yet, the previous video shows through instead of black.
         if (vid) vid.style.opacity = i <= idx ? '1' : '0';
-        if (ov) ov.style.opacity = i === idx ? '1' : '0';
+        ovs.forEach(ov => { ov.style.opacity = i === idx ? '1' : '0'; });
       });
       activeSection = closest;
     }
