@@ -3,6 +3,12 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "quartzmolle.dk" }],
+      "destination": "https://www.quartzmolle.dk/:path",
+      "permanent": true
+    },
+    {
       "source": "/butik/:path*",
       "destination": "/shop?from=:path*",
       "permanent": true

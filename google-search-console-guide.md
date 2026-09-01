@@ -26,9 +26,15 @@ quartzmolle.dk er registreret). Når den er lagt ind → tryk "Verify".
 eller en <meta>-tag i forsidens <head> i stedet — sig til, så lægger jeg den ind.)
 
 ### 3. Indsend sitemap
-Menu → **Sitemaps** → skriv `sitemap.xml` i feltet → **Send**.
-Fuld URL: https://www.quartzmolle.dk/sitemap.xml
-Status skal ende på "Lykkedes" / "Success" med 15 opdagede URL'er.
+Menu → **Sitemaps** → skriv den FULDE adresse i feltet → **Send**:
+
+    https://www.quartzmolle.dk/sitemap.xml
+
+(Et Domain property dækker både www, uden www, http og https, så GSC afviser
+den korte form `sitemap.xml` med "Invalid sitemap address".)
+Status skal ende på "Lykkedes" / "Success" med 15 opdagede URL'er. Lige efter
+indsendelse står den typisk på "Couldn't fetch" med tom "Last read" i op til
+et par dage — det er normal ventetid, ikke en fejl.
 
 ### 4. Bed om indeksering af forsiden (valgfrit, fremskynder)
 Menu → **URL-inspektion** → indsæt `https://www.quartzmolle.dk/` →
@@ -39,13 +45,17 @@ Under **Sider → Ikke indekseret** bør admin/locker/fufill/erhverv stå som
 "Udelukket af 'noindex'-tag" — det er meningen og helt korrekt.
 
 ## Vigtigt om domænet
-Sitemap'et bruger **www.quartzmolle.dk** som kanonisk domæne. Sørg for at
-`quartzmolle.dk` (uden www) redirecter til www-udgaven i Vercel, så Google
-ikke ser to versioner. (Vercel: Project → Domains → sæt www som primær.)
+Sitemap'et bruger **www.quartzmolle.dk** som kanonisk domæne. `vercel.json`
+indeholder nu et 308-redirect fra `quartzmolle.dk` (uden www) til www på alle
+sider (undtagen `/api/*`, så Stripe-webhooken og skab-tabletten ikke rammes).
+Det kan desuden sættes i Vercel: Project → Settings → Domains → www som
+primær + "Redirect to www" på apex — begge dele må gerne være slået til.
+Alle offentlige sider har `<link rel="canonical">` (produktsiden sætter den
+fra JS ud fra id'et).
 
 ## Hvad Cowork konkret skal gøre
 1. Åbn Google Search Console for quartzmolle.dk (opret Domain property hvis den mangler).
 2. Verificér med DNS TXT-record (fås inde i GSC).
-3. Indsend sitemap: `sitemap.xml`.
+3. Indsend sitemap med fuld adresse: `https://www.quartzmolle.dk/sitemap.xml`.
 4. Anmod om indeksering af forsiden.
 Det er alt — Google henter selv resten fra sitemap'et løbende.

@@ -44,6 +44,9 @@ for (const path of PAGES) {
     if (/blocked/i.test(f)) failed.push(r.url().slice(0, 90) + ' -> ' + f);
   });
   // eksterne kald mockes så testen ikke afhænger af nettet, men CSP evalueres stadig
+  // (CSP afgøres FØR netværket — en blokering logges som "Refused to load" uanset
+  //  om kaldet bagefter afbrydes her). Registreres først = lavest prioritet.
+  await page.route(/^https?:\/\/(?!localhost)/, r => r.abort());
   await page.route('**://api.stripe.com/**', r => r.fulfill({ status: 200, body: '{}' }));
   await page.route('**/api/**', r => r.fulfill({ json: { ok: true, products: [], orders: [], emails: [], lockers: [], history: [] } }));
   try {
