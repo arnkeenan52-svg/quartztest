@@ -10,12 +10,14 @@ t('shop viser Blå hvede', cards.some(h => /bla-hvede-fuldkorn/.test(h)), `${new
 const txt = await page.evaluate(() => document.body.innerText);
 t('shop: pris 122 kr vises', /122/.test(txt));
 await page.goto('http://localhost:8199/product.html?id=bla-hvede-fuldkorn', { waitUntil:'domcontentloaded' }); await page.waitForTimeout(1000);
-const p = await page.evaluate(() => ({ title: document.title, text: document.body.innerText, img: [...document.images].map(i=>i.getAttribute('src')).filter(s=>/pose-bla/.test(s||'')).length, canon: document.querySelector('link[rel=canonical]')?.href, js: (()=>{try{return JSON.parse(document.getElementById('qm-product-schema').textContent)}catch(e){return null}})() }));
+const p = await page.evaluate(() => ({ title: document.title, text: document.body.innerText, img: [...document.images].map(i=>i.getAttribute('src')).filter(s=>/pose-bla|blaahvede_/.test(s||'')).length, canon: document.querySelector('link[rel=canonical]')?.href, js: (()=>{try{return JSON.parse(document.getElementById('qm-product-schema').textContent)}catch(e){return null}})() }));
 t('produktside: titel', /Blå hvede/.test(p.title), p.title);
 t('produktside: begge størrelser vises + 122 kr som standard', /3 kg/.test(p.text) && /12,5 kg/.test(p.text) && /122/.test(p.text));
 await page.click('button.weight-btn:has-text("12,5 kg")'); await page.waitForTimeout(300);
 t('produktside: 12,5 kg → 350 kr', /350/.test(await page.evaluate(()=>(document.querySelector('[class*=price]')||{}).textContent||'')));
-t('produktside: billede peger på pose-bla-hvede-fuldkorn.jpg', p.img>0, String(p.img));
+t('produktside: posefoto + label-billeder indlæst', p.img>=2, String(p.img));
+const thumbs = await page.$$eval('.product-thumb', els => els.map(e=>e.dataset.src));
+t('produktside: galleri = posefoto + 3 kg-label', thumbs.length===2 && /blaahvede_3kg/.test(thumbs[1]||''), thumbs.join(' , '));
 t('produktside: canonical', p.canon==='https://www.quartzmolle.dk/product?id=bla-hvede-fuldkorn', p.canon);
 t('produktside: schema pris 122.00', p.js && p.js.offers && p.js.offers.price==='122.00', p.js && p.js.offers && p.js.offers.price);
 // læg i kurv → cart.js → checkout payload indeholder id + label
