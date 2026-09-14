@@ -46,6 +46,7 @@ const NAMES = {
   'rod-hvede-type85': 'Rød hvede · Type 85',
   'rug-fuldkorn': 'Rug · Fuldkorn',
   'spelt-fuldkorn': 'Spelt · Fuldkorn',
+  'bla-hvede-fuldkorn': 'Blå hvede · Fuldkorn',
 };
 
 function normEmail(e) { return String(e || '').trim().toLowerCase(); }

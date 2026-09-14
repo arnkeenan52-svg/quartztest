@@ -1,0 +1,26 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const page = await browser.newPage({ viewport: { width: 430, height: 932 } });
+const T=[]; const t=(n,c,x)=>T.push(`${c?'PASS':'FAIL'}  ${n}${x?'  ('+x+')':''}`);
+await page.route(/^https?:\/\/(?!localhost)/, r => r.abort());
+await page.route('**/api/**', r => r.fulfill({ json:{ok:true, products:[]} }));
+await page.goto('http://localhost:8199/shop.html', { waitUntil:'domcontentloaded' }); await page.waitForTimeout(1200);
+const cards = await page.$$eval('a[href*="product?id="], a[href*="product.html?id="]', els => els.map(e => e.getAttribute('href')));
+t('shop viser Blå hvede', cards.some(h => /bla-hvede-fuldkorn/.test(h)), `${new Set(cards).size} produkter`);
+const txt = await page.evaluate(() => document.body.innerText);
+t('shop: pris 122 kr vises', /122/.test(txt));
+await page.goto('http://localhost:8199/product.html?id=bla-hvede-fuldkorn', { waitUntil:'domcontentloaded' }); await page.waitForTimeout(1000);
+const p = await page.evaluate(() => ({ title: document.title, text: document.body.innerText, img: [...document.images].map(i=>i.getAttribute('src')).filter(s=>/pose-bla/.test(s||'')).length, canon: document.querySelector('link[rel=canonical]')?.href, js: (()=>{try{return JSON.parse(document.getElementById('qm-product-schema').textContent)}catch(e){return null}})() }));
+t('produktside: titel', /Blå hvede/.test(p.title), p.title);
+t('produktside: begge størrelser vises + 122 kr som standard', /3 kg/.test(p.text) && /12,5 kg/.test(p.text) && /122/.test(p.text));
+await page.click('button.weight-btn:has-text("12,5 kg")'); await page.waitForTimeout(300);
+t('produktside: 12,5 kg → 350 kr', /350/.test(await page.evaluate(()=>(document.querySelector('[class*=price]')||{}).textContent||'')));
+t('produktside: billede peger på pose-bla-hvede-fuldkorn.jpg', p.img>0, String(p.img));
+t('produktside: canonical', p.canon==='https://www.quartzmolle.dk/product?id=bla-hvede-fuldkorn', p.canon);
+t('produktside: schema pris 122.00', p.js && p.js.offers && p.js.offers.price==='122.00', p.js && p.js.offers && p.js.offers.price);
+// læg i kurv → cart.js → checkout payload indeholder id + label
+await page.click('#buyBtn');
+await page.waitForTimeout(500);
+const cart = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('quartzmolle_cart_v1')||'[]'); } catch(e){ return []; } });
+t('læg i kurv virker (id i kurv)', JSON.stringify(cart).includes('bla-hvede-fuldkorn'), JSON.stringify(cart).slice(0,120));
+console.log(T.join('\n')); const f=T.filter(x=>x.startsWith('FAIL')).length; console.log(`\n${T.length-f}/${T.length} PASS`); await browser.close(); process.exit(f?1:0);
