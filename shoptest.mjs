@@ -17,7 +17,7 @@ await page.click('button.weight-btn:has-text("12,5 kg")'); await page.waitForTim
 t('produktside: 12,5 kg → 350 kr', /350/.test(await page.evaluate(()=>(document.querySelector('[class*=price]')||{}).textContent||'')));
 t('produktside: posefoto + label-billeder indlæst', p.img>=2, String(p.img));
 const thumbs = await page.$$eval('.product-thumb', els => els.map(e=>e.dataset.src));
-t('produktside: galleri = posefoto + 3 kg-label', thumbs.length===2 && /blaahvede_3kg/.test(thumbs[1]||''), thumbs.join(' , '));
+t('produktside: galleri = posefoto + label uden vægt', thumbs.length===2 && /blaahvede_label/.test(thumbs[1]||''), thumbs.join(' , '));
 t('produktside: canonical', p.canon==='https://www.quartzmolle.dk/product?id=bla-hvede-fuldkorn', p.canon);
 t('produktside: schema pris 122.00', p.js && p.js.offers && p.js.offers.price==='122.00', p.js && p.js.offers && p.js.offers.price);
 // læg i kurv → cart.js → checkout payload indeholder id + label
