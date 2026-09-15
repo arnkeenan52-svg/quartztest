@@ -2725,6 +2725,14 @@ button,
   .pg-item figcaption { font-size: 0.85rem; }
 }
 
+/* Afsluttende stort billede (Om os): fylder bredden på mobil, og står
+   centreret i samme størrelse som det første store billede på PC. */
+.pg-item.pg-big-end { grid-column: span 2; }
+
+@media (min-width: 860px) {
+  .pg-item.pg-big-end { grid-column: 2 / 4; grid-row: span 2; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pg-item img { transition: none; }
   .pg-item:hover img { transform: none; }
