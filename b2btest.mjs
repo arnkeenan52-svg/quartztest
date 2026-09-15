@@ -82,7 +82,7 @@ ok('kode er engangs', r.statusCode === 400);
 
 // 7) me -> stamdata + varer
 r = await call({ action: 'me' }, { cookie: sessCookie });
-ok('me: kundenavn + 22 varer', r.jsonBody?.customer?.name === 'Megans Surdej' && r.jsonBody?.products?.length === 22);
+ok('me: kundenavn + 24 varer', r.jsonBody?.customer?.name === 'Megans Surdej' && r.jsonBody?.products?.length === 24);
 ok('priser er tomme fra start', r.jsonBody.products.every(p => p.price === null));
 
 // 8) admin sætter priser
