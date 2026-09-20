@@ -109,6 +109,60 @@ function setCanonical(product) {
   } catch (e) { /* best-effort */ }
 }
 
+// Beskrivelse, titel og delebillede pr. produkt. product.html er én fil for
+// alle varer, så uden det her får hver produktside samme snippet i Google.
+function setMetaTags(product) {
+  try {
+    const navn = `${product.name} – ${product.type}`;
+    const priser = (product.weights || []).map(w => w.price).filter(p => typeof p === 'number');
+    const fra = priser.length ? ` Fra ${Math.min.apply(null, priser)} kr.` : '';
+    const vaegte = (product.weights || []).map(w => w.label).filter(Boolean).join(' og ');
+    // Vægt og pris er det, folk scanner efter i Google, så halen har forrang:
+    // bliver snippet'et for langt, er det produktteksten der beskæres.
+    const hale = (vaegte ? ` Fås i ${vaegte}.` : '') + fra;
+    let krop = (product.description
+      ? String(product.description).replace(/\s+/g, ' ').trim()
+      : `${navn} fra Quartz Mølle – økologisk mel malet på stenkværn i Danmark.`);
+    const PLADS = 158 - hale.length;
+    if (krop.length > PLADS) krop = krop.slice(0, Math.max(0, PLADS - 1)).replace(/[\s,;:–-]+$/, '') + '…';
+    const kort = krop + hale;
+
+    const set = (vaelger, attr, vaerdi, lav) => {
+      let el = document.querySelector(vaelger);
+      if (!el) { el = document.createElement('meta'); el.setAttribute(attr, lav); document.head.appendChild(el); }
+      el.setAttribute('content', vaerdi);
+    };
+    set('meta[name="description"]', 'name', kort, 'description');
+    set('meta[property="og:title"]', 'property', `${navn} | Quartz Mølle`, 'og:title');
+    set('meta[property="og:description"]', 'property', kort, 'og:description');
+
+    const billede = safeUrl(product.previewImage || (product.weights && product.weights[0] && product.weights[0].image) || '');
+    if (billede) {
+      const abs = billede.indexOf('http') === 0 ? billede : 'https://www.quartzmolle.dk/' + String(billede).replace(/^\//, '');
+      set('meta[property="og:image"]', 'property', abs, 'og:image');
+    }
+  } catch (e) { /* best-effort */ }
+}
+
+// Brødkrumme: Google viser "quartzmolle.dk › shop › Rød hvede" i stedet for
+// den rå ?id=-adresse.
+function injectBreadcrumbSchema(product) {
+  try {
+    const data = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Hjem', item: 'https://www.quartzmolle.dk/' },
+        { '@type': 'ListItem', position: 2, name: 'Shop', item: 'https://www.quartzmolle.dk/shop' },
+        { '@type': 'ListItem', position: 3, name: `${product.name} – ${product.type}`, item: canonicalUrl(product) }
+      ]
+    };
+    let el = document.getElementById('qm-breadcrumb-schema');
+    if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'qm-breadcrumb-schema'; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(data);
+  } catch (e) { /* schema is best-effort */ }
+}
+
 // Inject Product structured data (JSON-LD) so Google can show price, brand and
 // availability as a rich result. Googlebot renders JS, so a dynamically added
 // tag is read.
@@ -126,13 +180,34 @@ function injectProductSchema(product) {
       brand: { '@type': 'Brand', name: 'Quartz Mølle' }
     };
     if (abs) data.image = [abs];
-    data.offers = {
-      '@type': 'Offer',
-      priceCurrency: 'DKK',
-      availability: 'https://schema.org/InStock',
-      url: canonicalUrl(product)
-    };
-    if (low != null) data.offers.price = low.toFixed(2);
+    data.sku = product.id;
+    data.category = 'Mel';
+    const high = prices.length ? Math.max.apply(null, prices) : null;
+    const saelger = { '@type': 'Organization', '@id': 'https://www.quartzmolle.dk/#organisation', name: 'Quartz Mølle' };
+    if (prices.length > 1 && low !== high) {
+      // Flere vægte = flere priser. AggregateOffer er den rigtige form og
+      // giver Google et pristil-interval i stedet for én tilfældig pris.
+      data.offers = {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'DKK',
+        lowPrice: low.toFixed(2),
+        highPrice: high.toFixed(2),
+        offerCount: prices.length,
+        availability: 'https://schema.org/InStock',
+        url: canonicalUrl(product),
+        seller: saelger
+      };
+    } else {
+      data.offers = {
+        '@type': 'Offer',
+        priceCurrency: 'DKK',
+        availability: 'https://schema.org/InStock',
+        itemCondition: 'https://schema.org/NewCondition',
+        url: canonicalUrl(product),
+        seller: saelger
+      };
+      if (low != null) data.offers.price = low.toFixed(2);
+    }
     let el = document.getElementById('qm-product-schema');
     if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'qm-product-schema'; document.head.appendChild(el); }
     el.textContent = JSON.stringify(data);
@@ -142,7 +217,9 @@ function injectProductSchema(product) {
 function renderProduct(product) {
   currentProduct = product;
   setCanonical(product);
+  setMetaTags(product);
   injectProductSchema(product);
+  injectBreadcrumbSchema(product);
   const inner = document.getElementById('productInner');
   document.title = `${product.name} – ${product.type} | Quartz Mølle`;
 

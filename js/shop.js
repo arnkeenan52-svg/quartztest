@@ -129,6 +129,14 @@ function applySearch() {
 function initShopSearch() {
   const input = document.getElementById('shopSearch');
   const clearBtn = document.getElementById('shopSearchClear');
+  // ?q=… forudfylder søgefeltet. Det er den adresse, forsidens SearchAction
+  // (sitelinks-søgefeltet i Google) sender folk hen til, så den SKAL virke.
+  if (input) {
+    try {
+      const q = new URLSearchParams(location.search).get('q');
+      if (q) input.value = q.slice(0, 80);
+    } catch (e) { /* ingen søgning, ingen skade */ }
+  }
   if (input) input.addEventListener('input', applySearch);
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {

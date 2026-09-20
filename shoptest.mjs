@@ -19,7 +19,12 @@ t('produktside: posefoto + label-billeder indlæst', p.img>=2, String(p.img));
 const thumbs = await page.$$eval('.product-thumb', els => els.map(e=>e.dataset.src));
 t('produktside: galleri = posefoto + label uden vægt', thumbs.length===2 && /blaahvede_label/.test(thumbs[1]||''), thumbs.join(' , '));
 t('produktside: canonical', p.canon==='https://www.quartzmolle.dk/product?id=bla-hvede-fuldkorn', p.canon);
-t('produktside: schema pris 122.00', p.js && p.js.offers && p.js.offers.price==='122.00', p.js && p.js.offers && p.js.offers.price);
+// Varer med flere vægte bruger AggregateOffer (lowPrice/highPrice); kun varer
+// med én vægt har offers.price. Begge former skal starte på 122,00 for Blå hvede.
+t('produktside: schema laveste pris 122.00', (() => {
+  const o = p.js && p.js.offers; if (!o) return false;
+  return (o.lowPrice || o.price) === '122.00';
+})(), p.js && p.js.offers && (p.js.offers.lowPrice || p.js.offers.price));
 // læg i kurv → cart.js → checkout payload indeholder id + label
 await page.click('#buyBtn');
 await page.waitForTimeout(500);
