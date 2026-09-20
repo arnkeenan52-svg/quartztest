@@ -252,17 +252,6 @@ function renderProduct(product) {
   const inner = document.getElementById('productInner');
   document.title = `${product.name} – ${product.type} | Quartz Mølle`;
 
-  // Synlig sti: Hjem › Alle produkter › varen. Google vil helst kunne se den
-  // samme sti på siden, som brødkrumme-schemaet beskriver.
-  const krumme = document.getElementById('produktKrumme');
-  if (krumme && !krumme.querySelector('[aria-current]')) {
-    const sep = document.createElement('span');
-    sep.className = 'qm-krumme-sep'; sep.setAttribute('aria-hidden', 'true'); sep.textContent = '›';
-    const nu = document.createElement('span');
-    nu.setAttribute('aria-current', 'page');
-    nu.textContent = product.name;
-    krumme.append(sep, nu);
-  }
 
   // Show the REAL certification logos (EU organic leaf + red Statskontrolleret
   // økologisk mark) instead of text pills. The EU logo already carries the
@@ -301,7 +290,7 @@ function renderProduct(product) {
 
   inner.innerHTML = `
     <div>
-      <a href="shop.html" class="btn-back">← Tilbage til alle produkter</a>
+      <a href="shop.html" class="btn-back">← Tilbage til shop</a>
       <img src="${esc(safeUrl(defaultImage))}" alt="${esc(product.name)}"
            class="product-page-img" id="productImg" />
       ${thumbsHTML}

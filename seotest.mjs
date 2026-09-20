@@ -44,12 +44,11 @@ t('alle @id-henvisninger findes', (()=>{ const ids=new Set(g.map(n=>n['@id']).fi
   return [...JSON.stringify(g).matchAll(/"@id":"([^"]+)"/g)].map(m=>m[1]).every(i=>ids.has(i)); })());
 
 // ── Undersider ────────────────────────────────────────────────────────────
-const UNDER = { 'shop.html':['Alle produkter','shop'], 'om.html':['Om os','om'],
-                'forhandlere.html':['Forhandlere','forhandlere'], 'kontakt.html':['Kontakt os','kontakt'] };
+const UNDER = { 'shop.html':['Alle produkter','shop'], 'om.html':['Om os','om'], 'forhandlere.html':['Forhandlere','forhandlere'] };
 const beskrivelser = [bio], titler = [titel(idx)];
 for (const [fil,[navn,sti]] of Object.entries(UNDER)) {
   const s = læs(fil), d = meta(s,'description'), ti = titel(s);
-  t(`${navn}: titel starter med sidenavnet (sitelink-etiketten)`, ti.startsWith(navn), ti);
+  t(`${navn}: titel starter med "${navn}" (det Google bruger som etiket)`, ti.startsWith(navn), ti);
   t(`${navn}: titel er beskrivende, ikke bare navnet`, ti.length>navn.length+16);
   t(`${navn}: beskrivelse 110–165 tegn`, d.length>=110 && d.length<=165, `${d.length} tegn`);
   t(`${navn}: og:description = beskrivelse`, s.includes(`<meta property="og:description" content="${d}"`));
@@ -80,7 +79,6 @@ try {
     canon:document.querySelector('link[rel="canonical"]')?.href || '',
     prod: JSON.parse(document.getElementById('qm-product-schema').textContent),
     krum: JSON.parse(document.getElementById('qm-breadcrumb-schema').textContent),
-    synlig: [...document.querySelectorAll('#produktKrumme > a, #produktKrumme > [aria-current]')].map(e=>e.textContent.trim()),
   }));
   t('produkt: titel har produktnavn', /Rød hvede/.test(r.titel), r.titel);
   t('produkt: egen beskrivelse (ikke skabelonens)', r.desc.length>60 && r.desc!==bio && !/^Økologisk mel malet på stenkværn i Danmark/.test(r.desc), `${r.desc.length} tegn`);
@@ -100,7 +98,6 @@ try {
   t('produkt: fragt til alle fem lande', tilbud.every(o=>o.shippingDetails.shippingDestination.length===5));
   t('produkt: sælger = organisationen', tilbud.every(o=>o.seller['@id']===org['@id']));
   t('produkt: sku og kategori', r.prod.sku==='rod-hvede-type70' && r.prod.category==='Mel');
-  t('produkt: synlig sti matcher schemaet', JSON.stringify(r.synlig)===JSON.stringify(r.krum.itemListElement.map(e=>e.name)), r.synlig.join(' › '));
   t('produkt: brødkrumme Hjem › Alle produkter › vare', r.krum.itemListElement.length===3 && r.krum.itemListElement[1].name==='Alle produkter' && r.krum.itemListElement[2].item===r.canon);
 
   await p.goto('http://localhost:8207/shop.html');
@@ -119,24 +116,25 @@ try {
 
 // ── Menustruktur: de fire sektioner Google skal kunne vælge imellem ───────
 const menu = node('ItemList');
-const MENU = [['Alle produkter','shop'],['Forhandlere','forhandlere'],['Om os','om'],['Kontakt os','kontakt']];
+const MENU = [['Alle produkter','shop'],['Forhandlere','forhandlere'],['Om os','om'],['Kontakt','#kontakt']];
 t('menu: fire sektioner i fast rækkefølge', menu.itemListElement.length===4
    && menu.itemListElement.every((e,i)=>e.name===MENU[i][0] && e.url===`https://www.quartzmolle.dk/${MENU[i][1]}`),
    menu.itemListElement.map(e=>e.name).join(' · '));
 t('menu: hver sektion har en forklaring', menu.itemListElement.every(e=>e.description && e.description.length>25));
 t('menu: hængt på forsiden', node('WebPage').hasPart['@id']===menu['@id']);
 
-// Samme navne i menuen, i mobilmenuen og i footeren på ALLE offentlige sider.
-const OFFENTLIGE = ['index.html','shop.html','om.html','forhandlere.html','kontakt.html','product.html','success.html'];
-for (const f of OFFENTLIGE) {
-  const h = læs(f);
-  t(`${f}: linker til "Alle produkter", ikke "Shop"`, />Shop</.test(h)===false && /shop\.html"[^>]*>Alle produkter</.test(h));
-  t(`${f}: "Kontakt os" er en rigtig side`, /kontakt\.html"[^>]*>Kontakt os</.test(h) && !/href="(index\.html)?#kontakt"/.test(h));
+// Hjemmesiden selv maa IKKE vaere aendret: alt arbejde ligger i <head> og i
+// struktureret data. Her sammenlignes hver sides <body> med den version, der
+// laa foer SEO-arbejdet (71f9fb9).
+import { execSync } from 'node:child_process';
+const krop = h => h.slice(h.indexOf('<body'));
+for (const f of ['index.html','shop.html','om.html','forhandlere.html','product.html','success.html']) {
+  const foer = execSync(`git show 71f9fb9:${f}`, { encoding:'utf8', maxBuffer: 20e6 });
+  t(`${f}: siden ser uaendret ud for besoegende`, krop(foer) === krop(læs(f)));
 }
-t('kontaktsiden er i sitemap', læs('sitemap.xml').includes('https://www.quartzmolle.dk/kontakt<'));
-t('kontaktsiden har adresse, mail og kort', (()=>{const h=læs('kontakt.html');
-  return h.includes('Suså Landevej 101') && h.includes('hello@quartzmolle.dk') && h.includes('maps?q=55.366650');})());
-t('synlig brødkrumme på shop og kontakt', /class="qm-krumme"/.test(læs('shop.html')) && /class="qm-krumme"/.test(læs('kontakt.html')));
+t('stilarket er uaendret', execSync('git show 71f9fb9:css/style.css', { encoding:'utf8', maxBuffer: 20e6 }).trim() === læs('css/style.css').trim());
+t('ingen nye sider er lagt til', !fs.existsSync('kontakt.html'));
+t('sitemap peger kun paa sider der findes', læs('sitemap.xml').includes('/kontakt<')===false);
 
 console.log(T.join('\n')); const f=T.filter(x=>x.startsWith('FAIL')).length;
 console.log(`\n${T.length-f}/${T.length} PASS`); process.exit(f?1:0);
