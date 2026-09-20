@@ -2750,3 +2750,43 @@ button,
   .pg-item img { transition: none; }
   .pg-item:hover img { transform: none; }
 }
+
+/* ── BRØDKRUMMER ──────────────────────────────────────────────────────────
+   Synlig sti øverst på shop- og produktsider. Den matcher BreadcrumbList i
+   struktureret data — Google vil helst kunne se den sti på siden også, og
+   den gør det nemmere at komme et niveau op. */
+.qm-krumme {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+.qm-krumme a {
+  color: inherit;
+  opacity: 0.72;
+  text-decoration: none;
+  transition: opacity 160ms ease;
+}
+.qm-krumme a:hover { opacity: 1; text-decoration: underline; }
+.qm-krumme .qm-krumme-sep { opacity: 0.4; }
+.qm-krumme [aria-current="page"] {
+  opacity: 1;
+  font-weight: 600;
+  /* Lange produktnavne må ikke skubbe stien ud over kanten på mobil. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.product-hero-band .qm-krumme { color: #fff; }
+.shop-hero .qm-krumme {
+  color: var(--text, #2a2a2a);
+  justify-content: center;
+  margin-bottom: 0.65rem;
+}
+@media (max-width: 600px) {
+  .qm-krumme { font-size: 0.76rem; gap: 0.3rem; }
+}

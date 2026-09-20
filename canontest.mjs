@@ -24,13 +24,15 @@ await page.waitForTimeout(800);
 const r = await page.evaluate(() => ({
   canon: document.querySelector('link[rel="canonical"]')?.href,
   og: document.querySelector('meta[property="og:url"]')?.content,
-  schema: (()=>{ try { return JSON.parse(document.getElementById('qm-product-schema').textContent).offers.url; } catch(e){ return 'ERR '+e.message; } })(),
+  schema: (()=>{ try { const o = JSON.parse(document.getElementById('qm-product-schema').textContent).offers;
+      const urls = [...new Set((Array.isArray(o) ? o : [o]).map(x => x.url))];
+      return urls.length === 1 ? urls[0] : 'FLERE: ' + urls.join(' | '); } catch(e){ return 'ERR '+e.message; } })(),
   title: document.title,
   n: document.querySelectorAll('link[rel="canonical"]').length,
 }));
 t('product: canonical = www + kun id (utm fjernet)', r.canon==='https://www.quartzmolle.dk/product?id=rug-fuldkorn', r.canon);
 t('product: og:url = canonical', r.og===r.canon, r.og);
-t('product: schema offers.url = canonical', r.schema===r.canon, r.schema);
+t('product: alle tilbud peger på canonical', r.schema===r.canon, r.schema);
 t('product: præcis én canonical-tag', r.n===1, String(r.n));
 t('product: titel sat', /Rug/.test(r.title), r.title);
 // ukendt id → redirect til shop (uændret adfærd)

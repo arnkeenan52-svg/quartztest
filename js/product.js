@@ -153,14 +153,43 @@ function injectBreadcrumbSchema(product) {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Hjem', item: 'https://www.quartzmolle.dk/' },
-        { '@type': 'ListItem', position: 2, name: 'Shop', item: 'https://www.quartzmolle.dk/shop' },
-        { '@type': 'ListItem', position: 3, name: `${product.name} – ${product.type}`, item: canonicalUrl(product) }
+        { '@type': 'ListItem', position: 2, name: 'Alle produkter', item: 'https://www.quartzmolle.dk/shop' },
+        { '@type': 'ListItem', position: 3, name: product.name, item: canonicalUrl(product) }
       ]
     };
     let el = document.getElementById('qm-breadcrumb-schema');
     if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'qm-breadcrumb-schema'; document.head.appendChild(el); }
     el.textContent = JSON.stringify(data);
   } catch (e) { /* schema is best-effort */ }
+}
+
+// "12,5 kg" -> 12.5. Samme regel som api/_catalog.js bruger server-side.
+function kgFraEtiket(label) {
+  const m = String(label || '').replace(',', '.').match(/([\d.]+)\s*kg/i);
+  return m ? parseFloat(m[1]) : null;
+}
+
+// GLS Pakkeshop-satserne fra api/checkout.js — de samme, kunden faktisk betaler
+// for netop denne pakkestørrelse alene i kurven. Er vægten ukendt, opfinder vi
+// ingen fragt.
+function fragtDetaljer(kg) {
+  if (kg == null || kg > 19.9) return null;
+  const pris = kg <= 5 ? 46 : kg <= 10 ? 55 : kg <= 15 ? 66 : 81;
+  return {
+    '@type': 'OfferShippingDetails',
+    shippingRate: { '@type': 'MonetaryAmount', value: pris.toFixed(2), currency: 'DKK' },
+    shippingDestination: [
+      { '@type': 'DefinedRegion', addressCountry: 'DK' },
+      { '@type': 'DefinedRegion', addressCountry: 'SE' },
+      { '@type': 'DefinedRegion', addressCountry: 'DE' },
+      { '@type': 'DefinedRegion', addressCountry: 'NL' },
+      { '@type': 'DefinedRegion', addressCountry: 'NO' }
+    ],
+    deliveryTime: {
+      '@type': 'ShippingDeliveryTime',
+      transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 3, unitCode: 'DAY' }
+    }
+  };
 }
 
 // Inject Product structured data (JSON-LD) so Google can show price, brand and
@@ -182,32 +211,32 @@ function injectProductSchema(product) {
     if (abs) data.image = [abs];
     data.sku = product.id;
     data.category = 'Mel';
-    const high = prices.length ? Math.max.apply(null, prices) : null;
     const saelger = { '@type': 'Organization', '@id': 'https://www.quartzmolle.dk/#organisation', name: 'Quartz Mølle' };
-    if (prices.length > 1 && low !== high) {
-      // Flere vægte = flere priser. AggregateOffer er den rigtige form og
-      // giver Google et pristil-interval i stedet for én tilfældig pris.
-      data.offers = {
-        '@type': 'AggregateOffer',
-        priceCurrency: 'DKK',
-        lowPrice: low.toFixed(2),
-        highPrice: high.toFixed(2),
-        offerCount: prices.length,
-        availability: 'https://schema.org/InStock',
-        url: canonicalUrl(product),
-        seller: saelger
-      };
-    } else {
-      data.offers = {
-        '@type': 'Offer',
-        priceCurrency: 'DKK',
-        availability: 'https://schema.org/InStock',
-        itemCondition: 'https://schema.org/NewCondition',
-        url: canonicalUrl(product),
-        seller: saelger
-      };
-      if (low != null) data.offers.price = low.toFixed(2);
-    }
+
+    // Én Offer PR. VÆGT i stedet for én samlet pris. Det er den form, der
+    // beskriver varen rigtigt: hver pakkestørrelse har sin egen pris, sit eget
+    // varenummer og sin egen fragt — og Google kan vise prisspændet af sig selv.
+    data.offers = (product.weights || [])
+      .filter(w => typeof w.price === 'number')
+      .map(w => {
+        const kg = kgFraEtiket(w.label);
+        const tilbud = {
+          '@type': 'Offer',
+          name: `${product.name} – ${w.label}`,
+          sku: `${product.id}|${w.label}`,
+          price: w.price.toFixed(2),
+          priceCurrency: 'DKK',
+          availability: 'https://schema.org/InStock',
+          itemCondition: 'https://schema.org/NewCondition',
+          url: canonicalUrl(product),
+          seller: saelger
+        };
+        if (kg != null) tilbud.weight = { '@type': 'QuantitativeValue', value: kg, unitCode: 'KGM' };
+        const fragt = fragtDetaljer(kg);
+        if (fragt) tilbud.shippingDetails = fragt;
+        return tilbud;
+      });
+    if (data.offers.length === 0) delete data.offers;
     let el = document.getElementById('qm-product-schema');
     if (!el) { el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'qm-product-schema'; document.head.appendChild(el); }
     el.textContent = JSON.stringify(data);
@@ -222,6 +251,18 @@ function renderProduct(product) {
   injectBreadcrumbSchema(product);
   const inner = document.getElementById('productInner');
   document.title = `${product.name} – ${product.type} | Quartz Mølle`;
+
+  // Synlig sti: Hjem › Alle produkter › varen. Google vil helst kunne se den
+  // samme sti på siden, som brødkrumme-schemaet beskriver.
+  const krumme = document.getElementById('produktKrumme');
+  if (krumme && !krumme.querySelector('[aria-current]')) {
+    const sep = document.createElement('span');
+    sep.className = 'qm-krumme-sep'; sep.setAttribute('aria-hidden', 'true'); sep.textContent = '›';
+    const nu = document.createElement('span');
+    nu.setAttribute('aria-current', 'page');
+    nu.textContent = product.name;
+    krumme.append(sep, nu);
+  }
 
   // Show the REAL certification logos (EU organic leaf + red Statskontrolleret
   // økologisk mark) instead of text pills. The EU logo already carries the
@@ -260,7 +301,7 @@ function renderProduct(product) {
 
   inner.innerHTML = `
     <div>
-      <a href="shop.html" class="btn-back">← Tilbage til shop</a>
+      <a href="shop.html" class="btn-back">← Tilbage til alle produkter</a>
       <img src="${esc(safeUrl(defaultImage))}" alt="${esc(product.name)}"
            class="product-page-img" id="productImg" />
       ${thumbsHTML}

@@ -19,12 +19,12 @@ t('produktside: posefoto + label-billeder indlæst', p.img>=2, String(p.img));
 const thumbs = await page.$$eval('.product-thumb', els => els.map(e=>e.dataset.src));
 t('produktside: galleri = posefoto + label uden vægt', thumbs.length===2 && /blaahvede_label/.test(thumbs[1]||''), thumbs.join(' , '));
 t('produktside: canonical', p.canon==='https://www.quartzmolle.dk/product?id=bla-hvede-fuldkorn', p.canon);
-// Varer med flere vægte bruger AggregateOffer (lowPrice/highPrice); kun varer
-// med én vægt har offers.price. Begge former skal starte på 122,00 for Blå hvede.
-t('produktside: schema laveste pris 122.00', (() => {
-  const o = p.js && p.js.offers; if (!o) return false;
-  return (o.lowPrice || o.price) === '122.00';
-})(), p.js && p.js.offers && (p.js.offers.lowPrice || p.js.offers.price));
+// Hver vægt har sit eget tilbud med sin egen pris. Billigste pakke af Blå
+// hvede er 3 kg til 122,00.
+const laveste = (js) => { const o = js && js.offers; if (!o) return null;
+  const priser = (Array.isArray(o) ? o : [o]).map(x => x.lowPrice || x.price).filter(Boolean);
+  return priser.length ? priser.map(Number).sort((a,b)=>a-b)[0].toFixed(2) : null; };
+t('produktside: schema laveste pris 122.00', laveste(p.js)==='122.00', laveste(p.js));
 // læg i kurv → cart.js → checkout payload indeholder id + label
 await page.click('#buyBtn');
 await page.waitForTimeout(500);
