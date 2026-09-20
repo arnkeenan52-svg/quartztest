@@ -57,7 +57,7 @@ t('vid2 (story) = DJI_20250503120750_0017_D%20(1).mp4', /\/DJI_20250503120750_00
 const ov = await page.$$eval('#vs1 .video-overlay', els => els.map(el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage, size: s.backgroundSize, pos: s.backgroundPosition }; }));
 t('hero-overlay har ingen backdrop-filter', ov.every(o => !o.bf || o.bf==='none'), ov.map(o=>o.bf).join(' | '));
 t('hero-overlay er gradient', ov.every(o => /gradient/.test(o.bg)));
-t('hero-halvdele: gradient strakt over 150vh, b forskudt -75vh', ov.length===2 && ov.every(o => o.size.split(', ').every(s => s===`100% ${H*1.5}px`)) && ov[0].pos.split(', ').every(p => p==='0px 0px') && ov[1].pos.split(', ').every(p => p===`0px ${-H*0.75}px`), ov.map(o=>o.size+' @ '+o.pos).join(' | '));
+t('hero-halvdele: gradient strakt over 150vh, b forskudt -69vh', ov.length===2 && ov.every(o => o.size.split(', ').every(s => s===`100% ${H*1.5}px`)) && ov[0].pos.split(', ').every(p => p==='0px 0px') && ov[1].pos.split(', ').every(p => { const m=p.match(/^0px (-?[\d.]+)px$/); return m && Math.abs(parseFloat(m[1]) + H*0.69) < 0.05; }), ov.map(o=>o.size+' @ '+o.pos).join(' | '));
 const ov2 = await page.$$eval('#vs2 .video-overlay', els => els.map(el => { const s=getComputedStyle(el); return { bf: s.backdropFilter || s.webkitBackdropFilter, bg: s.backgroundImage }; }));
 t('story-overlay har ingen backdrop-filter', ov2.every(o => !o.bf || o.bf==='none'), ov2.map(o=>o.bf).join(' | '));
 t('story-overlay er retnings-gradient (begge halvdele)', ov2.length===2 && ov2.every(o => /90deg/.test(o.bg)));
@@ -71,17 +71,23 @@ const stageH = await page.evaluate(()=>document.getElementById('videoStage').off
 const cssPin = await page.evaluate(()=>CSS.supports('animation-timeline: scroll()'));
 t('Chromium kører CSS scroll-pin (samme mekanisme som iOS 17+)', cssPin);
 // 3a) overlayet er delt i to halvdele (iOS tiler malede lag > 1280px) — hver
-//     halvdel skal være under 1024px selv på den højeste iPhone (956pt), og
-//     de skal mødes uden hul og uden overlap
+//     halvdel skal være under 1024px selv på den højeste iPhone (956pt).
+//     De MØDES ikke kant mod kant: Safari runder lag-kanter ud til hele
+//     device-pixels, så to halvdele der støder op til hinanden kommer til at
+//     dække samme pixelrække og lægger mørkningen på to gange = en mørk
+//     1px-streg. Derfor overlapper de 12lvh og tones over i hinanden.
 const halves = await page.evaluate(()=>['#vs1','#vs2'].map(s=>{
-  const els=[...document.querySelectorAll(s+' .video-overlay')].map(e=>{const r=e.getBoundingClientRect(); return {cls:e.className, top:r.top, bottom:r.bottom, h:r.height};});
+  const els=[...document.querySelectorAll(s+' .video-overlay')].map(e=>{const r=e.getBoundingClientRect(); const c=getComputedStyle(e); return {cls:e.className, top:r.top, bottom:r.bottom, h:r.height, maske:(c.maskImage&&c.maskImage!=='none')?c.maskImage:c.webkitMaskImage};});
   return els;
 }));
 for (const [i,els] of halves.entries()) {
   t(`vs${i+1}: to overlay-halvdele (.ov-a + .ov-b)`, els.length===2 && /ov-a/.test(els[0].cls) && /ov-b/.test(els[1].cls), els.map(e=>e.cls).join(' , '));
   if (els.length===2) {
-    t(`vs${i+1}: halvdele mødes præcist (a.bund = b.top)`, Math.abs(els[0].bottom-els[1].top) < 0.6, `${els[0].bottom.toFixed(1)} vs ${els[1].top.toFixed(1)}`);
-    t(`vs${i+1}: hver halvdel ≤ 1024px ved 956pt-skærm (75lvh)`, els.every(e => e.h/vh <= 0.751 && e.h/vh >= 0.749), els.map(e=>(e.h/vh).toFixed(3)+'vh').join(' '));
+    const overlap = (els[0].bottom - els[1].top) / vh;
+    t(`vs${i+1}: halvdele overlapper 12lvh (ingen kant at runde)`, Math.abs(overlap - 0.12) < 0.005, `${(overlap*100).toFixed(1)}lvh`);
+    t(`vs${i+1}: intet hul mellem halvdelene`, els[0].bottom > els[1].top && els[1].bottom > els[0].bottom);
+    t(`vs${i+1}: hver halvdel ≤ 1024px ved 956pt-skærm (81lvh)`, els.every(e => e.h/vh <= 0.811 && e.h/vh >= 0.809) && 0.81*956 <= 1024, `${(els[0].h/vh).toFixed(3)}vh = ${Math.round(0.81*956)}px ved 956pt`);
+    t(`vs${i+1}: begge halvdele har krydstoning`, els.every(e => e.maske && e.maske !== 'none' && /gradient/.test(e.maske)), els.map(e=>e.maske?e.maske.slice(0,28):'ingen').join(' | '));
   }
 }
 for (const frac of [0, 0.25, 0.5, 0.9, 1.2, 1.6, 2.2]) {
